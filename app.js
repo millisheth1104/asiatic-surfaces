@@ -66,7 +66,7 @@
     //   pitch — vertical angle (-90 bottom to +90 top)
     //   yaw   — horizontal angle (-180 to 180, 0 = center of image)
     const productHotspots = [
-        { name: '#4006', pitch: 5, yaw: 0 },
+        { name: '#4006', pitch: 23, yaw: 0 },
         // To add more products, copy the line above and change name/pitch/yaw.
         // Example: { name: 'Product Name', pitch: 10, yaw: -45 },
     ];
