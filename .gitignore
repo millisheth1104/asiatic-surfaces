@@ -24,3 +24,8 @@ desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Backups and temporary testing files
+src/*_backup*
+src/*_8k*
+
