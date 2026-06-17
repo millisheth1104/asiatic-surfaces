@@ -60,8 +60,47 @@
         });
     }
 
+    // ---- Product Hotspots ----
+    // Add your products here. Each entry needs:
+    //   name  — the label text shown floating in the panorama
+    //   pitch — vertical angle (-90 bottom to +90 top)
+    //   yaw   — horizontal angle (-180 to 180, 0 = center of image)
+    const productHotspots = [
+        { name: '#4006', pitch: 5, yaw: 0 },
+        // To add more products, copy the line above and change name/pitch/yaw.
+        // Example: { name: 'Product Name', pitch: 10, yaw: -45 },
+    ];
+
+    // Creates the floating product label DOM element for a hotspot
+    function createProductTooltip(hotspotDiv, productName) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'product-label';
+
+        const dot = document.createElement('span');
+        dot.className = 'product-label-dot';
+
+        const text = document.createElement('span');
+        text.className = 'product-label-text';
+        text.textContent = productName;
+
+        wrapper.appendChild(dot);
+        wrapper.appendChild(text);
+        hotspotDiv.appendChild(wrapper);
+    }
+
     // ---- Initialize Pannellum ----
     function initViewer() {
+        // Build hotspot config from product list
+        const hotspots = productHotspots.map((product, index) => ({
+            id: `product-hotspot-${index}`,
+            pitch: product.pitch,
+            yaw: product.yaw,
+            type: 'info',
+            cssClass: 'product-hotspot',
+            createTooltipFunc: createProductTooltip,
+            createTooltipArgs: product.name
+        }));
+
         viewer = pannellum.viewer('panorama-viewer', {
             type: 'equirectangular',
             panorama: 'src/360img.jpeg',
@@ -83,11 +122,13 @@
             autoRotate: 0,
             autoRotateInactivityDelay: 0,
             preview: '',
+            hotSpots: hotspots,
             strings: {
                 loadButtonLabel: '',
                 loadingLabel: ''
             }
         });
+
 
         // Listen for load complete
         viewer.on('load', onViewerLoaded);
