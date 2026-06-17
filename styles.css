@@ -209,7 +209,9 @@ html, body {
 
 .header-right {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
 }
 
 .view-badge {
@@ -390,6 +392,7 @@ html, body {
     backdrop-filter: blur(20px);
     box-shadow: var(--shadow-md);
     transition: all var(--transition-fast);
+    pointer-events: auto; /* Enable clicking inside header-bar */
 }
 
 .fullsheet-toggle-btn:hover {
@@ -538,6 +541,10 @@ html, body {
 
     .header-text p {
         font-size: 11px;
+    }
+
+    .header-right {
+        gap: 6px;
     }
 
     .view-badge {
