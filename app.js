@@ -124,8 +124,20 @@
         if (viewer) {
             updateCompass();
             updateInfo();
+            syncGyroState();
         }
         requestAnimationFrame(updateLoop);
+    }
+
+    function syncGyroState() {
+        if (viewer) {
+            const internalGyroActive = viewer.isOrientationActive();
+            if (isGyroActive && !internalGyroActive) {
+                isGyroActive = false;
+                btnGyro.classList.remove('active', 'gyro-active');
+                showToast('Gyroscope paused by touch interaction');
+            }
+        }
     }
 
     function updateCompass() {
@@ -229,61 +241,13 @@
         return 'DeviceOrientationEvent' in window;
     }
 
-    function handleDeviceOrientation(event) {
-        if (!isGyroActive || !viewer) return;
-
-        let alpha = event.alpha; // 0-360, compass heading
-        let beta = event.beta;   // -180 to 180, front-back tilt
-        let gamma = event.gamma; // -90 to 90, left-right tilt
-
-        if (alpha === null || beta === null || gamma === null) return;
-
-        // Capture initial alpha on first reading so the panorama
-        // doesn't jump to an arbitrary heading
-        if (initialAlpha === null) {
-            initialAlpha = alpha;
-        }
-
-        // Get screen orientation angle (for landscape/portrait compensation)
-        const screenOrientation = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-
-        let yaw, pitch;
-
-        switch (screenOrientation) {
-            case 0: // Portrait
-                yaw = alpha - initialAlpha;
-                pitch = Math.max(-85, Math.min(85, -(beta - 90)));
-                break;
-            case 90: // Landscape left
-                yaw = alpha - initialAlpha + gamma;
-                pitch = Math.max(-85, Math.min(85, -(beta - 90)));
-                break;
-            case -90:
-            case 270: // Landscape right
-                yaw = alpha - initialAlpha - gamma;
-                pitch = Math.max(-85, Math.min(85, -(beta - 90)));
-                break;
-            case 180: // Upside down
-                yaw = alpha - initialAlpha;
-                pitch = Math.max(-85, Math.min(85, (beta + 90)));
-                break;
-            default:
-                yaw = alpha - initialAlpha;
-                pitch = Math.max(-85, Math.min(85, -(beta - 90)));
-        }
-
-        // Normalize yaw
-        yaw = ((yaw % 360) + 360) % 360;
-        if (yaw > 180) yaw -= 360;
-
-        viewer.setYaw(yaw);
-        viewer.setPitch(pitch);
-    }
-
     function enableGyro() {
+        if (!viewer) return;
+
+        // Start native Pannellum device orientation control
+        viewer.startOrientation();
+
         isGyroActive = true;
-        initialAlpha = null; // reset heading baseline
-        window.addEventListener('deviceorientation', handleDeviceOrientation, true);
         btnGyro.classList.add('active', 'gyro-active');
         showToast('📱 Gyroscope enabled — tilt to look around');
         onFirstInteraction();
@@ -297,9 +261,12 @@
     }
 
     function disableGyro() {
+        if (!viewer) return;
+
+        // Stop native Pannellum device orientation control
+        viewer.stopOrientation();
+
         isGyroActive = false;
-        initialAlpha = null;
-        window.removeEventListener('deviceorientation', handleDeviceOrientation, true);
         btnGyro.classList.remove('active', 'gyro-active');
         showToast('Gyroscope disabled');
     }
