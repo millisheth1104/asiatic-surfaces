@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="wBase" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#b07a45"/>
+      <stop offset="0.5" stop-color="#8f5c30"/>
+      <stop offset="1" stop-color="#5f3b1d"/>
+    </linearGradient>
+
+    <!-- cathedral grain: fast variation across the plank, slow along it, then bent -->
+    <filter id="wGrain" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0022 0.09" numOctaves="6" seed="23" result="t"/>
+      <feColorMatrix in="t" type="matrix"
+        values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1" result="grey"/>
+      <feComponentTransfer in="grey" result="rings">
+        <feFuncR type="table" tableValues="0.34 0.86 0.30 0.78 0.24 0.90 0.36 0.72 0.26"/>
+        <feFuncG type="table" tableValues="0.20 0.60 0.17 0.53 0.13 0.64 0.22 0.48 0.15"/>
+        <feFuncB type="table" tableValues="0.10 0.36 0.08 0.30 0.06 0.39 0.12 0.26 0.07"/>
+      </feComponentTransfer>
+      <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.004" numOctaves="2" seed="7" result="bend"/>
+      <feDisplacementMap in="rings" in2="bend" scale="120" xChannelSelector="R" yChannelSelector="G"/>
+      <feGaussianBlur stdDeviation="0.5"/>
+    </filter>
+
+    <!-- pore lines: the fine open grain of oak -->
+    <filter id="wPore" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 1.5" numOctaves="3" seed="63"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .13  0 0 0 0 .07  0 0 0 0 .02  .85 0 0 0 -.42"/>
+    </filter>
+
+    <!-- plank joint: shadow gap with a lit arris on the lower board -->
+    <linearGradient id="wJoint" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#20120a" stop-opacity=".00"/>
+      <stop offset="0.42" stop-color="#1b0f07" stop-opacity=".72"/>
+      <stop offset="0.55" stop-color="#150c05" stop-opacity=".85"/>
+      <stop offset="0.72" stop-color="#ffd9a6" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="#20120a" stop-opacity=".00"/>
+    </linearGradient>
+
+    <radialGradient id="wKnot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"    stop-color="#2e1a09" stop-opacity=".82"/>
+      <stop offset="0.42" stop-color="#5a361a" stop-opacity=".55"/>
+      <stop offset="0.78" stop-color="#7d4d24" stop-opacity=".22"/>
+      <stop offset="1"    stop-color="#7d4d24" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="wSheen" x1="0.05" y1="0" x2="0.95" y2="0.75">
+      <stop offset="0"    stop-color="#ffe9c4" stop-opacity=".26"/>
+      <stop offset="0.28" stop-color="#ffffff" stop-opacity=".05"/>
+      <stop offset="0.62" stop-color="#2a1809" stop-opacity=".18"/>
+      <stop offset="1"    stop-color="#170d05" stop-opacity=".46"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="1100" fill="url(#wBase)"/>
+  <rect x="-40" y="-40" width="1680" height="1180" filter="url(#wGrain)"/>
+  <rect width="1600" height="1100" filter="url(#wPore)" opacity=".62"/>
+
+  <!-- three boards -->
+  <rect x="0" y="292" width="1600" height="34" fill="url(#wJoint)"/>
+  <rect x="0" y="712" width="1600" height="34" fill="url(#wJoint)"/>
+
+  <ellipse cx="1148" cy="486" rx="86" ry="44" fill="url(#wKnot)"/>
+  <ellipse cx="352" cy="892" rx="58" ry="30" fill="url(#wKnot)" opacity=".8"/>
+
+  <rect width="1600" height="1100" fill="url(#wSheen)"/>
+</svg>
