@@ -1,0 +1,10 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# generated imagery lands here; keep the SVGs, ignore nothing by default
+# (uncomment if you do not want large photos in the repo)
+# assets/textures/*.png
+# assets/textures/*.jpg

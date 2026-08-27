@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="tBase" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#e2eff4"/>
+      <stop offset="0.44" stop-color="#b8d5de"/>
+      <stop offset="1" stop-color="#82a7b5"/>
+    </linearGradient>
+    <linearGradient id="tField" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#cbe2e9"/>
+      <stop offset="0.55" stop-color="#aecdd7"/>
+      <stop offset="1" stop-color="#8db1bf"/>
+    </linearGradient>
+
+    <!-- thermofoil wraps the router profile in one seamless skin: soft, no seams -->
+    <filter id="tWrap" x="-4%" y="-4%" width="108%" height="108%">
+      <feGaussianBlur stdDeviation="3.5"/>
+    </filter>
+    <filter id="tMicro" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="47"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .3 0 0 0 -.15"/>
+    </filter>
+
+    <linearGradient id="tSatin" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0"    stop-color="#ffffff" stop-opacity=".00"/>
+      <stop offset="0.22" stop-color="#ffffff" stop-opacity=".42"/>
+      <stop offset="0.33" stop-color="#ffffff" stop-opacity=".04"/>
+      <stop offset="0.60" stop-color="#ffffff" stop-opacity=".26"/>
+      <stop offset="0.80" stop-color="#476a77" stop-opacity=".10"/>
+      <stop offset="1"    stop-color="#2b4651" stop-opacity=".30"/>
+    </linearGradient>
+    <radialGradient id="tVig" cx="0.3" cy="0.12" r="1.05">
+      <stop offset="0"    stop-color="#ffffff" stop-opacity=".22"/>
+      <stop offset="0.6"  stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#1d323a" stop-opacity=".34"/>
+    </radialGradient>
+  </defs>
+
+  <!-- door face -->
+  <rect width="1600" height="1100" fill="url(#tBase)"/>
+
+  <!-- routed panel: bevel lit from the upper left, field recessed -->
+  <g filter="url(#tWrap)">
+    <rect x="196" y="188" width="1208" height="724" fill="#a9c9d4" opacity=".55"/>
+    <path d="M196 188 H1404 L1356 236 H244 Z" fill="#ffffff" opacity=".54"/>
+    <path d="M196 188 L244 236 V864 L196 912 Z" fill="#ffffff" opacity=".30"/>
+    <path d="M1404 188 V912 L1356 864 V236 Z" fill="#20404b" opacity=".20"/>
+    <path d="M196 912 H1404 L1356 864 H244 Z" fill="#1b3a44" opacity=".30"/>
+    <rect x="244" y="236" width="1112" height="628" fill="url(#tField)"/>
+    <rect x="244" y="236" width="1112" height="10" fill="#173540" opacity=".22"/>
+  </g>
+
+  <rect width="1600" height="1100" filter="url(#tMicro)" opacity=".34"/>
+  <rect width="1600" height="1100" fill="url(#tSatin)"/>
+  <rect width="1600" height="1100" fill="url(#tVig)"/>
+</svg>
