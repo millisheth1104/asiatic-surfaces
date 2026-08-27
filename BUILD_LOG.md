@@ -407,3 +407,40 @@ beside the plate, CTA 189px above the floor, plate rise 160px).
 appeared to do nothing. Every measurement above was taken after force-refetching the
 stylesheet with a cache-busting query in-page. Worth remembering — it produced one false
 "the fix did not work" reading.
+
+
+---
+
+# Build Log — Revision 7 (repo cleanup + a regression it uncovered)
+
+**Date:** 2026-08-28
+
+## Repo cleanup
+The two "Add files via upload" commits had put the project in three places at once. Removed
+**27 duplicated files** — 12 flattened copies at the repo root (`style.css`, `main.js`,
+`launch.json`, `PROMPTS.md` and 8 loose `.svg`s) and the 15-file nested `asiatic surface/`
+directory. The flattened root copy was broken anyway: its `index.html` asked for
+`assets/css/style.css`, which did not exist at the root.
+
+Verified before deleting that the live `index.html` references only `assets/…` paths, and that
+every keep-list file was present. Both upload commits remain in history, so nothing is lost.
+
+The repo is now exactly the 17 files of the project.
+
+## Regression the cleanup uncovered
+Checking the site after the deletions surfaced a bug that had nothing to do with them: **all
+eight plate cards had no image.** `--tex` computed to empty, so
+`background-image: var(--tex)` was `none`.
+
+Cause: the eight `[data-tex="..."]` rules that define the material sources sat immediately
+before `.slide{` in the stylesheet — inside the region wholesale-replaced during the
+revision 4 static-hero rework. They went with it. After that rework I verified the hero
+background (which has its own `--hero-img`) and the geometry, but never re-checked the cards,
+so this shipped in both pushed commits.
+
+Restored, and verified all eight map to the right file — `fabric -> fabric`,
+`texture -> texture`, … `charcoal -> charcoal`, zero mismatches, zero 404s.
+
+**Lesson recorded in `memory.md`:** after any large edit to `style.css`, assert that every
+`.chip__media` reports a `textures/` background. A wholesale region replacement can drop rules
+silently, and a missing custom property fails quietly rather than loudly.

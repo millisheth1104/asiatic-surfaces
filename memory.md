@@ -62,6 +62,12 @@ generated interior photograph. It currently points at `wooden.svg` as a placehol
 That single declaration feeds the hero planes AND the hero card. The bento tile uses a
 plain `<img src>` in `index.html`, so a full swap is 2 edits per family.
 
+⚠️ **The `[data-tex]` rules are load-bearing and easy to lose.** They sit next to the shelf
+rules in `style.css`. They were once wiped out by a wholesale replacement of the hero CSS
+region and the eight plate cards silently rendered with no image at all — `--tex` resolved to
+empty, so `background-image: var(--tex)` became `none`. After any large edit to `style.css`,
+check that `document.querySelectorAll('.chip__media')` all report a `textures/` background.
+
 ⚠️ **Keep those `url()`s in the stylesheet, not in an inline `style` attribute.** Chrome
 resolves a relative `url()` inside a custom property against the stylesheet that *uses*
 `var()`, not the document — inline `--tex:url('assets/…')` silently 404s as
