@@ -127,6 +127,13 @@ Three rules learned the hard way here:
   `var(--shelf-drop)` below the hero's bottom edge; `.collection` adds that same variable to
   its top padding to make room. The concave notch is `.shelf::before`, a radial-gradient
   inverted corner pinned to the hero's bottom line.
+- **Anything whose padding derives from `--shelf-w` MUST be reset at every breakpoint where
+  the plate stops sitting beside it.** This bit twice: `.hero__inner--bottom` and `.hero-foot`
+  both carry `padding-right: --shelf-w + 28px` so the desktop copy clears the plate. At 375px
+  that was 291px of padding on a 375px screen — the sub-line rendered in a **51px column over
+  16 lines**. At 700px it was still 498px, leaving 164px. Both ranges now reset it: below
+  900px the bottom copy goes **above** the plate at full width (hero `padding-bottom` grows to
+  clear the plate's rise), and below 680px the plate is a tray below the hero anyway.
 - **`--shelf-w` drives both sides of the hero floor.** The plate's width and the
   `max-width` on `.hero__foot` / `.hero__rail` come from the same variable, which is what
   keeps the CTA and slider controls clear of the plate at every width. Change it in one

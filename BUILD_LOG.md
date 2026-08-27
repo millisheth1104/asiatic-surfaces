@@ -359,3 +359,51 @@ accounts needs billing enabled:
 The generation script is ready at `scratchpad/gen_images.py` (model fallback chain, aspect
 ratio hints, writes straight into `assets/textures/`). The hero still shows `wooden.svg` as a
 placeholder; the swap is one line, `--hero-img` in `style.css`.
+
+
+---
+
+# Build Log — Revision 6 (mobile and tablet)
+
+**Date:** 2026-08-28
+
+## The bug
+`.hero__inner--bottom` and `.hero-foot` carry `padding-right: calc(var(--shelf-w) + 28px)` so
+the desktop copy clears the plate that breaks the hero's bottom edge. Neither was reset for
+narrow screens, and `--shelf-w` stays large relative to the viewport there:
+
+| Width | padding-right | resulting copy column |
+|---|---|---|
+| 375px | 291px | **51px — sub-line over 16 lines** |
+| 700px | 498px | **164px — sub-line over 6 lines** |
+
+A mobile `.hero-foot` reset had existed earlier but was silently lost when the mobile `.hero`
+rule was rewritten in revision 4, and `.hero__inner--bottom` never had one — it was created in
+revision 5.
+
+## Fixes
+- **≤900px**: bottom copy stops sitting beside the plate and goes **above** it at full width —
+  `padding-right` back to `--hpad`, and hero `padding-bottom` grows to `clamp(180px,25vh,260px)`
+  so the copy clears the plate's rise into the hero.
+- **≤680px**: same reset, plus the hero's dead vertical space cut (top padding 179px -> 89px,
+  height 827px -> 617px), `max-width` caps dropped on the sub-line and note, the manual `<br>`
+  in the note disabled, cards 132px -> 142px, and `.hero__link` padded to a 44px touch target.
+
+## Verification
+| | 375 | 430 | 320 | 700 | 768 | 900 | 1024 | 1440 |
+|---|---|---|---|---|---|---|---|---|
+| copy column px | 323 | 378 | 268 | 435 | 435 | 435 | 378 | 535 |
+| sub-line rows | 3 | 3 | 3 | 2 | 2 | 2 | 3 | 2 |
+| squeezed blocks | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| copy/plate overlap | n/a | n/a | n/a | none | none | none | none | none |
+| horizontal overflow | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| tap targets < 44px | 0 | 0 | 0 | — | — | — | — | — |
+
+Hero height 617px at 375 (was 827). Headline stays on one row at every width down to 320px.
+Marquee seamless at all widths; nothing stuck; desktop layout unchanged (1440 still 535px copy
+beside the plate, CTA 189px above the floor, plate rise 160px).
+
+**Testing note:** the preview browser caches `style.css` across navigations, so CSS-only edits
+appeared to do nothing. Every measurement above was taken after force-refetching the
+stylesheet with a cache-busting query in-page. Worth remembering — it produced one false
+"the fix did not work" reading.
