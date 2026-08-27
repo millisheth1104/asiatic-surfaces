@@ -49,6 +49,18 @@ There are **8 files, one per family** — no separate hero art. Each is **proced
 shaded slats with cast shadows, a routed door profile, a laminate core edge), because no
 image-generation tool was available in the build session.
 
+⚠️ **Never put the webp and its fallback in one comma-separated `background-image`.** A
+layer list downloads **every** image in it, so phones were pulling 294 KB (39 KB webp +
+255 KB jpeg) to display one. Use two separate declarations instead — an overridden
+declaration downloads nothing, so exactly one image is fetched:
+`background-image:url(...jpg); background-image:var(--hero-img);`
+
+⚠️ **The phone variant is pre-exposed.** `hero-interior-900.webp` has the CSS filter baked
+in (brightness .82, saturate .96, contrast 1.02), so mobile sets `--hero-b:1` and disables
+`filter` and the drift animation — one fewer filtered, animated, composited layer for a
+mobile GPU to mishandle. If you regenerate that file, re-bake the exposure or reinstate the
+filter, or the phone hero will look washed out.
+
 The hero is **a real photograph** now — `hero-interior.webp` (1672×941, 16:9), served from
 `.hero__bg { --hero-img }` with `hero-interior.jpg` layered beneath as a non-WebP fallback and
 `hero-interior-900.webp` (38 KB) substituted below 680px. The 2.1 MB PNG master was converted

@@ -501,3 +501,47 @@ clean rows. `grid-auto-flow: row dense` added as a guard.
 Verified at 375 and 430: **5 rows, 0 holes** —
 `fabric` / `wooden|charcoal` / `laminates|thermolam` / `louvers|edge` / `texture`.
 Desktop bento unchanged (12-column asymmetric, 4 row bands).
+
+
+---
+
+# Build Log — Revision 9 (hero image on phones: one fetch, no filter stack)
+
+**Date:** 2026-08-28
+
+## Reported: "no image in hero section" on the phone
+**Could not reproduce.** Tested the live deployment at 375px: `--hero-img` resolved to
+`hero-interior-900.webp`, the file downloaded (39 KB), and the layer painted at 395×680 with
+opacity 1 and the filter applied. The deployed `style.css` is byte-identical to local and all
+three hero files return 200 at the right sizes. The most likely explanation is a stale CSS or
+HTML cache on the device.
+
+## But the test found a real bug
+The fallback was written as a comma-separated layer list:
+`background-image: var(--hero-img), url(...jpg)`. **A layer list downloads every image in
+it** — so every phone visitor was pulling **294 KB** (39 KB webp + 255 KB jpeg) to show one
+image, defeating the point of the mobile variant.
+
+Replaced with two declarations, where the overridden one costs nothing:
+
+```css
+background-image:url("../textures/hero-interior.jpg");   /* pre-var() browsers */
+background-image:var(--hero-img);                        /* everything current */
+```
+
+Verified: one hero image fetched at 1440 and at 375, jpeg no longer requested.
+
+## Hardened the mobile path while there
+Since the failure could not be reproduced, the mobile hero was simplified to remove the
+device-specific ways it could fail. The exposure is now **baked into** the phone variant
+(brightness .82, saturate .96, contrast 1.02 applied in Pillow), so mobile sets `--hero-b:1`
+and drops `filter`, the `heroDrift` animation and `will-change` — a large filtered, animated,
+composited layer is a known source of paint failures on mobile GPUs. `will-change:transform`
+was removed everywhere.
+
+Phone variant also got smaller: 39 KB -> **30 KB** (900×507).
+
+| | fetches | weight | filter | animation |
+|---|---|---|---|---|
+| desktop | 1 (`hero-interior.webp`) | 147 KB | yes | drift |
+| phone | 1 (`hero-interior-900.webp`) | 30 KB | none | none |

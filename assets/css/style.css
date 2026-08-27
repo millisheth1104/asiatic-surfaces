@@ -127,12 +127,13 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
 }
 .hero__bg i{
   position:absolute; inset:-4%;
-  /* the jpeg sits underneath: if webp is unsupported the first layer simply
-     fails to paint and the fallback shows through */
-  background-image:var(--hero-img), url("../textures/hero-interior.jpg");
+  /* Two declarations, not two layers. A comma-separated list downloads BOTH
+     images on every visit; an overridden declaration downloads none. Anything
+     that understands var() takes the webp below; pre-var browsers keep the jpeg. */
+  background-image:url("../textures/hero-interior.jpg");
+  background-image:var(--hero-img);
   background-size:cover; background-position:center;
   filter:brightness(var(--hero-b)) saturate(.96) contrast(1.02);
-  will-change:transform;
   animation:heroDrift 26s ease-in-out infinite alternate;
 }
 @keyframes heroDrift{
@@ -605,7 +606,10 @@ html.gsap-on .tile__swatch{ transition:none; }
   .hero__sub{ max-width:none; }
   .hero-note{ max-width:none; }
   .hero-note br{ display:none; }
-  .hero__bg{ --hero-img:url("../textures/hero-interior-900.webp"); }
+  .hero__bg{ --hero-img:url("../textures/hero-interior-900.webp"); --hero-b:1; }
+  /* the phone variant is pre-exposed, so drop the live filter and the drift —
+     one fewer composited, animated, filtered layer for a mobile GPU to mishandle */
+  .hero__bg i{ filter:none; animation:none; }
   .hero::after{
     background:linear-gradient(180deg, rgba(9,11,9,.52) 0%, rgba(9,11,9,.26) 26%,
                                        rgba(9,11,9,.5) 60%, rgba(9,11,9,.78) 100%);
