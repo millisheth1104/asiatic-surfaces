@@ -49,9 +49,12 @@ There are **8 files, one per family** — no separate hero art. Each is **proced
 shaded slats with cast shadows, a routed door profile, a laminate core edge), because no
 image-generation tool was available in the build session.
 
-The hero no longer rotates and no longer composes from these: it has **one image**, set in
-`.hero__bg { --hero-img: url(...) }` in `style.css`. That is the single swap point for the
-generated interior photograph. It currently points at `wooden.svg` as a placeholder.
+The hero is **a real photograph** now — `hero-interior.webp` (1672×941, 16:9), served from
+`.hero__bg { --hero-img }` with `hero-interior.jpg` layered beneath as a non-WebP fallback and
+`hero-interior-900.webp` (38 KB) substituted below 680px. The 2.1 MB PNG master was converted
+and removed; keep it out of the repo if it comes back.
+
+The eight surface files are still procedural SVG.
 
 **One place to change per family.** In `assets/css/style.css`:
 
@@ -133,6 +136,12 @@ Three rules learned the hard way here:
   `var(--shelf-drop)` below the hero's bottom edge; `.collection` adds that same variable to
   its top padding to make room. The concave notch is `.shelf::before`, a radial-gradient
   inverted corner pinned to the hero's bottom line.
+- **On mobile the bento uses 2 columns with only the FIRST and LAST tiles spanning both.**
+  A full-width tile placed after an odd number of half tiles cannot fit the remaining single
+  column, so it jumps to the next row and abandons the cell beside it — that left visible holes
+  next to Wooden and Louvers. DOM order is fabric, wooden, charcoal, laminates, thermolam,
+  louvers, edge, texture, so spanning only fabric and texture pairs the middle six into three
+  clean rows. `grid-auto-flow: row dense` is set as a guard if that order ever changes.
 - **Anything whose padding derives from `--shelf-w` MUST be reset at every breakpoint where
   the plate stops sitting beside it.** This bit twice: `.hero__inner--bottom` and `.hero-foot`
   both carry `padding-right: --shelf-w + 28px` so the desktop copy clears the plate. At 375px

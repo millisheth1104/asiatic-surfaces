@@ -444,3 +444,60 @@ Restored, and verified all eight map to the right file — `fabric -> fabric`,
 **Lesson recorded in `memory.md`:** after any large edit to `style.css`, assert that every
 `.chip__media` reports a `textures/` background. A wholesale region replacement can drop rules
 silently, and a missing custom property fails quietly rather than loudly.
+
+
+---
+
+# Build Log — Revision 8 (real hero photograph + mobile grid holes)
+
+**Date:** 2026-08-28
+
+## The hero is now a photograph
+The user supplied the interior shot the prompt described — sage fabric panelling, fluted
+charcoal, slate cabinetry, walnut, oak floor. 1672×941, exactly 16:9.
+
+Delivered at **2.1 MB → 147 KB**:
+
+| File | Size | Used |
+|---|---|---|
+| `hero-interior.webp` | 147 KB | desktop / tablet |
+| `hero-interior-900.webp` | 38 KB | ≤680px (a phone only shows a ~360px crop) |
+| `hero-interior.jpg` | 255 KB | layered beneath the WebP as a non-WebP fallback |
+
+The 2.1 MB PNG master was converted with Pillow and removed — it would have been dead weight
+in git and a genuine problem on mobile data.
+
+## Contrast, measured honestly this time
+Re-measured against the real photograph — and corrected a flaw in my own earlier method: the
+body copy is `rgba(247,244,236,.70)`, not opaque white, and ignoring that alpha **overstated
+every previous figure**. Where I had been reporting 10–13:1, the honest numbers are:
+
+| zone | mean | worst pixel | needs | |
+|---|---|---|---|---|
+| eyebrow | 8.82 | 8.59 | 4.5 | PASS |
+| title | 17.12 | 9.39 | 3.0 (large) | PASS |
+| sub | 7.71 | 5.52 | 4.5 | PASS |
+| cta | 7.92 | 5.23 | 4.5 | PASS |
+
+At the original scrim the CTA's worst pixel was only **4.79:1** — the photo's bottom-left is a
+pale sofa, directly under the sub-line and CTA. Strengthening the scrim's lower stops
+(`.14→.18` at 58%, `.52→.62` at 100%) lifted it to 5.23:1 while keeping `--hero-b` at .82, so
+the photograph stays bright.
+
+Measured with `scratchpad/hero_contrast.py` (Pillow: cover-crop, the CSS filter chain in
+order, both scrim gradients, then per-zone ratios against the composited text colour). The
+browser-canvas version timed out repeatedly in a hidden pane — Python is the reliable route
+for this.
+
+## Mobile grid holes
+The phone view had empty cells beside `Wooden` and `Louvers`. Cause: with 2 columns, a
+full-width tile placed after an odd number of half tiles cannot fit the one remaining column,
+so it moves to the next row and abandons the cell beside it. `fabric`, `charcoal` and `edge`
+were all spanning 2.
+
+Now only the **first and last** tiles span both columns, which pairs the middle six into three
+clean rows. `grid-auto-flow: row dense` added as a guard.
+
+Verified at 375 and 430: **5 rows, 0 holes** —
+`fabric` / `wooden|charcoal` / `laminates|thermolam` / `louvers|edge` / `texture`.
+Desktop bento unchanged (12-column asymmetric, 4 row bands).

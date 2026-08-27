@@ -121,13 +121,15 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
    in an inline style attribute resolves against the CSS file, not the page.
    ------------------------------------------------------------------------ */
 .hero__bg{
-  --hero-img: url("../textures/wooden.svg");
-  --hero-b: .78;
+  --hero-img: url("../textures/hero-interior.webp");
+  --hero-b: .82;
   position:absolute; inset:0; z-index:-2; overflow:hidden;
 }
 .hero__bg i{
   position:absolute; inset:-4%;
-  background-image:var(--hero-img);
+  /* the jpeg sits underneath: if webp is unsupported the first layer simply
+     fails to paint and the fallback shows through */
+  background-image:var(--hero-img), url("../textures/hero-interior.jpg");
   background-size:cover; background-position:center;
   filter:brightness(var(--hero-b)) saturate(.96) contrast(1.02);
   will-change:transform;
@@ -143,7 +145,7 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
   background:
     linear-gradient(180deg, rgba(9,11,9,.66) 0%, rgba(9,11,9,.44) 26%,
-                            rgba(9,11,9,.14) 58%, rgba(9,11,9,.52) 100%),
+                            rgba(9,11,9,.18) 58%, rgba(9,11,9,.62) 100%),
     linear-gradient(97deg, rgba(9,11,9,.54) 0%, rgba(9,11,9,.30) 42%, rgba(9,11,9,.06) 82%);
 }
 
@@ -603,6 +605,7 @@ html.gsap-on .tile__swatch{ transition:none; }
   .hero__sub{ max-width:none; }
   .hero-note{ max-width:none; }
   .hero-note br{ display:none; }
+  .hero__bg{ --hero-img:url("../textures/hero-interior-900.webp"); }
   .hero::after{
     background:linear-gradient(180deg, rgba(9,11,9,.52) 0%, rgba(9,11,9,.26) 26%,
                                        rgba(9,11,9,.5) 60%, rgba(9,11,9,.78) 100%);
@@ -627,9 +630,19 @@ html.gsap-on .tile__swatch{ transition:none; }
   .chip{ width:142px; }
 
 
-  .bento{ grid-template-columns:repeat(2,1fr); grid-auto-rows:170px; }
+  /* Two columns, and only the FIRST and LAST tiles span both. DOM order is
+     fabric, wooden, charcoal, laminates, thermolam, louvers, edge, texture — so
+     six single-width tiles pair up into three clean rows between them and no
+     cell is ever abandoned. A full-width tile placed after an odd number of
+     half tiles is what left the holes beside Wooden and Louvers.
+     `dense` is a belt-and-braces guard if this order ever changes. */
+  .bento{
+    grid-template-columns:repeat(2,1fr);
+    grid-auto-rows:170px;
+    grid-auto-flow:row dense;
+  }
   .tile{ grid-column:auto/span 1 !important; grid-row:auto !important; }
-  .tile--fabric, .tile--charcoal, .tile--edge{ grid-column:auto/span 2 !important; }
+  .tile--fabric, .tile--texture{ grid-column:auto/span 2 !important; }
   .tile__desc{ display:none; }
   .tile__name{ font-size:1.16rem; }
 
