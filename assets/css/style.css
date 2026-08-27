@@ -271,14 +271,14 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
    stylesheet that USES var(), not the document, so an inline
    --tex:url('assets/...') silently 404s as assets/css/assets/...
    ---------------------------------------------------------------------- */
-[data-tex="fabric"]   { --tex:url("../textures/fabric.svg"); }
-[data-tex="texture"]  { --tex:url("../textures/texture.svg"); }
-[data-tex="wooden"]   { --tex:url("../textures/wooden.svg"); }
-[data-tex="thermolam"]{ --tex:url("../textures/thermolam.svg"); }
-[data-tex="edgebands"]{ --tex:url("../textures/edgebands.svg"); }
-[data-tex="laminates"]{ --tex:url("../textures/laminates.svg"); }
-[data-tex="louvers"]  { --tex:url("../textures/louvers.svg"); }
-[data-tex="charcoal"] { --tex:url("../textures/charcoal.svg"); }
+[data-tex="fabric"]   { --tex:url("../textures/fabric-420.webp"); }
+[data-tex="texture"]  { --tex:url("../textures/texture-420.webp"); }
+[data-tex="wooden"]   { --tex:url("../textures/wooden-420.webp"); }
+[data-tex="thermolam"]{ --tex:url("../textures/thermolam-420.webp"); }
+[data-tex="edgebands"]{ --tex:url("../textures/edgebands-420.webp"); }
+[data-tex="laminates"]{ --tex:url("../textures/laminates-420.webp"); }
+[data-tex="louvers"]  { --tex:url("../textures/louvers-420.webp"); }
+[data-tex="charcoal"] { --tex:url("../textures/charcoal-420.webp"); }
 
 .shelf__strip{
   display:flex; gap:clamp(8px,.8vw,14px);

@@ -545,3 +545,49 @@ Phone variant also got smaller: 39 KB -> **30 KB** (900×507).
 |---|---|---|---|---|
 | desktop | 1 (`hero-interior.webp`) | 147 KB | yes | drift |
 | phone | 1 (`hero-interior-900.webp`) | 30 KB | none | none |
+
+
+---
+
+# Build Log — Revision 10 (all eight surface photographs in)
+
+**Date:** 2026-08-28
+
+## Identifying which file was which
+Eight files arrived named `ChatGPT Image Aug 28 …`, in no meaningful order. Rather than guess,
+each was profiled on mean RGB, warm/cool balance, green cast, vertical-striping strength and
+top-third vs bottom-third colour. The signatures were self-consistent with the files being in
+**reverse** order of how they were sent, and the four strongest tells confirmed it
+independently: darkest file = charcoal, warm-top/cool-bottom = the laminate island, cool
+throughout = thermolam cabinetry, greenest = sage fabric.
+
+The two the data could not separate — a warm slatted screen vs a warm panelled wall, and a
+bright greige door vs bright plaster — were **opened and looked at**. Both matched the
+prediction (`02_00_05` = louvers, `01_59_44` = edgebands), which validated the mapping.
+
+## Conversion
+Two sizes per family, because a plate card is ~196px and a bento tile reaches 733px:
+
+| | source | tile (1100px) | card (420px) |
+|---|---|---|---|
+| 8 families | **17.5 MB** | **857 KB** total (lazy) | **110 KB** total (up front) |
+
+Source PNGs deleted rather than committed. Alt text rewritten to describe each scene.
+
+## Caption contrast re-checked against the photographs
+| family | scrim | caption band | description area |
+|---|---|---|---|
+| fabric | light | 12.40 | 8.32 |
+| texture | light | 12.41 | 8.95 |
+| wooden | dark | 14.16 | 7.62 |
+| thermolam | light | 12.83 | 9.11 |
+| edgebands | light | 12.39 | 9.33 |
+| laminates | light | 12.60 | 8.36 |
+| louvers | dark | 14.19 | 7.74 |
+| charcoal | dark | 15.19 | 8.18 |
+
+Worst case 7.62:1 against a 4.5 requirement, so **no tile needed its scrim flipped**. Both
+scrims reach ~0.9 alpha behind the caption, which is what makes them robust to any image.
+
+Verified: all 16 files return 200, all eight tile images decode at 1100×1100, every card maps
+to its own family with zero mismatches, zero 404s.

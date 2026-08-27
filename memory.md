@@ -66,7 +66,17 @@ The hero is **a real photograph** now — `hero-interior.webp` (1672×941, 16:9)
 `hero-interior-900.webp` (38 KB) substituted below 680px. The 2.1 MB PNG master was converted
 and removed; keep it out of the repo if it comes back.
 
-The eight surface files are still procedural SVG.
+The eight surface families are **photographs** too, each at two sizes:
+`<family>.webp` (1100px) for the bento tiles, `<family>-420.webp` for the plate cards. Two
+sizes because a card is ~196px and a tile reaches 733px — one file cannot serve both without
+wasting weight up front, and the cards load immediately while the tiles are lazy.
+
+The procedural SVGs remain in the folder, unreferenced, as a fallback and a record.
+
+**Tile caption scrims were re-verified against the photographs** — the existing grouping
+(dark scrim + light type for wooden, charcoal, louvers; light scrim + ink for the other five)
+still works, worst caption contrast 7.62:1. Both scrims reach ~0.9 alpha behind the text, so
+they are robust to whatever image sits underneath; that is why no tile needed flipping.
 
 **One place to change per family.** In `assets/css/style.css`:
 

@@ -1,5 +1,10 @@
 # Image prompts — Asiatic Surfaces
 
+> **Status: all nine images are done and live.** These are the prompts that produced them —
+> keep them so a single family can be regenerated in the same style rather than reshooting the
+> set. Filenames below are the source names; the site now uses `<family>.webp` (1100px) and
+> `<family>-420.webp`.
+
 **8 lifestyle images**, one per surface family: the material as the hero surface of a modern
 interior. The hero image (`hero-interior.webp`) is done.
 

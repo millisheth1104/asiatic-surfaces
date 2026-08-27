@@ -46,16 +46,26 @@ runs two colours and two styles — roman in ink, the emphasis word italic in th
 
 ## Imagery
 
-The eight surfaces are currently **procedural SVG** (built from SVG filters — real interlaced
-weave, cathedral wood grain, cylindrically shaded slats, a routed door profile, a laminate
-core edge), not photography. All eight together are 52 KB and resolution-independent.
+All nine images are **lifestyle photographs** — each surface shown applied in a modern
+interior. Served as WebP at two sizes, because the plate cards and the bento tiles need very
+different resolutions:
 
-To swap in real photographs, see [`assets/textures/PROMPTS.md`](assets/textures/PROMPTS.md) —
-it lists the nine images, the exact filenames, aspect ratios and prompts. The hero is a
-one-line change (`--hero-img` in `style.css`); each family is one CSS rule plus one `<img>`.
+| | used by | size each |
+|---|---|---|
+| `<family>.webp` (1100px) | bento tiles, lazy-loaded | 26–224 KB |
+| `<family>-420.webp` | hero plate cards, loaded up front | 5–24 KB |
+| `hero-interior.webp` / `-900.webp` | hero background | 147 KB / 30 KB |
 
-**After any swap, re-measure the hero text contrast.** The scrim is tuned against the current
-placeholders and photographs are usually brighter; the method is documented in `memory.md`.
+Source PNGs were 17.5 MB in total; converted they are 857 KB lazy plus 110 KB up front.
+**Always convert before committing** — raw generated PNGs are ~2 MB each.
+
+The procedural SVGs are kept in `assets/textures/` as a fallback and as a record of the
+original approach; nothing references them now. The prompts that produced the photographs are
+in [`assets/textures/PROMPTS.md`](assets/textures/PROMPTS.md), so a single family can be
+regenerated consistently.
+
+**After replacing any image, re-measure contrast.** `scratchpad/hero_contrast.py` does the
+hero; the tile-caption method is in `memory.md`.
 
 ## Motion
 
