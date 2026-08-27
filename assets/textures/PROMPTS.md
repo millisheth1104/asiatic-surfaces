@@ -1,139 +1,117 @@
-# Images to generate — Asiatic Surfaces
+# Image prompts — Asiatic Surfaces
 
-**8 lifestyle images**, one per surface family: each material shown **applied in a real
-interior**, not as a flat swatch. The hero (`hero-interior.webp`) is already done.
+**8 lifestyle images**, one per surface family: the material as the hero surface of a modern
+interior. The hero image (`hero-interior.webp`) is done.
 
-Save into this folder (`assets/textures/`) with the **exact filenames** below. PNG or JPG
-both fine — tell me which and I'll wire the extension.
-
-| # | Filename | Aspect | Size | Setting it's shown in |
-|---|---|---|---|---|
-| 1 | `fabric` | 1:1 | 1024–2048 | bedroom wall behind a bed |
-| 2 | `texture` | 1:1 | 1024–2048 | hallway wall with a bench |
-| 3 | `wooden` | 1:1 | 1024–2048 | living-room wall with a sideboard |
-| 4 | `thermolam` | 1:1 | 1024–2048 | kitchen cabinetry |
-| 5 | `edgebands` | 1:1 | 1024–2048 | wardrobe door corner, matched edge |
-| 6 | `laminates` | 1:1 | 1024–2048 | kitchen island, core edge visible |
-| 7 | `louvers` | 1:1 | 1024–2048 | living-space partition |
-| 8 | `charcoal` | 1:1 | 1024–2048 | media wall with a console |
-
-Square, because each is cropped into both wide and tall tiles — a square survives both.
+Save into this folder with these **exact filenames**, square **1:1**, 1024–2048px:
+`fabric` · `texture` · `wooden` · `thermolam` · `edgebands` · `laminates` · `louvers` ·
+`charcoal`
 
 ---
 
-## Three rules that matter more than the wording
+## Append this tail to every prompt
 
-**1. The material must fill at least two thirds of the frame.** These render as cards about
-150–200px wide and as bento tiles. A wide shot of a whole room becomes unreadable mush at that
-size — you won't be able to tell fabric from plaster. Tight interior vignette, not a room tour.
+> Editorial interior photograph for a design magazine. Warm minimal Japandi styling, muted
+> natural palette of sage green, ivory, powder blue and walnut. Soft diffused daylight from a
+> large window, gentle natural shadows. Shot on a 35mm lens at f/4, photorealistic, sharp fine
+> detail, true natural colour. Square 1:1 composition. The panelling is the subject and fills
+> most of the frame; keep the lower part of the image simple and uncluttered. No text, no logos.
 
-**2. Keep the bottom third quiet.** The family name and its one-line description sit over the
-bottom of every card and tile, on a dark scrim. Busy detail there fights the text. Props
-should be low-contrast, cropped, and off to one side.
-
-**3. One light direction across all eight.** Soft daylight from the upper left (charcoal is
-the one exception — upper right, to match how it reads best). Eight images that disagree about
-where the sun is will never look like one collection, however good each one is.
-
-## Shared suffix — append to every one of the eight
-
-> Editorial interior photography of a real room. Natural true colour, no colour cast. Soft
-> directional daylight, shallow depth of field with the surface itself in sharp focus. The
-> material fills at least two thirds of the frame and is clearly the subject; any props are
-> minimal, low-contrast and cropped at the edges. Keep the lower third of the frame visually
-> quiet. Square 1:1 crop, shot square on. No people, no text, no lettering, no logos, no
-> watermarks.
-
-Palette to hold the family together: Soft Sage `#b9c8b3`, Powder Blue `#b8d5de`, Light Blue
-`#d2e8ff`, Warm Ivory `#F5F0E8`, plus walnut brown and graphite charcoal.
+Two habits that make the set work: run all eight in **one session** so the model's style stays
+consistent, and if one comes back off-palette, reroll it rather than keeping it — a single
+foreign-looking image spoils a row of eight far more than a slightly plain one.
 
 ---
 
 ## 1 — fabric
 
-> A quiet corner of a contemporary bedroom where the wall behind the bed is clad in soft muted
-> sage-green woven acoustic fabric panels. The panelled wall fills most of the frame, its
-> plain-weave interlacing and slightly irregular slub yarn clearly visible. The top corner of
-> an upholstered bed, one linen pillow and a slim brass reading light enter from the lower
-> left. Morning daylight rakes across the weave from the upper left, catching a faint matte
-> halo of loose fibres.
+> A serene modern bedroom corner. The entire wall behind the bed is upholstered in soft
+> sage-green woven fabric panels, the fine textile weave catching the light. A low oak bed with
+> crisp white linen, one sage cushion, a slim matte-black wall light. Morning sun from the left
+> lays a soft diagonal of light across the fabric.
 
 ## 2 — texture
 
-> A section of hallway wall finished in pale sage-ivory matte micro-relief plaster, filling
-> most of the frame, its broad trowel movement and fine sandy tooth raked by low afternoon
-> daylight from the upper left. A slim oak bench and a single pale ceramic vase sit low in the
-> frame. Almost no sheen — the surface reads as mineral and hand-finished.
+> A quiet modern entryway. The wall is finished in pale ivory limewash plaster with a soft
+> hand-troweled texture and gentle tonal movement. A slim oak bench sits against it with a
+> single ceramic vase holding one dried branch. Late afternoon light rakes across the wall and
+> reveals the texture.
 
 ## 3 — wooden
 
-> A living-room wall clad in warm mid-brown oak woodgrain panels with the grain running
-> horizontally, filling most of the frame, cathedral grain figure and open pores clearly
-> readable. A low walnut sideboard and a single stoneware bowl sit along the bottom edge, the
-> corner of a linen armchair cropped at the left. Daylight from the upper left gives the wood
-> a low satin sheen, no gloss.
+> A sunlit modern living room. A full-height warm oak panelled wall with rich horizontal grain
+> runs behind a low linen sofa. A round travertine coffee table, one stoneware bowl, a tall
+> dried palm in a clay pot. Daylight glances along the wood, giving it a soft satin glow.
 
 ## 4 — thermolam
 
-> A run of contemporary kitchen cabinetry in seamless satin powder-blue thermofoil, shaker
-> profile — routed rectangular frames with recessed centre panels, every edge wrapped in one
-> continuous skin. The doors fill most of the frame. A pale stone worktop crosses the lower
-> third with a single ceramic jug. Soft daylight from the upper left so the routed bevel reads
-> clearly; satin and fingerprint-matte, no reflections.
+> A modern minimalist kitchen. Handleless matte powder-blue cabinet fronts fill the frame,
+> seamless and softly satin, meeting a pale marble worktop. A single ceramic jug and a glass of
+> water. Morning light from a window to the left, soft shadows, no glare.
 
 ## 5 — edgebands
 
-> A tight detail of a fitted wardrobe corner in a bedroom, the door held at a slight angle so
-> its edge runs diagonally through the frame and shows a perfectly colour-matched slim edge
-> band against the door face — the join almost invisible. The door fills most of the frame. Out
-> of focus behind it, a low stack of banding coils in muted sage green, walnut brown, powder
-> blue and charcoal. Soft daylight from the upper left.
+> An elegant close-up of a modern wardrobe door in a bright bedroom, shot at a slight angle so
+> the crisp vertical edge of the door runs diagonally through the frame. The slim trim on the
+> door's edge matches the door face exactly — a seamless, near-invisible join. Soft window
+> light, shallow depth of field, the bedroom softly blurred behind.
 
 ## 6 — laminates
 
-> A contemporary kitchen island clad in pale icy-blue high-pressure laminate, photographed
-> close along its front edge so the layered kraft-paper core reads as a fine dark line beneath
-> the pale decor face. The laminate surface fills most of the frame with one long specular
-> gloss streak across it. A single ceramic cup and a folded tea towel sit at the far edge,
-> cropped. Daylight from the upper left.
+> A modern kitchen island clad in pale icy-blue matte laminate, photographed close along its
+> clean front edge with a fine darker line where the surface meets the edge. A slim stone
+> worktop above, one ceramic cup and a folded linen cloth. Soft morning light with a gentle
+> sheen travelling across the surface.
 
 ## 7 — louvers
 
-> A living-space partition of vertical walnut louver slats, seen slightly from the left so the
-> slats recede across the frame and fill it. Warm daylight rakes between them from the upper
-> left, lighting one rounded arris of each slat and dropping the recesses between them into
-> deep shadow — a strong rhythm of light and shadow. A low lounge chair and the edge of a
-> textured rug enter at the lower left, in shadow.
+> A modern living space divided by a floor-to-ceiling walnut slatted screen. Warm sunlight
+> streams between the vertical slats and casts rhythmic shadow lines across a pale oak floor. A
+> low bouclé lounge chair and a tall paper floor lamp sit beside it.
 
 ## 8 — charcoal
 
-> A media wall clad in deep graphite grey-black fluted bamboo-charcoal panelling, tall
-> half-round flutes with narrow V grooves filling most of the frame. Cool daylight from the
-> **upper right** shades each flute so its rounded profile reads clearly. Matte, low sheen,
-> almost no reflection. A slim dark console and a single stoneware vase sit low in the frame,
-> with a soft shadow across the floor.
+> A modern living room feature wall clad in deep charcoal fluted panelling, the tall vertical
+> flutes catching a soft raking light so each rounded rib reads clearly. A slim floating console
+> in dark oak below, one pale sculptural vase. Cool daylight from the right, quiet and moody.
 
 ---
 
-## What happens when they land
+## If a prompt misbehaves
+
+| What you get | Add this |
+|---|---|
+| A flat swatch, no room | "wide shot, furniture visible in the foreground" |
+| Room too wide, material unreadable | "extreme close-up, camera one metre from the wall" |
+| Colours drift off-palette | "muted, desaturated, soft sage and ivory tones" |
+| Looks like a CGI render | "photographed on film, real room, natural imperfections, subtle grain" |
+| Too dark / too contrasty | "bright airy daylight, low contrast, soft even lighting" |
+| Text or a watermark appears | reroll — keep "no text, no logos" in the tail |
+
+## Why the previous prompts underperformed
+
+Worth recording so the mistake isn't repeated. They were written like a materials
+specification, not a photograph:
+
+- **Trade vocabulary the models don't know** — "plain-weave interlacing", "slub yarn",
+  "cathedral grain figure", "open pores", "kraft-paper core", "one arris of each slat",
+  "thermofoil shaker profile". Image models don't map these to anything; they only dilute the
+  words that do work.
+- **Contradictory framing** — "editorial photograph of a real room" *and* "fills two thirds of
+  the frame" *and* "shot square on" *and* "shallow depth of field" pull in four directions.
+- **A long negation list** — six "no ..." clauses at the end weaken everything before them.
+  One is enough.
+- **No style anchor.** Nothing told the model what "good" looked like. "Editorial interior
+  photograph for a design magazine, warm minimal Japandi" does more than three sentences of
+  technical description.
+
+## When the images arrive
 
 1. Point the eight `[data-tex="..."]` rules in `assets/css/style.css` and the eight bento
    `<img src>` in `index.html` at the new extension.
-2. **Convert first.** Anything over ~250 KB gets converted to WebP the way the hero was
-   (2.1 MB → 147 KB) — the cards and tiles load eight of these at once, so raw PNGs would be
-   several megabytes on a phone.
-3. **Re-check the bento captions.** Tiles with a dark scrim (Wooden, Charcoal, Louvers) carry
-   light type; the other five carry dark type on a light scrim. A lifestyle photo that is
-   darker or lighter than the SVG it replaces may need its tile flipped to the other scrim —
-   the rule is in `style.css` under the `.tile--wooden, .tile--charcoal, .tile--louvers` group.
+2. **Convert first** — the way the hero went 2.1 MB → 147 KB. Eight raw PNGs would be several
+   megabytes, and the cards and tiles load all eight at once.
+3. **Re-check the tile captions.** Wooden, Charcoal and Louvers carry light type on a dark
+   scrim; the other five carry dark type on a light scrim. A photo lighter or darker than the
+   SVG it replaces may need its tile moved to the other group in `style.css`.
 4. Keep the SVGs in git as a fallback — all eight together are only 52 KB.
-
-## Why these weren't generated here
-
-Both configured providers refuse billable calls:
-- **OpenAI** `gpt-image-2` — `HTTP 400 billing_hard_limit_reached`
-- **Gemini**, all four image models — `HTTP 429`, quota detail
-  `generate_content_free_tier_requests, limit: 0` (the free tier includes **no** image
-  generation, so retrying cannot succeed)
-
-`scratchpad/gen_images.py` is ready to run whenever one of those accounts has billing.
