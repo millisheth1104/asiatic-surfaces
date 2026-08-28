@@ -121,30 +121,40 @@
 
     // ---- Initialize Pannellum ----
     async function initViewer() {
-        const products3D = get3DProductHotspots();
+        // Pull latest cloud products so newly uploaded 3D panoramas are available
+        if (window.ProductCatalog && typeof window.ProductCatalog.syncFromCloud === 'function') {
+            try {
+                await window.ProductCatalog.syncFromCloud();
+            } catch (e) { }
+        }
+
+        const products3D = window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function' ? window.ProductCatalog.getProducts() : [];
+        
         // Retrieve targetCode from path /tour/[slug] or fallback to ?code= query param
         let targetCode = null;
         const pathParts = window.location.pathname.split('/');
         const tourIndex = pathParts.indexOf('tour');
         if (tourIndex !== -1 && pathParts[tourIndex + 1]) {
-            targetCode = decodeURIComponent(pathParts[tourIndex + 1]);
+            targetCode = decodeURIComponent(pathParts[tourIndex + 1]).replace('.html', '');
         } else {
             const urlParams = new URLSearchParams(window.location.search);
-            targetCode = urlParams.get('code') || '4006';
+            targetCode = urlParams.get('code') || urlParams.get('id') || urlParams.get('slug') || '4006';
         }
         
         let panoramaSrc = null;
-        let initialPitch = 0;
+        let initialPitch = 23;
         let initialYaw = 0;
         let matched = null;
 
         if (targetCode) {
+            const cleanParam = targetCode.toLowerCase().replace(/#/g, '').trim();
             matched = products3D.find(p => {
-                const cleanParam = targetCode.toLowerCase().replace(/#/g, '');
-                const cleanProductCode = p.code.toLowerCase().replace(/#/g, '');
-                const cleanSlug = (p.slug || '').toLowerCase();
-                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === p.id.toLowerCase();
+                const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+                const cleanSlug = (p.slug || '').toLowerCase().trim();
+                const cleanId = (p.id || '').toLowerCase().trim();
+                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
             });
+
             if (matched) {
                 let matchedPanoSrc = null;
                 if (matched.threeDDataUrl) {
@@ -156,7 +166,7 @@
                     } else {
                         matchedPanoSrc = matched.threeDDataUrl;
                     }
-                } else if (matched.threeDUrl && !matched.threeDUrl.startsWith('index.html') && !matched.threeDUrl.startsWith('tour/')) {
+                } else if (matched.threeDUrl && !matched.threeDUrl.startsWith('index.html') && !matched.threeDUrl.startsWith('tour/') && !matched.threeDUrl.startsWith('/tour/')) {
                     matchedPanoSrc = matched.threeDUrl;
                 }
 

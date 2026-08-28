@@ -148,8 +148,8 @@
                 }
             }
 
-            const slug = p.slug || p.code.replace(/#/g, '');
-            const tourUrl = p.threeD ? `tour/${slug}` : `tour/4006`;
+            const slug = p.slug || p.code.replace(/#/g, '').trim();
+            const tourUrl = `/tour/${slug}`;
 
             card.innerHTML = `
                 <a href="${tourUrl}" class="masonry-img-card" title="Click to view 3D virtual tour">
