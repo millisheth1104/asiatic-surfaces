@@ -1173,116 +1173,150 @@
         }
     });
 
+    const btnSaveProduct = document.getElementById('btn-save-product');
+
     addProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         let rawCode = document.getElementById('form-code').value.trim();
-        if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
-
         const category = document.getElementById('form-category').value;
         const name = document.getElementById('form-name').value.trim();
         const slug = document.getElementById('form-slug').value || `prod-${Date.now()}`;
 
-        // Retain current ID if in Edit mode, otherwise generate a new unique ID
-        const productId = editingProductId || `prod-${Date.now()}`;
-
-        // Upload images to Vercel Blob (Permanent CDN URL) or fallback to IndexedDB
-        let finalFullsheetUrl = null;
-        if (tempFullsheetDataUrl) {
-            if (tempFullsheetDataUrl.startsWith('http://') || tempFullsheetDataUrl.startsWith('https://') || tempFullsheetDataUrl.startsWith('src/') || tempFullsheetDataUrl.startsWith('assets/') || tempFullsheetDataUrl.startsWith('db:')) {
-                finalFullsheetUrl = tempFullsheetDataUrl;
-            } else if (tempFullsheetDataUrl.startsWith('data:')) {
-                if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                    const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, tempFullsheetDataUrl);
-                    if (blobUrl) {
-                        finalFullsheetUrl = blobUrl;
-                    }
-                }
-                if (!finalFullsheetUrl) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                        await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, tempFullsheetDataUrl);
-                    }
-                    finalFullsheetUrl = `db:fullsheet-${productId}`;
-                }
-            } else {
-                finalFullsheetUrl = tempFullsheetDataUrl;
-            }
+        // Validate required Step 1 fields
+        if (!rawCode || !category || !name) {
+            showFormStep(1);
+            showToast('Please fill out all required product fields (*)', 'error');
+            return;
         }
 
-        let finalThreeDDataUrl = null;
-        if (tempThreeDDataUrl) {
-            if (tempThreeDDataUrl.startsWith('http://') || tempThreeDDataUrl.startsWith('https://') || tempThreeDDataUrl.startsWith('src/') || tempThreeDDataUrl.startsWith('assets/') || tempThreeDDataUrl.startsWith('db:')) {
-                finalThreeDDataUrl = tempThreeDDataUrl;
-            } else if (tempThreeDDataUrl.startsWith('data:')) {
-                if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                    const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, tempThreeDDataUrl);
-                    if (blobUrl) {
-                        finalThreeDDataUrl = blobUrl;
-                    }
-                }
-                if (!finalThreeDDataUrl) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                        await window.ProductCatalog.storeAsset(`threeD-${productId}`, tempThreeDDataUrl);
-                    }
-                    finalThreeDDataUrl = `db:threeD-${productId}`;
-                }
-            } else {
-                finalThreeDDataUrl = tempThreeDDataUrl;
-            }
+        if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
+
+        const submitBtn = btnSaveProduct || document.querySelector('#add-product-form button[type="submit"]');
+        const origBtnText = submitBtn ? submitBtn.textContent : 'Save Product';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
         }
 
-        const newProduct = {
-            id: productId,
-            code: rawCode,
-            name: name,
-            category: category,
-            slug: slug,
-            pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,
-            yaw: tempHotspotsList.length > 0 ? tempHotspotsList[0].yaw : 0,
-            fullsheet: !!finalFullsheetUrl,
-            fullsheetUrl: finalFullsheetUrl,
-            threeD: !!finalThreeDDataUrl,
-            threeDUrl: `tour/${slug}`,
-            threeDDataUrl: finalThreeDDataUrl,
-            hotspots: tempHotspotsList,
-            description: 'Registered product asset with hotspot placement'
-        };
+        try {
+            // Retain current ID if in Edit mode, otherwise generate a new unique ID
+            const productId = editingProductId || `prod-${Date.now()}`;
 
-        if (window.ProductCatalog && typeof window.ProductCatalog.addProduct === 'function') {
-            if (editingProductId) {
-                if (typeof window.ProductCatalog.updateProduct === 'function') {
-                    window.ProductCatalog.updateProduct(editingProductId, newProduct);
+            // Upload images to Vercel Blob (Permanent CDN URL) or fallback to IndexedDB
+            let finalFullsheetUrl = null;
+            if (tempFullsheetDataUrl) {
+                if (tempFullsheetDataUrl.startsWith('http://') || tempFullsheetDataUrl.startsWith('https://') || tempFullsheetDataUrl.startsWith('src/') || tempFullsheetDataUrl.startsWith('assets/') || tempFullsheetDataUrl.startsWith('db:')) {
+                    finalFullsheetUrl = tempFullsheetDataUrl;
+                } else if (tempFullsheetDataUrl.startsWith('data:')) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, tempFullsheetDataUrl);
+                        if (blobUrl) {
+                            finalFullsheetUrl = blobUrl;
+                        }
+                    }
+                    if (!finalFullsheetUrl) {
+                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                            await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, tempFullsheetDataUrl);
+                        }
+                        finalFullsheetUrl = `db:fullsheet-${productId}`;
+                    }
                 } else {
-                    const list = getRealTimeProducts();
+                    finalFullsheetUrl = tempFullsheetDataUrl;
+                }
+            }
+
+            let finalThreeDDataUrl = null;
+            if (tempThreeDDataUrl) {
+                if (tempThreeDDataUrl.startsWith('http://') || tempThreeDDataUrl.startsWith('https://') || tempThreeDDataUrl.startsWith('src/') || tempThreeDDataUrl.startsWith('assets/') || tempThreeDDataUrl.startsWith('db:')) {
+                    finalThreeDDataUrl = tempThreeDDataUrl;
+                } else if (tempThreeDDataUrl.startsWith('data:')) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, tempThreeDDataUrl);
+                        if (blobUrl) {
+                            finalThreeDDataUrl = blobUrl;
+                        }
+                    }
+                    if (!finalThreeDDataUrl) {
+                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                            await window.ProductCatalog.storeAsset(`threeD-${productId}`, tempThreeDDataUrl);
+                        }
+                        finalThreeDDataUrl = `db:threeD-${productId}`;
+                    }
+                } else {
+                    finalThreeDDataUrl = tempThreeDDataUrl;
+                }
+            }
+
+            const newProduct = {
+                id: productId,
+                code: rawCode,
+                name: name,
+                category: category,
+                slug: slug,
+                pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,
+                yaw: tempHotspotsList.length > 0 ? tempHotspotsList[0].yaw : 0,
+                fullsheet: !!finalFullsheetUrl,
+                fullsheetUrl: finalFullsheetUrl,
+                threeD: !!finalThreeDDataUrl,
+                threeDUrl: `tour/${slug}`,
+                threeDDataUrl: finalThreeDDataUrl,
+                hotspots: tempHotspotsList,
+                description: 'Registered product asset with hotspot placement'
+            };
+
+            if (window.ProductCatalog && typeof window.ProductCatalog.addProduct === 'function') {
+                if (editingProductId) {
+                    if (typeof window.ProductCatalog.updateProduct === 'function') {
+                        window.ProductCatalog.updateProduct(editingProductId, newProduct);
+                    } else {
+                        const list = getRealTimeProducts();
+                        const index = list.findIndex(p => p.id === editingProductId);
+                        if (index !== -1) {
+                            list[index] = newProduct;
+                            saveRealTimeProducts(list);
+                        }
+                    }
+                } else {
+                    window.ProductCatalog.addProduct(newProduct);
+                }
+            } else {
+                const list = getRealTimeProducts();
+                if (editingProductId) {
                     const index = list.findIndex(p => p.id === editingProductId);
                     if (index !== -1) {
                         list[index] = newProduct;
-                        saveRealTimeProducts(list);
                     }
+                } else {
+                    list.unshift(newProduct);
                 }
-            } else {
-                window.ProductCatalog.addProduct(newProduct);
+                saveRealTimeProducts(list);
             }
-        } else {
-            const list = getRealTimeProducts();
-            if (editingProductId) {
-                const index = list.findIndex(p => p.id === editingProductId);
-                if (index !== -1) {
-                    list[index] = newProduct;
-                }
-            } else {
-                list.unshift(newProduct);
+
+            const wasEditing = !!editingProductId;
+            editingProductId = null;
+
+            renderCatalog();
+            closeAddModal();
+            showToast(wasEditing ? `Product ${rawCode} successfully updated!` : `Product ${rawCode} successfully saved!`, 'success');
+        } catch (err) {
+            console.error('Failed to save product:', err);
+            showToast('Error saving product: ' + err.message, 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = origBtnText;
             }
-            saveRealTimeProducts(list);
         }
-
-        const wasEditing = !!editingProductId;
-        editingProductId = null;
-
-        renderCatalog();
-        closeAddModal();
-        showToast(wasEditing ? `Product ${rawCode} successfully updated!` : `Product ${rawCode} successfully saved!`, 'success');
     });
+
+    if (btnSaveProduct) {
+        btnSaveProduct.addEventListener('click', () => {
+            if (typeof addProductForm.requestSubmit === 'function') {
+                addProductForm.requestSubmit();
+            }
+        });
+    }
 
     // ---- Search & Filter Listeners ----
     searchInput.addEventListener('input', (e) => {
