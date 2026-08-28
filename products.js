@@ -1292,13 +1292,6 @@
                             updated = true;
                         }
                     }
-                    if (!updated) {
-                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                            await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, activeFullsheet);
-                            finalFullsheet = `db:fullsheet-${productId}`;
-                            updated = true;
-                        }
-                    }
                 }
 
                 if (activeThreeD && activeThreeD.startsWith('data:')) {
@@ -1306,13 +1299,6 @@
                         const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, activeThreeD);
                         if (blobUrl) {
                             finalThreeD = blobUrl;
-                            updated = true;
-                        }
-                    }
-                    if (!finalThreeD.startsWith('http')) {
-                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                            await window.ProductCatalog.storeAsset(`threeD-${productId}`, activeThreeD);
-                            finalThreeD = `db:threeD-${productId}`;
                             updated = true;
                         }
                     }

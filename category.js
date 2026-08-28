@@ -323,4 +323,17 @@
         }
     });
 
+    // Real-time multi-device cloud synchronization listener
+    window.addEventListener('catalogUpdated', () => {
+        renderCategoryCards(currentCategory);
+    });
+
+    // Trigger background cloud sync on page load
+    if (window.ProductCatalog && typeof window.ProductCatalog.syncFromCloud === 'function') {
+        window.ProductCatalog.syncFromCloud().then(() => {
+            renderCategoryCards(currentCategory);
+        });
+    }
+
 })();
+

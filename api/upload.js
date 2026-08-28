@@ -46,11 +46,15 @@ export default async function handler(req, res) {
         const cleanName = filename ? filename.replace(/[^a-zA-Z0-9.-]/g, '_') : `asset-${Date.now()}.jpg`;
         const blobPath = `products/${Date.now()}-${cleanName}`;
 
-        const blob = await put(blobPath, buffer, {
+        const uploadOptions = {
             access: 'public',
-            contentType: mimeType,
-            token: process.env.BLOB_READ_WRITE_TOKEN
-        });
+            contentType: mimeType
+        };
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+            uploadOptions.token = process.env.BLOB_READ_WRITE_TOKEN;
+        }
+
+        const blob = await put(blobPath, buffer, uploadOptions);
 
         return res.status(200).json({
             success: true,
