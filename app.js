@@ -60,50 +60,162 @@
         });
     }
 
-    // ---- Product Hotspots ----
-    // Add your products here. Each entry needs:
-    //   name  — the label text shown floating in the panorama
-    //   pitch — vertical angle (-90 bottom to +90 top)
-    //   yaw   — horizontal angle (-180 to 180, 0 = center of image)
-    const productHotspots = [
-        { name: '#4006', pitch: 23, yaw: 0 },
-        // To add more products, copy the line above and change name/pitch/yaw.
-        // Example: { name: 'Product Name', pitch: 10, yaw: -45 },
-    ];
+    // ---- Real-Time Product Hotspots Sync ----
+    function get3DProductHotspots() {
+        if (window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function') {
+            const allProducts = window.ProductCatalog.getProducts();
+            // Filter products that have 3D image enabled
+            return allProducts.filter(p => p.threeD);
+        }
+        return [{ code: '#4006', name: '#4006', pitch: 23, yaw: 0, fullsheet: true }];
+    }
 
     // Creates the floating product label DOM element for a hotspot
-    function createProductTooltip(hotspotDiv, productName) {
+    function createProductTooltip(hotspotDiv, productData) {
         const wrapper = document.createElement('div');
         wrapper.className = 'product-label';
+        wrapper.style.cursor = 'pointer';
 
         const dot = document.createElement('span');
         dot.className = 'product-label-dot';
 
         const text = document.createElement('span');
         text.className = 'product-label-text';
-        text.textContent = productName;
+        text.textContent = productData.code || productData.name || '#Product';
 
         wrapper.appendChild(dot);
         wrapper.appendChild(text);
         hotspotDiv.appendChild(wrapper);
+
+        // Click hotspot to view product fullsheet or catalog
+        wrapper.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (productData.fullsheet) {
+                // Set the dynamic fullsheet texture image source
+                if (fullsheetImage) {
+                    let fsSrc = 'src/Fullsheet/Fullsheet1.jpeg';
+                    if (productData.fullsheetUrl) {
+                        if (productData.fullsheetUrl.startsWith('db:')) {
+                            const dbKey = productData.fullsheetUrl.replace('db:', '');
+                            if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
+                                const storedData = await window.ProductCatalog.getAsset(dbKey);
+                                if (storedData) fsSrc = storedData;
+                            }
+                        } else {
+                            fsSrc = productData.fullsheetUrl;
+                        }
+                    }
+                    fullsheetImage.src = fsSrc;
+                }
+                const titleArea = document.querySelector('.fullsheet-title-area span');
+                if (titleArea) {
+                    titleArea.textContent = `${productData.code} - ${productData.name} Fullsheet`;
+                }
+                // Trigger fullsheet overlay if fullsheet is available
+                if (btnFullsheet) btnFullsheet.click();
+            } else {
+                window.location.href = 'products.html?code=' + encodeURIComponent(productData.code);
+            }
+        });
     }
 
     // ---- Initialize Pannellum ----
-    function initViewer() {
-        // Build hotspot config from product list
-        const hotspots = productHotspots.map((product, index) => ({
-            id: `product-hotspot-${index}`,
-            pitch: product.pitch,
-            yaw: product.yaw,
-            type: 'info',
-            cssClass: 'product-hotspot',
-            createTooltipFunc: createProductTooltip,
-            createTooltipArgs: product.name
-        }));
+    async function initViewer() {
+        const products3D = get3DProductHotspots();
+        // Retrieve targetCode from path /tour/[slug] or fallback to ?code= query param
+        let targetCode = null;
+        const pathParts = window.location.pathname.split('/');
+        const tourIndex = pathParts.indexOf('tour');
+        if (tourIndex !== -1 && pathParts[tourIndex + 1]) {
+            targetCode = decodeURIComponent(pathParts[tourIndex + 1]);
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            targetCode = urlParams.get('code') || '4006';
+        }
+        
+        let panoramaSrc = null;
+        let initialPitch = 0;
+        let initialYaw = 0;
+        let matched = null;
+
+        if (targetCode) {
+            matched = products3D.find(p => {
+                const cleanParam = targetCode.toLowerCase().replace(/#/g, '');
+                const cleanProductCode = p.code.toLowerCase().replace(/#/g, '');
+                const cleanSlug = (p.slug || '').toLowerCase();
+                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === p.id.toLowerCase();
+            });
+            if (matched) {
+                let matchedPanoSrc = null;
+                if (matched.threeDDataUrl) {
+                    if (matched.threeDDataUrl.startsWith('db:')) {
+                        const dbKey = matched.threeDDataUrl.replace('db:', '');
+                        if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
+                            matchedPanoSrc = await window.ProductCatalog.getAsset(dbKey);
+                        }
+                    } else {
+                        matchedPanoSrc = matched.threeDDataUrl;
+                    }
+                } else if (matched.threeDUrl && !matched.threeDUrl.startsWith('index.html') && !matched.threeDUrl.startsWith('tour/')) {
+                    matchedPanoSrc = matched.threeDUrl;
+                }
+
+                if (matchedPanoSrc) {
+                    panoramaSrc = matchedPanoSrc;
+                }
+                
+                // Parse optional query override parameters (?pitch=20&yaw=-12)
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryPitch = urlParams.get('pitch');
+                const queryYaw = urlParams.get('yaw');
+
+                initialPitch = queryPitch !== null ? parseFloat(queryPitch) : (typeof matched.pitch === 'number' ? matched.pitch : 23);
+                initialYaw = queryYaw !== null ? parseFloat(queryYaw) : (typeof matched.yaw === 'number' ? matched.yaw : 0);
+            }
+        }
+
+        if (!panoramaSrc) {
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+            if (appContainer) appContainer.classList.add('visible');
+            const viewerEl = document.getElementById('panorama-viewer');
+            if (viewerEl) {
+                viewerEl.innerHTML = `
+                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0a09; color: #fff; text-align: center; padding: 24px; z-index: 1000;">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom: 18px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                        </svg>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;">No 3D Image Available</h2>
+                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 320px; line-height: 1.45; margin-bottom: 24px;">No 360° panorama image has been uploaded for this product.</p>
+                        <a href="/products.html" style="padding: 10px 24px; background: #fff; color: #0c0a09; text-decoration: none; border-radius: 999px; font-weight: 500; font-size: 0.8rem; transition: opacity 0.2s;">Go to Catalog</a>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        // Build hotspots: Only load specific hotspots for this room if they exist;
+        // if none are defined on the tour itself, show NO hotspots (prevent #4006 from auto-appearing on clean tours).
+        let hotspots = [];
+        if (matched && Array.isArray(matched.hotspots) && matched.hotspots.length > 0) {
+            hotspots = matched.hotspots.map((hs, index) => {
+                // Find matching product in catalog to attach tooltips/actions
+                const productMeta = products3D.find(p => p.code.toLowerCase().replace(/#/g, '') === hs.code.toLowerCase().replace(/#/g, '')) || { code: hs.code, name: hs.code };
+                return {
+                    id: `product-hotspot-${hs.code}-${index}`,
+                    pitch: hs.pitch,
+                    yaw: hs.yaw,
+                    type: 'info',
+                    cssClass: 'product-hotspot',
+                    createTooltipFunc: createProductTooltip,
+                    createTooltipArgs: productMeta
+                };
+            });
+        }
 
         viewer = pannellum.viewer('panorama-viewer', {
             type: 'equirectangular',
-            panorama: 'src/360img.jpeg',
+            panorama: panoramaSrc,
             autoLoad: true,
             showControls: false,
             showFullscreenCtrl: false,
@@ -117,8 +229,8 @@
             hfov: 100,
             minHfov: 30,
             maxHfov: 120,
-            pitch: 0,
-            yaw: 0,
+            pitch: initialPitch,
+            yaw: initialYaw,
             autoRotate: 0,
             autoRotateInactivityDelay: 0,
             preview: '',
@@ -128,7 +240,6 @@
                 loadingLabel: ''
             }
         });
-
 
         // Listen for load complete
         viewer.on('load', onViewerLoaded);
@@ -145,6 +256,31 @@
         // Hide loading, show app
         loadingScreen.classList.add('hidden');
         appContainer.classList.add('visible');
+
+        // Check URL parameters for direct product focusing
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetCode = urlParams.get('code');
+        const targetPitch = parseFloat(urlParams.get('pitch'));
+        const targetYaw = parseFloat(urlParams.get('yaw'));
+
+        if (!isNaN(targetPitch) && !isNaN(targetYaw)) {
+            setTimeout(() => {
+                viewer.lookAt(targetPitch, targetYaw, 90, 1000);
+            }, 300);
+        } else if (targetCode) {
+            const products3D = get3DProductHotspots();
+            const matched = products3D.find(p => {
+                const cleanParam = targetCode.toLowerCase().replace(/#/g, '');
+                const cleanProductCode = p.code.toLowerCase().replace(/#/g, '');
+                const cleanSlug = (p.slug || '').toLowerCase();
+                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === p.id.toLowerCase();
+            });
+            if (matched && typeof matched.pitch === 'number' && typeof matched.yaw === 'number') {
+                setTimeout(() => {
+                    viewer.lookAt(matched.pitch, matched.yaw, 90, 1000);
+                }, 300);
+            }
+        }
     }
 
     function onFirstInteraction() {
@@ -538,8 +674,11 @@
 
     // ---- Boot ----
     async function boot() {
+        if (loadingScreen) loadingScreen.style.display = 'flex';
+        if (appContainer) appContainer.style.display = 'block';
+
         await simulateLoading();
-        initViewer();
+        await initViewer();
     }
 
     // Start on DOM ready

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- broad trowel movement: raked light across a lime-plaster wall -->
+    <filter id="xTrowel" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0045 0.011" numOctaves="4" seed="9" result="n"/>
+      <feDiffuseLighting in="n" lighting-color="#fffdf6" surfaceScale="26" diffuseConstant="1.12" result="lit">
+        <feDistantLight azimuth="228" elevation="19"/>
+      </feDiffuseLighting>
+      <feComposite in="lit" in2="SourceGraphic" operator="in"/>
+    </filter>
+
+    <!-- the fine tooth on top of it -->
+    <filter id="xTooth" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.052" numOctaves="5" seed="4" result="n"/>
+      <feDiffuseLighting in="n" lighting-color="#fffdf7" surfaceScale="6.5" diffuseConstant="1.08" result="lit">
+        <feDistantLight azimuth="228" elevation="34"/>
+      </feDiffuseLighting>
+      <feComposite in="lit" in2="SourceGraphic" operator="in"/>
+    </filter>
+
+    <filter id="xGrit" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="2" seed="88"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .34  0 0 0 0 .35  0 0 0 0 .31  .46 0 0 0 -.22"/>
+    </filter>
+
+    <linearGradient id="xTint" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0"    stop-color="#f5f0e8" stop-opacity=".62"/>
+      <stop offset="0.42" stop-color="#cfd4c7" stop-opacity=".22"/>
+      <stop offset="1"    stop-color="#6d7866" stop-opacity=".54"/>
+    </linearGradient>
+    <radialGradient id="xLight" cx="0.22" cy="0.1" r="1.1">
+      <stop offset="0"    stop-color="#ffffff" stop-opacity=".34"/>
+      <stop offset="0.5"  stop-color="#ffffff" stop-opacity=".02"/>
+      <stop offset="1"    stop-color="#3d4438" stop-opacity=".44"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="1100" fill="#c9cec0"/>
+  <rect width="1600" height="1100" fill="#c9cec0" filter="url(#xTrowel)" opacity=".85"/>
+  <rect width="1600" height="1100" fill="#cdd2c4" filter="url(#xTooth)" opacity=".62"/>
+  <rect width="1600" height="1100" filter="url(#xGrit)" opacity=".42"/>
+  <rect width="1600" height="1100" fill="url(#xTint)"/>
+  <rect width="1600" height="1100" fill="url(#xLight)"/>
+</svg>
