@@ -1189,37 +1189,45 @@
         // Upload images to Vercel Blob (Permanent CDN URL) or fallback to IndexedDB
         let finalFullsheetUrl = null;
         if (tempFullsheetDataUrl) {
-            if (tempFullsheetDataUrl.startsWith('http://') || tempFullsheetDataUrl.startsWith('https://')) {
+            if (tempFullsheetDataUrl.startsWith('http://') || tempFullsheetDataUrl.startsWith('https://') || tempFullsheetDataUrl.startsWith('src/') || tempFullsheetDataUrl.startsWith('assets/') || tempFullsheetDataUrl.startsWith('db:')) {
                 finalFullsheetUrl = tempFullsheetDataUrl;
-            } else if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, tempFullsheetDataUrl);
-                if (blobUrl) {
-                    finalFullsheetUrl = blobUrl;
+            } else if (tempFullsheetDataUrl.startsWith('data:')) {
+                if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                    const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, tempFullsheetDataUrl);
+                    if (blobUrl) {
+                        finalFullsheetUrl = blobUrl;
+                    }
                 }
-            }
-            if (!finalFullsheetUrl) {
-                if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                    await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, tempFullsheetDataUrl);
+                if (!finalFullsheetUrl) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                        await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, tempFullsheetDataUrl);
+                    }
+                    finalFullsheetUrl = `db:fullsheet-${productId}`;
                 }
-                finalFullsheetUrl = `db:fullsheet-${productId}`;
+            } else {
+                finalFullsheetUrl = tempFullsheetDataUrl;
             }
         }
 
         let finalThreeDDataUrl = null;
         if (tempThreeDDataUrl) {
-            if (tempThreeDDataUrl.startsWith('http://') || tempThreeDDataUrl.startsWith('https://')) {
+            if (tempThreeDDataUrl.startsWith('http://') || tempThreeDDataUrl.startsWith('https://') || tempThreeDDataUrl.startsWith('src/') || tempThreeDDataUrl.startsWith('assets/') || tempThreeDDataUrl.startsWith('db:')) {
                 finalThreeDDataUrl = tempThreeDDataUrl;
-            } else if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, tempThreeDDataUrl);
-                if (blobUrl) {
-                    finalThreeDDataUrl = blobUrl;
+            } else if (tempThreeDDataUrl.startsWith('data:')) {
+                if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                    const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, tempThreeDDataUrl);
+                    if (blobUrl) {
+                        finalThreeDDataUrl = blobUrl;
+                    }
                 }
-            }
-            if (!finalThreeDDataUrl) {
-                if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                    await window.ProductCatalog.storeAsset(`threeD-${productId}`, tempThreeDDataUrl);
+                if (!finalThreeDDataUrl) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                        await window.ProductCatalog.storeAsset(`threeD-${productId}`, tempThreeDDataUrl);
+                    }
+                    finalThreeDDataUrl = `db:threeD-${productId}`;
                 }
-                finalThreeDDataUrl = `db:threeD-${productId}`;
+            } else {
+                finalThreeDDataUrl = tempThreeDDataUrl;
             }
         }
 

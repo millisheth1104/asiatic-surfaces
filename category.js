@@ -112,8 +112,24 @@
             card.className = 'masonry-item';
             card.setAttribute('data-id', p.id);
 
+            // Category texture fallback map
+            const CAT_TEXTURE_MAP = {
+                'fabric': 'assets/textures/fabric.webp',
+                'wooden': 'assets/textures/wooden.webp',
+                'laminates': 'assets/textures/laminates.webp',
+                'texture': 'assets/textures/texture.webp',
+                'thermolam': 'assets/textures/thermolam.webp',
+                'edge bands': 'assets/textures/edgebands.webp',
+                'edgebands': 'assets/textures/edgebands.webp',
+                'louvers': 'assets/textures/louvers.webp',
+                'charcoal panels': 'assets/textures/charcoal.webp',
+                'charcoal': 'assets/textures/charcoal.webp'
+            };
+            const catKey = (p.category || 'laminates').toLowerCase().trim();
+            const fallbackTexture = CAT_TEXTURE_MAP[catKey] || 'assets/textures/laminates.webp';
+
             // Fetch fullsheet image
-            let imgUrl = 'src/Fullsheet/Fullsheet1.jpeg';
+            let imgUrl = fallbackTexture;
             if (p.fullsheetUrl) {
                 if (p.fullsheetUrl.startsWith('db:')) {
                     const dbKey = p.fullsheetUrl.replace('db:', '');
@@ -121,6 +137,12 @@
                         const storedData = await window.ProductCatalog.getAsset(dbKey);
                         if (storedData) imgUrl = storedData;
                     }
+                } else if (p.fullsheetUrl.startsWith('http://') || p.fullsheetUrl.startsWith('https://') || p.fullsheetUrl.startsWith('data:')) {
+                    imgUrl = p.fullsheetUrl;
+                } else if (p.fullsheetUrl.startsWith('src/') || p.fullsheetUrl.startsWith('assets/')) {
+                    imgUrl = p.fullsheetUrl;
+                } else if (p.fullsheetUrl.startsWith('/')) {
+                    imgUrl = p.fullsheetUrl.substring(1);
                 } else {
                     imgUrl = p.fullsheetUrl;
                 }
@@ -131,7 +153,7 @@
 
             card.innerHTML = `
                 <a href="${tourUrl}" class="masonry-img-card" title="Click to view 3D virtual tour">
-                    <img src="${imgUrl}" alt="${p.name}">
+                    <img src="${imgUrl}" alt="${p.name}" loading="lazy" onerror="if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';this.src='${fallbackTexture}';}">
                 </a>
                 <div class="masonry-caption">
                     <span class="masonry-code">${p.code}</span>
