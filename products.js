@@ -675,16 +675,51 @@
     const imgFullsheet = document.getElementById('img-preview-fullsheet');
     const imgThreeD = document.getElementById('img-preview-threeD');
 
-    function readFileAsDataURL(file) {
+    function compressImageFile(file, maxWidth = 1920, quality = 0.85) {
         return new Promise((resolve) => {
             if (!file) {
                 resolve(null);
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(file);
+            if (file.type === 'image/svg+xml') {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+                return;
+            }
+
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                let w = img.width;
+                let h = img.height;
+
+                if (w > maxWidth) {
+                    h = Math.round((h * maxWidth) / w);
+                    w = maxWidth;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d', { alpha: false });
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, w, h);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressedDataUrl);
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            };
+            img.src = url;
         });
     }
 
@@ -773,7 +808,7 @@
         inputFullsheet.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempFullsheetDataUrl = await readFileAsDataURL(file);
+                tempFullsheetDataUrl = await compressImageFile(file, 1920, 0.85);
                 if (imgFullsheet && wrapFullsheet) {
                     imgFullsheet.src = tempFullsheetDataUrl;
                     wrapFullsheet.style.display = 'flex';
@@ -789,7 +824,7 @@
         inputThreeD.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempThreeDDataUrl = await readFileAsDataURL(file);
+                tempThreeDDataUrl = await compressImageFile(file, 4096, 0.88);
                 if (imgThreeD && wrapThreeD) {
                     imgThreeD.src = tempThreeDDataUrl;
                     wrapThreeD.style.display = 'flex';
@@ -1193,60 +1228,10 @@
         if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
 
         const submitBtn = btnSaveProduct || document.querySelector('#add-product-form button[type="submit"]');
-        const origBtnText = submitBtn ? submitBtn.textContent : 'Save Product';
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
-        }
 
         try {
             // Retain current ID if in Edit mode, otherwise generate a new unique ID
             const productId = editingProductId || `prod-${Date.now()}`;
-
-            // Upload images to Vercel Blob (Permanent CDN URL) or fallback to IndexedDB
-            let finalFullsheetUrl = null;
-            if (tempFullsheetDataUrl) {
-                if (tempFullsheetDataUrl.startsWith('http://') || tempFullsheetDataUrl.startsWith('https://') || tempFullsheetDataUrl.startsWith('src/') || tempFullsheetDataUrl.startsWith('assets/') || tempFullsheetDataUrl.startsWith('db:')) {
-                    finalFullsheetUrl = tempFullsheetDataUrl;
-                } else if (tempFullsheetDataUrl.startsWith('data:')) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, tempFullsheetDataUrl);
-                        if (blobUrl) {
-                            finalFullsheetUrl = blobUrl;
-                        }
-                    }
-                    if (!finalFullsheetUrl) {
-                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                            await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, tempFullsheetDataUrl);
-                        }
-                        finalFullsheetUrl = `db:fullsheet-${productId}`;
-                    }
-                } else {
-                    finalFullsheetUrl = tempFullsheetDataUrl;
-                }
-            }
-
-            let finalThreeDDataUrl = null;
-            if (tempThreeDDataUrl) {
-                if (tempThreeDDataUrl.startsWith('http://') || tempThreeDDataUrl.startsWith('https://') || tempThreeDDataUrl.startsWith('src/') || tempThreeDDataUrl.startsWith('assets/') || tempThreeDDataUrl.startsWith('db:')) {
-                    finalThreeDDataUrl = tempThreeDDataUrl;
-                } else if (tempThreeDDataUrl.startsWith('data:')) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, tempThreeDDataUrl);
-                        if (blobUrl) {
-                            finalThreeDDataUrl = blobUrl;
-                        }
-                    }
-                    if (!finalThreeDDataUrl) {
-                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                            await window.ProductCatalog.storeAsset(`threeD-${productId}`, tempThreeDDataUrl);
-                        }
-                        finalThreeDDataUrl = `db:threeD-${productId}`;
-                    }
-                } else {
-                    finalThreeDDataUrl = tempThreeDDataUrl;
-                }
-            }
 
             const newProduct = {
                 id: productId,
@@ -1256,26 +1241,20 @@
                 slug: slug,
                 pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,
                 yaw: tempHotspotsList.length > 0 ? tempHotspotsList[0].yaw : 0,
-                fullsheet: !!finalFullsheetUrl,
-                fullsheetUrl: finalFullsheetUrl,
-                threeD: !!finalThreeDDataUrl,
+                fullsheet: !!tempFullsheetDataUrl,
+                fullsheetUrl: tempFullsheetDataUrl || null,
+                threeD: !!tempThreeDDataUrl,
                 threeDUrl: `tour/${slug}`,
-                threeDDataUrl: finalThreeDDataUrl,
+                threeDDataUrl: tempThreeDDataUrl || null,
                 hotspots: tempHotspotsList,
                 description: 'Registered product asset with hotspot placement'
             };
 
+            // 1. Instant optimistic save & UI update
             if (window.ProductCatalog && typeof window.ProductCatalog.addProduct === 'function') {
                 if (editingProductId) {
                     if (typeof window.ProductCatalog.updateProduct === 'function') {
                         window.ProductCatalog.updateProduct(editingProductId, newProduct);
-                    } else {
-                        const list = getRealTimeProducts();
-                        const index = list.findIndex(p => p.id === editingProductId);
-                        if (index !== -1) {
-                            list[index] = newProduct;
-                            saveRealTimeProducts(list);
-                        }
                     }
                 } else {
                     window.ProductCatalog.addProduct(newProduct);
@@ -1284,29 +1263,71 @@
                 const list = getRealTimeProducts();
                 if (editingProductId) {
                     const index = list.findIndex(p => p.id === editingProductId);
-                    if (index !== -1) {
-                        list[index] = newProduct;
-                    }
+                    if (index !== -1) list[index] = newProduct;
                 } else {
                     list.unshift(newProduct);
                 }
                 saveRealTimeProducts(list);
             }
 
-            const wasEditing = !!editingProductId;
+            const activeFullsheet = tempFullsheetDataUrl;
+            const activeThreeD = tempThreeDDataUrl;
             editingProductId = null;
 
             renderCatalog();
             closeAddModal();
-            showToast(wasEditing ? `Product ${rawCode} successfully updated!` : `Product ${rawCode} successfully saved!`, 'success');
+            showToast(`Product ${rawCode} saved successfully!`, 'success');
+
+            // 2. Background async upload for permanent CDN Blob URLs & KV sync
+            (async () => {
+                let updated = false;
+                let finalFullsheet = newProduct.fullsheetUrl;
+                let finalThreeD = newProduct.threeDDataUrl;
+
+                if (activeFullsheet && activeFullsheet.startsWith('data:')) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, activeFullsheet);
+                        if (blobUrl) {
+                            finalFullsheet = blobUrl;
+                            updated = true;
+                        }
+                    }
+                    if (!updated) {
+                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                            await window.ProductCatalog.storeAsset(`fullsheet-${productId}`, activeFullsheet);
+                            finalFullsheet = `db:fullsheet-${productId}`;
+                            updated = true;
+                        }
+                    }
+                }
+
+                if (activeThreeD && activeThreeD.startsWith('data:')) {
+                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
+                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, activeThreeD);
+                        if (blobUrl) {
+                            finalThreeD = blobUrl;
+                            updated = true;
+                        }
+                    }
+                    if (!finalThreeD.startsWith('http')) {
+                        if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                            await window.ProductCatalog.storeAsset(`threeD-${productId}`, activeThreeD);
+                            finalThreeD = `db:threeD-${productId}`;
+                            updated = true;
+                        }
+                    }
+                }
+
+                if (updated && window.ProductCatalog && typeof window.ProductCatalog.updateProduct === 'function') {
+                    window.ProductCatalog.updateProduct(productId, {
+                        fullsheetUrl: finalFullsheet,
+                        threeDDataUrl: finalThreeD
+                    });
+                }
+            })().catch(e => console.warn('Background asset sync note:', e));
         } catch (err) {
             console.error('Failed to save product:', err);
             showToast('Error saving product: ' + err.message, 'error');
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = origBtnText;
-            }
         }
     });
 

@@ -1435,6 +1435,22 @@
     .fullsheet-modal-card {
         max-width: 98vw;
     }
+
+    .wizard-step3-container {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    .form-modal-card {
+        max-height: 94vh !important;
+        overflow-y: auto !important;
+        padding: 18px 16px !important;
+        margin: 10px !important;
+    }
+
+    #wizard-3d-viewer {
+        min-height: 220px !important;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1445,6 +1461,13 @@
     .header-titles p {
         display: none;
     }
+}
+
+.wizard-step3-container {
+    display: flex;
+    gap: 16px;
+    min-height: 280px;
+    margin-bottom: 12px;
 }
 
 /* -- Product Hotspot Labels (Wizard step 3 support) -- */
