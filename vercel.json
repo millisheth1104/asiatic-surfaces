@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/tour/:slug*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/index.html"
+    }
+  ]
+}
