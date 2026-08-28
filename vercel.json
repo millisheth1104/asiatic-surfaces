@@ -4,7 +4,11 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/tour/:slug*",
+      "source": "/tour/(.*)",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/tour",
       "destination": "/tour.html"
     },
     {

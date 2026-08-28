@@ -149,7 +149,7 @@
             }
 
             const slug = p.slug || p.code.replace(/#/g, '').trim();
-            const tourUrl = `/tour/${slug}`;
+            const tourUrl = `tour.html?code=${encodeURIComponent(slug)}`;
 
             card.innerHTML = `
                 <a href="${tourUrl}" class="masonry-img-card" title="Click to view 3D virtual tour">
