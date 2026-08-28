@@ -46,7 +46,7 @@ window.ProductCatalog = (function () {
     // Background sync from Vercel KV
     async function syncFromCloud() {
         try {
-            const res = await fetch('/api/products');
+            const res = await fetch('/api/products?t=' + Date.now(), { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.success && Array.isArray(data.products) && data.products.length > 0) {

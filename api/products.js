@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { put, list } from '@vercel/blob';
 
 const DEFAULT_PRODUCTS = [
     {
@@ -17,11 +17,102 @@ const DEFAULT_PRODUCTS = [
     }
 ];
 
-const KV_KEY = 'products_list_v1';
+const BLOB_CATALOG_PATH = 'catalog/products.json';
+let memoryCache = null;
+
+// Read products from Upstash Redis / Vercel KV / Vercel Blob
+async function loadProductsFromCloud() {
+    // 1. Try Upstash Redis / Vercel KV REST
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (kvUrl && kvToken) {
+        try {
+            const cleanUrl = kvUrl.replace(/\/$/, '');
+            const res = await fetch(`${cleanUrl}/get/products_list_v1`, {
+                headers: { Authorization: `Bearer ${kvToken}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.result) {
+                    const parsed = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        memoryCache = parsed;
+                        return parsed;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('KV/Upstash read note:', err.message);
+        }
+    }
+
+    // 2. Try Vercel Blob
+    try {
+        const { blobs } = await list({
+            prefix: BLOB_CATALOG_PATH,
+            token: process.env.BLOB_READ_WRITE_TOKEN
+        });
+
+        const targetBlob = blobs.find(b => b.pathname === BLOB_CATALOG_PATH) || blobs[0];
+        if (targetBlob && targetBlob.url) {
+            const res = await fetch(`${targetBlob.url}?t=${Date.now()}`, { cache: 'no-store' });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    memoryCache = data;
+                    return data;
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Blob read note:', err.message);
+    }
+
+    return memoryCache || DEFAULT_PRODUCTS;
+}
+
+// Write products to Upstash Redis, Vercel KV, and Vercel Blob
+async function saveProductsToCloud(products) {
+    memoryCache = products;
+    const payload = JSON.stringify(products, null, 2);
+
+    // 1. Save to Upstash Redis / Vercel KV
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (kvUrl && kvToken) {
+        try {
+            const cleanUrl = kvUrl.replace(/\/$/, '');
+            await fetch(`${cleanUrl}/set/products_list_v1`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${kvToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: payload
+            });
+        } catch (err) {
+            console.warn('KV/Upstash write note:', err.message);
+        }
+    }
+
+    // 2. Save to Vercel Blob
+    try {
+        await put(BLOB_CATALOG_PATH, payload, {
+            access: 'public',
+            addRandomSuffix: false,
+            contentType: 'application/json',
+            token: process.env.BLOB_READ_WRITE_TOKEN
+        });
+    } catch (err) {
+        console.warn('Blob write note:', err.message);
+    }
+
+    return true;
+}
 
 export default async function handler(req, res) {
-    // Set CORS headers so API works smoothly across all environments
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
@@ -35,39 +126,20 @@ export default async function handler(req, res) {
 
     try {
         if (req.method === 'GET') {
-            let products = null;
-            try {
-                products = await kv.get(KV_KEY);
-            } catch (err) {
-                console.warn('Vercel KV fetch failed, checking fallback:', err.message);
-            }
-
-            if (!products || !Array.isArray(products) || products.length === 0) {
-                products = DEFAULT_PRODUCTS;
-            }
-
-            return res.status(200).json({ success: true, products });
+            const products = await loadProductsFromCloud();
+            return res.status(200).json({ success: true, products: products || DEFAULT_PRODUCTS });
         }
 
         if (req.method === 'POST' || req.method === 'PUT') {
             const body = req.body || {};
-            let currentProducts = [];
-
-            try {
-                const stored = await kv.get(KV_KEY);
-                if (Array.isArray(stored)) currentProducts = stored;
-            } catch (e) { }
-
-            if (currentProducts.length === 0) {
+            let currentProducts = await loadProductsFromCloud();
+            if (!Array.isArray(currentProducts) || currentProducts.length === 0) {
                 currentProducts = [...DEFAULT_PRODUCTS];
             }
 
-            // Case 1: Bulk replace or full list provided
             if (Array.isArray(body.products)) {
                 currentProducts = body.products;
-            } 
-            // Case 2: Single product save / update
-            else if (body.action === 'save' || body.product) {
+            } else if (body.action === 'save' || body.product) {
                 const p = body.product;
                 if (!p || !p.id) {
                     return res.status(400).json({ error: 'Product payload must include an id' });
@@ -78,19 +150,11 @@ export default async function handler(req, res) {
                 } else {
                     currentProducts.unshift(p);
                 }
-            } 
-            // Case 3: Delete product
-            else if (body.action === 'delete' && body.id) {
+            } else if (body.action === 'delete' && body.id) {
                 currentProducts = currentProducts.filter(item => item.id !== body.id);
             }
 
-            try {
-                await kv.set(KV_KEY, currentProducts);
-            } catch (err) {
-                console.error('Vercel KV save failed:', err);
-                return res.status(500).json({ error: 'Failed to write to Vercel KV', details: err.message });
-            }
-
+            await saveProductsToCloud(currentProducts);
             return res.status(200).json({ success: true, products: currentProducts });
         }
 
@@ -98,16 +162,11 @@ export default async function handler(req, res) {
             const { id } = req.query;
             if (!id) return res.status(400).json({ error: 'Missing product ID' });
 
-            let currentProducts = [];
-            try {
-                const stored = await kv.get(KV_KEY);
-                if (Array.isArray(stored)) currentProducts = stored;
-            } catch (e) { }
-
-            currentProducts = currentProducts.filter(p => p.id !== id);
-            try {
-                await kv.set(KV_KEY, currentProducts);
-            } catch (err) { }
+            let currentProducts = await loadProductsFromCloud();
+            if (Array.isArray(currentProducts)) {
+                currentProducts = currentProducts.filter(p => p.id !== id);
+                await saveProductsToCloud(currentProducts);
+            }
 
             return res.status(200).json({ success: true, products: currentProducts });
         }

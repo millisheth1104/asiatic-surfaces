@@ -1,14 +1,8 @@
 {
-  "framework": null,
-  "outputDirectory": ".",
-  "cleanUrls": true,
+  "cleanUrls": false,
   "rewrites": [
     {
-      "source": "/tour/(.*)",
-      "destination": "/tour.html"
-    },
-    {
-      "source": "/tour",
+      "source": "/tour/:slug*",
       "destination": "/tour.html"
     },
     {
