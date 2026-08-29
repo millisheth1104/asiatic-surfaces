@@ -1175,6 +1175,30 @@
                 else if (!nameInput.checkValidity()) nameInput.reportValidity();
                 return;
             }
+
+            let rawCode = codeInput.value.trim();
+            const category = categorySelect.value.trim();
+
+            if (rawCode && category) {
+                if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
+                const existingProducts = getRealTimeProducts();
+                const cleanNewCode = rawCode.toLowerCase().replace(/#/g, '').trim();
+                const cleanNewCat = category.toLowerCase().trim();
+
+                const duplicate = existingProducts.find(p => {
+                    if (editingProductId && p.id === editingProductId) return false;
+                    const cleanExistingCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+                    const cleanExistingCat = (p.category || '').toLowerCase().trim();
+                    return cleanExistingCode === cleanNewCode && cleanExistingCat === cleanNewCat;
+                });
+
+                if (duplicate) {
+                    showToast(`Product code ${rawCode} already exists in ${category}. Please enter a unique code.`, 'error');
+                    codeInput.focus();
+                    return;
+                }
+            }
+
             showFormStep(2);
         });
     }
@@ -1235,6 +1259,28 @@
         }
 
         if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
+
+        // Check for duplicate code in the same category
+        const existingProducts = getRealTimeProducts();
+        const cleanNewCode = rawCode.toLowerCase().replace(/#/g, '').trim();
+        const cleanNewCat = category.toLowerCase().trim();
+
+        const duplicate = existingProducts.find(p => {
+            if (editingProductId && p.id === editingProductId) return false;
+            const cleanExistingCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+            const cleanExistingCat = (p.category || '').toLowerCase().trim();
+            return cleanExistingCode === cleanNewCode && cleanExistingCat === cleanNewCat;
+        });
+
+        if (duplicate) {
+            showFormStep(1);
+            showToast(`Product with code ${rawCode} already exists in ${category}. Please use a unique code number.`, 'error');
+            const codeInput = document.getElementById('form-code');
+            if (codeInput) {
+                codeInput.focus();
+            }
+            return;
+        }
 
         const submitBtn = btnSaveProduct || document.querySelector('#add-product-form button[type="submit"]');
 

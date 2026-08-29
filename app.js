@@ -211,9 +211,27 @@
             }
         }
 
+        function hidePreloader() {
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.pointerEvents = 'none';
+                setTimeout(() => {
+                    if (loadingScreen) {
+                        loadingScreen.style.display = 'none';
+                        loadingScreen.style.visibility = 'hidden';
+                    }
+                }, 400);
+            }
+            if (appContainer) {
+                appContainer.classList.add('visible');
+                appContainer.style.opacity = '1';
+                appContainer.style.display = 'block';
+            }
+        }
+
         if (!panoramaSrc) {
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            if (appContainer) appContainer.classList.add('visible');
+            hidePreloader();
             const viewerEl = document.getElementById('panorama-viewer');
             if (viewerEl) {
                 viewerEl.innerHTML = `
@@ -235,7 +253,6 @@
         let hotspots = [];
         if (matched && Array.isArray(matched.hotspots) && matched.hotspots.length > 0) {
             hotspots = matched.hotspots.map((hs, index) => {
-                // Find matching product in catalog to attach tooltips/actions
                 const productMeta = products3D.find(p => p.code.toLowerCase().replace(/#/g, '') === hs.code.toLowerCase().replace(/#/g, '')) || { code: hs.code, name: hs.code };
                 return {
                     id: `product-hotspot-${hs.code}-${index}`,
@@ -249,49 +266,89 @@
             });
         }
 
-        viewer = pannellum.viewer('panorama-viewer', {
-            type: 'equirectangular',
-            panorama: panoramaSrc,
-            autoLoad: true,
-            showControls: false,
-            showFullscreenCtrl: false,
-            showZoomCtrl: false,
-            compass: false,
-            mouseZoom: true,
-            keyboardZoom: true,
-            draggable: true,
-            disableKeyboardCtrl: false,
-            friction: 0.15,
-            hfov: 100,
-            minHfov: 30,
-            maxHfov: 120,
-            pitch: initialPitch,
-            yaw: initialYaw,
-            autoRotate: 0,
-            autoRotateInactivityDelay: 0,
-            preview: '',
-            hotSpots: hotspots,
-            strings: {
-                loadButtonLabel: '',
-                loadingLabel: ''
-            }
-        });
+        try {
+            viewer = pannellum.viewer('panorama-viewer', {
+                type: 'equirectangular',
+                panorama: panoramaSrc,
+                autoLoad: true,
+                showControls: false,
+                showFullscreenCtrl: false,
+                showZoomCtrl: false,
+                compass: false,
+                mouseZoom: true,
+                keyboardZoom: true,
+                draggable: true,
+                disableKeyboardCtrl: false,
+                friction: 0.15,
+                hfov: 100,
+                minHfov: 30,
+                maxHfov: 120,
+                pitch: initialPitch,
+                yaw: initialYaw,
+                autoRotate: 0,
+                autoRotateInactivityDelay: 0,
+                preview: '',
+                hotSpots: hotspots,
+                strings: {
+                    loadButtonLabel: '',
+                    loadingLabel: ''
+                }
+            });
 
-        // Listen for load complete
-        viewer.on('load', onViewerLoaded);
+            // Listen for load complete
+            viewer.on('load', onViewerLoaded);
 
-        // Update compass & info in real-time
-        viewer.on('mousedown', onFirstInteraction);
-        viewer.on('touchstart', onFirstInteraction);
+            // Error fallback: If panorama fails to load, display No 3D Image state cleanly
+            viewer.on('error', () => {
+                hidePreloader();
+                const viewerEl = document.getElementById('panorama-viewer');
+                if (viewerEl) {
+                    viewerEl.innerHTML = `
+                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0a09; color: #fff; text-align: center; padding: 24px; z-index: 1000;">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom: 18px;">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                            </svg>
+                            <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;">No 3D Image Available</h2>
+                            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 320px; line-height: 1.45;">No 360° panorama image could be loaded for this product.</p>
+                        </div>
+                    `;
+                }
+            });
 
-        // Continuous update loop for compass and info
-        requestAnimationFrame(updateLoop);
+            // Safety timeout: Ensure preloader is always dismissed within 3.5s
+            setTimeout(hidePreloader, 3500);
+
+            // Update compass & info in real-time
+            viewer.on('mousedown', onFirstInteraction);
+            viewer.on('touchstart', onFirstInteraction);
+
+            // Continuous update loop for compass and info
+            requestAnimationFrame(updateLoop);
+        } catch (viewerErr) {
+            console.error('Failed to initialize Pannellum viewer:', viewerErr);
+            hidePreloader();
+        }
     }
 
     function onViewerLoaded() {
         // Hide loading, show app
-        loadingScreen.classList.add('hidden');
-        appContainer.classList.add('visible');
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.pointerEvents = 'none';
+            setTimeout(() => {
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                    loadingScreen.style.visibility = 'hidden';
+                }
+            }, 400);
+        }
+        if (appContainer) {
+            appContainer.classList.add('visible');
+            appContainer.style.opacity = '1';
+            appContainer.style.display = 'block';
+        }
 
         // Check URL parameters for direct product focusing
         const urlParams = new URLSearchParams(window.location.search);
