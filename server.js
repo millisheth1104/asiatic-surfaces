@@ -33,14 +33,15 @@ const server = http.createServer((req, res) => {
     let reqUrl = decodeURIComponent(req.url.split('?')[0]);
     const hasExtension = path.extname(reqUrl) !== '';
 
+    const CATEGORY_PREFIXES = ['/fabric/', '/texture/', '/wooden/', '/thermolam/', '/edge-bands/', '/edgebands/', '/laminates/', '/louvers/', '/charcoal-panels/', '/charcoal/'];
+    const isCategoryProductRoute = CATEGORY_PREFIXES.some(prefix => reqUrl.startsWith(prefix));
+
     if (reqUrl === '/' || reqUrl === '/home.html') {
         reqUrl = '/index.html';
-    } else if (reqUrl.startsWith('/tour/')) {
+    } else if (isCategoryProductRoute) {
         if (hasExtension) {
-            // Re-route relative assets (css, js, images) requested from /tour/ route back to the root directory
-            reqUrl = reqUrl.replace('/tour/', '/');
+            reqUrl = '/' + path.basename(reqUrl);
         } else {
-            // Serve the single-page viewer app for path tour routing
             reqUrl = '/tour.html';
         }
     }

@@ -130,15 +130,19 @@
 
         const products3D = window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function' ? window.ProductCatalog.getProducts() : [];
         
-        // Retrieve targetCode from path /tour/[slug] or fallback to ?code= query param
+        // Retrieve target category and code from path /categoryName/codeNumber or /tour/[slug] or ?code=
+        let targetCategory = null;
         let targetCode = null;
-        const pathParts = window.location.pathname.split('/');
-        const tourIndex = pathParts.indexOf('tour');
-        if (tourIndex !== -1 && pathParts[tourIndex + 1]) {
-            targetCode = decodeURIComponent(pathParts[tourIndex + 1]).replace('.html', '');
+        const pathSegments = window.location.pathname.split('/').filter(Boolean);
+
+        if (pathSegments.length >= 2) {
+            // e.g. /fabric/4011 or /laminates/4006
+            targetCategory = decodeURIComponent(pathSegments[0]).toLowerCase().replace(/-/g, ' ');
+            targetCode = decodeURIComponent(pathSegments[1]).replace('.html', '');
         } else {
             const urlParams = new URLSearchParams(window.location.search);
-            targetCode = urlParams.get('code') || urlParams.get('id') || urlParams.get('slug') || '4006';
+            targetCategory = urlParams.get('cat') || urlParams.get('category') || urlParams.get('type');
+            targetCode = urlParams.get('code') || urlParams.get('id') || urlParams.get('slug');
         }
         
         let panoramaSrc = null;
@@ -148,14 +152,34 @@
 
         if (targetCode) {
             const cleanParam = targetCode.toLowerCase().replace(/#/g, '').trim();
-            matched = products3D.find(p => {
-                const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
-                const cleanSlug = (p.slug || '').toLowerCase().trim();
-                const cleanId = (p.id || '').toLowerCase().trim();
-                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
-            });
+            const cleanCatParam = targetCategory ? targetCategory.toLowerCase().replace(/\s+/g, '').replace(/-/g, '') : null;
+
+            // 1. Match both code and category if category provided
+            if (cleanCatParam) {
+                matched = products3D.find(p => {
+                    const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+                    const cleanSlug = (p.slug || '').toLowerCase().trim();
+                    const cleanId = (p.id || '').toLowerCase().trim();
+                    const cleanProductCat = (p.category || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+                    const codeMatches = cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
+                    return codeMatches && cleanProductCat === cleanCatParam;
+                });
+            }
+
+            // 2. Fallback to matching code directly
+            if (!matched) {
+                matched = products3D.find(p => {
+                    const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+                    const cleanSlug = (p.slug || '').toLowerCase().trim();
+                    const cleanId = (p.id || '').toLowerCase().trim();
+                    return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
+                });
+            }
 
             if (matched) {
+                const roomNameEl = document.getElementById('room-name');
+                if (roomNameEl) roomNameEl.textContent = `${matched.category || ''} ${matched.code || ''}`.trim();
+
                 let matchedPanoSrc = null;
                 if (matched.threeDDataUrl) {
                     if (matched.threeDDataUrl.startsWith('db:')) {
@@ -185,22 +209,10 @@
         }
 
         if (!panoramaSrc) {
-            if (loadingScreen) loadingScreen.classList.add('hidden');
-            if (appContainer) appContainer.classList.add('visible');
-            const viewerEl = document.getElementById('panorama-viewer');
-            if (viewerEl) {
-                viewerEl.innerHTML = `
-                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0a09; color: #fff; text-align: center; padding: 24px; z-index: 1000;">
-                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom: 18px;">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                        </svg>
-                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;">No 3D Image Available</h2>
-                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 320px; line-height: 1.45; margin-bottom: 24px;">No 360° panorama image has been uploaded for this product.</p>
-                        <a href="/products.html" style="padding: 10px 24px; background: #fff; color: #0c0a09; text-decoration: none; border-radius: 999px; font-weight: 500; font-size: 0.8rem; transition: opacity 0.2s;">Go to Catalog</a>
-                    </div>
-                `;
-            }
+            if (loadingScreen) loadingScreen.style.display = 'none';
+            if (appContainer) appContainer.style.display = 'none';
+            document.body.innerHTML = '';
+            document.body.style.background = '#000000';
             return;
         }
 

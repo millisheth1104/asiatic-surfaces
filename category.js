@@ -34,7 +34,7 @@
 
     // ---- Parse URL Parameter ----
     const urlParams = new URLSearchParams(window.location.search);
-    const categoryQuery = urlParams.get('type') || 'Fabric';
+    const categoryQuery = urlParams.get('type') || urlParams.get('cat') || 'Fabric';
 
     // Format category string (e.g. fabric -> Fabric, edgebands -> Edge Bands)
     const CATEGORIES_NORMALIZED = {
@@ -43,9 +43,11 @@
         'wooden': 'Wooden',
         'thermolam': 'Thermolam',
         'edgebands': 'Edge Bands',
+        'edge bands': 'Edge Bands',
         'laminates': 'Laminates',
         'louvers': 'Louvers',
-        'charcoal': 'Charcoal Panels'
+        'charcoal': 'Charcoal Panels',
+        'charcoal panels': 'Charcoal Panels'
     };
 
     const normalizedKey = categoryQuery.toLowerCase().replace(/\s/g, '');
@@ -56,37 +58,47 @@
     if (categoryEyebrow) categoryEyebrow.textContent = `${activeCategory} Collection`;
     if (categoryMainTitle) categoryMainTitle.textContent = `${activeCategory} Surfaces`;
 
-    // ---- Fetch Products Data ----
-    let productsList = [];
-    if (window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function') {
-        productsList = window.ProductCatalog.getProducts();
-    } else {
-        try {
-            const raw = localStorage.getItem('realtime_products_db_v3');
-            if (raw) {
-                productsList = JSON.parse(raw);
-            } else {
-                const fallbackRaw = localStorage.getItem('realtime_360_product_catalog_v2');
-                if (fallbackRaw) productsList = JSON.parse(fallbackRaw);
-            }
-        } catch (e) { }
-    }
+    // Category texture fallback map
+    const CAT_TEXTURE_MAP = {
+        'fabric': 'assets/textures/fabric.webp',
+        'wooden': 'assets/textures/wooden.webp',
+        'laminates': 'assets/textures/laminates.webp',
+        'texture': 'assets/textures/texture.webp',
+        'thermolam': 'assets/textures/thermolam.webp',
+        'edge bands': 'assets/textures/edgebands.webp',
+        'edgebands': 'assets/textures/edgebands.webp',
+        'louvers': 'assets/textures/louvers.webp',
+        'charcoal panels': 'assets/textures/charcoal.webp',
+        'charcoal': 'assets/textures/charcoal.webp'
+    };
 
-    // Filter by Category
-    const filteredProducts = productsList.filter(p => p.category && p.category.toLowerCase() === activeCategory.toLowerCase());
+    let cachedProducts = [];
 
     async function renderCategoryCards() {
-        if (filteredProducts.length === 0) {
+        // Retrieve latest products
+        let productsList = [];
+        if (window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function') {
+            productsList = window.ProductCatalog.getProducts();
+        } else {
+            try {
+                const raw = localStorage.getItem('realtime_products_db_v3') || localStorage.getItem('realtime_360_product_catalog_v2');
+                if (raw) productsList = JSON.parse(raw);
+            } catch (e) { }
+        }
+
+        const filtered = productsList.filter(p => p.category && p.category.toLowerCase().trim() === activeCategory.toLowerCase().trim());
+        cachedProducts = filtered;
+
+        if (filtered.length === 0) {
             if (productsGrid) productsGrid.style.display = 'none';
             if (emptyState) emptyState.style.display = 'block';
             return;
         }
 
+        if (emptyState) emptyState.style.display = 'none';
         if (productsGrid) {
             productsGrid.style.display = 'flex';
-            productsGrid.innerHTML = '';
         }
-        if (emptyState) emptyState.style.display = 'none';
 
         const getColCount = () => {
             const w = window.innerWidth;
@@ -98,33 +110,24 @@
         };
 
         const colCount = getColCount();
-        const cols = [];
+        
+        // Build cards
+        const colElements = [];
+        const fragment = document.createDocumentFragment();
+
         for (let c = 0; c < colCount; c++) {
             const colEl = document.createElement('div');
             colEl.className = 'category-col';
-            productsGrid.appendChild(colEl);
-            cols.push(colEl);
+            fragment.appendChild(colEl);
+            colElements.push(colEl);
         }
 
-        for (let i = 0; i < filteredProducts.length; i++) {
-            const p = filteredProducts[i];
+        for (let i = 0; i < filtered.length; i++) {
+            const p = filtered[i];
             const card = document.createElement('div');
             card.className = 'masonry-item';
             card.setAttribute('data-id', p.id);
 
-            // Category texture fallback map
-            const CAT_TEXTURE_MAP = {
-                'fabric': 'assets/textures/fabric.webp',
-                'wooden': 'assets/textures/wooden.webp',
-                'laminates': 'assets/textures/laminates.webp',
-                'texture': 'assets/textures/texture.webp',
-                'thermolam': 'assets/textures/thermolam.webp',
-                'edge bands': 'assets/textures/edgebands.webp',
-                'edgebands': 'assets/textures/edgebands.webp',
-                'louvers': 'assets/textures/louvers.webp',
-                'charcoal panels': 'assets/textures/charcoal.webp',
-                'charcoal': 'assets/textures/charcoal.webp'
-            };
             const catKey = (p.category || 'laminates').toLowerCase().trim();
             const fallbackTexture = CAT_TEXTURE_MAP[catKey] || 'assets/textures/laminates.webp';
 
@@ -137,22 +140,26 @@
                         const storedData = await window.ProductCatalog.getAsset(dbKey);
                         if (storedData) imgUrl = storedData;
                     }
-                } else if (p.fullsheetUrl.startsWith('http://') || p.fullsheetUrl.startsWith('https://') || p.fullsheetUrl.startsWith('data:')) {
-                    imgUrl = p.fullsheetUrl;
-                } else if (p.fullsheetUrl.startsWith('src/') || p.fullsheetUrl.startsWith('assets/')) {
-                    imgUrl = p.fullsheetUrl;
-                } else if (p.fullsheetUrl.startsWith('/')) {
-                    imgUrl = p.fullsheetUrl.substring(1);
                 } else {
                     imgUrl = p.fullsheetUrl;
                 }
             }
 
-            const slug = p.slug || p.code.replace(/#/g, '').trim();
-            const tourUrl = `tour.html?code=${encodeURIComponent(slug)}`;
+            const cleanCat = (p.category || activeCategory || 'laminates')
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-');
+            const cleanCode = (p.code || p.slug || p.id || 'product')
+                .toLowerCase()
+                .trim()
+                .replace(/#/g, '')
+                .replace(/\s+/g, '-');
+            const productSlugUrl = `/${cleanCat}/${cleanCode}`;
+            const has3D = Boolean(p.threeD || p.threeDDataUrl || (p.threeDUrl && !p.threeDUrl.startsWith('index.html')));
+            const tourUrl = has3D ? productSlugUrl : null;
 
             card.innerHTML = `
-                <a href="${tourUrl}" class="masonry-img-card" title="Click to view 3D virtual tour">
+                <a ${tourUrl ? `href="${tourUrl}"` : `role="button" tabindex="0"`} class="masonry-img-card" data-id="${p.id}" title="${has3D ? 'Click to view 3D virtual tour' : 'Click to view fullsheet image'}" style="cursor: pointer; text-decoration: none;">
                     <img src="${imgUrl}" alt="${p.name}" loading="lazy" onerror="if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';this.src='${fallbackTexture}';}">
                 </a>
                 <div class="masonry-caption">
@@ -160,23 +167,46 @@
                     <span class="masonry-name">${p.name}</span>
                 </div>
             `;
-            cols[i % colCount].appendChild(card);
+            colElements[i % colCount].appendChild(card);
+        }
+
+        // Replace entire grid atomically to prevent any blinking/flashing
+        if (productsGrid) {
+            productsGrid.innerHTML = '';
+            productsGrid.appendChild(fragment);
         }
 
         attachActionEventListeners();
     }
 
+    // Initial render
     renderCategoryCards();
 
-    // Debounced window resize handler to rebuild columns dynamically
+    // Debounced window resize handler — ONLY triggers on horizontal width changes (not mobile vertical scroll)
+    let lastWidth = window.innerWidth;
     let resizeTimer = null;
     window.addEventListener('resize', () => {
+        if (window.innerWidth === lastWidth) return;
+        lastWidth = window.innerWidth;
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(renderCategoryCards, 150);
-    });
+    }, { passive: true });
 
     // ---- Event Handlers ----
     function attachActionEventListeners() {
+        document.querySelectorAll('.masonry-img-card:not([href])').forEach(card => {
+            card.addEventListener('click', (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                if (id) openFullsheetModal(id);
+            });
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    if (id) openFullsheetModal(id);
+                }
+            });
+        });
+
         document.querySelectorAll('.view-fs-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 openFullsheetModal(e.currentTarget.getAttribute('data-id'));
@@ -192,7 +222,7 @@
 
     // ---- Fullsheet Zoom / Transform Logic ----
     async function openFullsheetModal(productId) {
-        const product = filteredProducts.find(p => p.id === productId);
+        const product = cachedProducts.find(p => p.id === productId);
         if (!product || !product.fullsheet) return;
 
         if (fsModalTitle) fsModalTitle.textContent = `${product.code} - ${product.name}`;
@@ -281,13 +311,21 @@
     }
 
     function openQrModal(productId) {
-        const product = filteredProducts.find(p => p.id === productId);
+        const product = cachedProducts.find(p => p.id === productId);
         if (!product) return;
 
         if (qrModalTitle) qrModalTitle.textContent = `Tour QR Code (${product.code})`;
 
-        const urlSlug = product.slug || product.code.replace(/#/g, '');
-        const shareUrl = `${window.location.origin}/tour/${urlSlug}`;
+        const cleanCat = (product.category || activeCategory || 'laminates')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-');
+        const cleanCode = (product.code || product.slug || product.id || 'product')
+            .toLowerCase()
+            .trim()
+            .replace(/#/g, '')
+            .replace(/\s+/g, '-');
+        const shareUrl = `${window.location.origin}/${cleanCat}/${cleanCode}`;
 
         if (qrRenderArea) {
             qrRenderArea.innerHTML = '';
@@ -325,15 +363,14 @@
 
     // Real-time multi-device cloud synchronization listener
     window.addEventListener('catalogUpdated', () => {
-        renderCategoryCards(currentCategory);
+        renderCategoryCards();
     });
 
     // Trigger background cloud sync on page load
     if (window.ProductCatalog && typeof window.ProductCatalog.syncFromCloud === 'function') {
         window.ProductCatalog.syncFromCloud().then(() => {
-            renderCategoryCards(currentCategory);
+            renderCategoryCards();
         });
     }
 
 })();
-

@@ -46,6 +46,16 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    -webkit-overflow-scrolling: touch;
+}
+
 /* -- Body & Page ----------------------- */
 .products-page {
     font-family: var(--font);
@@ -54,6 +64,7 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* -- Header ---------------------------- */

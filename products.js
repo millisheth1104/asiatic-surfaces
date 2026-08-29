@@ -449,8 +449,16 @@
         qrModalName.textContent = product.name;
         qrModalCategory.textContent = product.category;
 
-        const urlSlug = product.slug || product.code.replace(/#/g, '');
-        const shareUrl = `${window.location.origin}/tour/${urlSlug}`;
+        const cleanCat = (product.category || 'laminates')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-');
+        const cleanCode = (product.code || product.slug || product.id || 'product')
+            .toLowerCase()
+            .trim()
+            .replace(/#/g, '')
+            .replace(/\s+/g, '-');
+        const shareUrl = `${window.location.origin}/${cleanCat}/${cleanCode}`;
         qrLinkInput.value = shareUrl;
 
         qrRenderArea.innerHTML = '';
@@ -468,7 +476,7 @@
         }
 
         qrLaunch360Btn.href = product.threeD
-            ? `tour/${urlSlug}`
+            ? `${cleanCat}/${cleanCode}`
             : '#';
 
         if (!product.threeD) {
@@ -576,8 +584,9 @@
 
         if (panoModalTitle) panoModalTitle.textContent = `${product.code} - ${product.name} (3D Panorama)`;
         if (panoLaunchTourBtn) {
-            const urlSlug = product.slug || product.code.replace(/#/g, '');
-            panoLaunchTourBtn.href = `tour/${urlSlug}`;
+            const cleanCat = (product.category || 'laminates').toLowerCase().trim().replace(/\s+/g, '-');
+            const cleanCode = (product.code || product.slug || product.id || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-');
+            panoLaunchTourBtn.href = `${cleanCat}/${cleanCode}`;
         }
 
         if (panoModal) panoModal.style.display = 'flex';
@@ -1244,7 +1253,7 @@
                 fullsheet: !!tempFullsheetDataUrl,
                 fullsheetUrl: tempFullsheetDataUrl || null,
                 threeD: !!tempThreeDDataUrl,
-                threeDUrl: `tour/${slug}`,
+                threeDUrl: `/${(catVal || 'laminates').toLowerCase().trim().replace(/\s+/g, '-')}/${(codeVal || slug || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-')}`,
                 threeDDataUrl: tempThreeDDataUrl || null,
                 hotspots: tempHotspotsList,
                 description: 'Registered product asset with hotspot placement'

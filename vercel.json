@@ -4,7 +4,43 @@
   "cleanUrls": false,
   "rewrites": [
     {
-      "source": "/tour/:slug*",
+      "source": "/fabric/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/texture/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/wooden/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/thermolam/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/edge-bands/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/edgebands/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/laminates/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/louvers/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/charcoal-panels/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/charcoal/:code*",
       "destination": "/tour.html"
     },
     {
