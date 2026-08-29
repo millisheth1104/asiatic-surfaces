@@ -190,11 +190,9 @@
                         if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
                             matchedPanoSrc = await window.ProductCatalog.getAsset(dbKey);
                         }
-                    } else {
+                    } else if (matched.threeDDataUrl.startsWith('data:') || matched.threeDDataUrl.startsWith('http://') || matched.threeDDataUrl.startsWith('https://') || matched.threeDDataUrl.startsWith('src/')) {
                         matchedPanoSrc = matched.threeDDataUrl;
                     }
-                } else if (matched.threeDUrl && !matched.threeDUrl.startsWith('index.html') && !matched.threeDUrl.startsWith('tour/') && !matched.threeDUrl.startsWith('/tour/')) {
-                    matchedPanoSrc = matched.threeDUrl;
                 }
 
                 if (matchedPanoSrc) {

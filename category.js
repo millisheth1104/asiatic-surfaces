@@ -155,7 +155,7 @@
                 .replace(/#/g, '')
                 .replace(/\s+/g, '-');
             const productSlugUrl = `/${cleanCat}/${cleanCode}`;
-            const has3D = Boolean(p.threeD || p.threeDDataUrl || (p.threeDUrl && !p.threeDUrl.startsWith('index.html')));
+            const has3D = Boolean(p.threeD && p.threeDDataUrl);
             const tourUrl = has3D ? productSlugUrl : null;
 
             card.innerHTML = `
