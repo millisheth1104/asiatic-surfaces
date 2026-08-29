@@ -231,6 +231,51 @@ html, body {
     margin-top: 2px;
 }
 
+.header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(30, 26, 23, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(245, 240, 232, 0.12);
+    border-radius: var(--radius-full);
+    padding: 4px 6px;
+}
+
+.nav-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone-light);
+    transition: all 0.3s var(--ease-out-expo);
+}
+
+.nav-pill.active {
+    background: var(--dusty-peach);
+    color: var(--charcoal);
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: dot-pulse 2s ease-in-out infinite;
+}
+
 .header-right {
     display: flex;
     gap: 10px;

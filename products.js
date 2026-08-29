@@ -1253,7 +1253,7 @@
                 fullsheet: !!tempFullsheetDataUrl,
                 fullsheetUrl: tempFullsheetDataUrl || null,
                 threeD: !!tempThreeDDataUrl,
-                threeDUrl: `/${(catVal || 'laminates').toLowerCase().trim().replace(/\s+/g, '-')}/${(codeVal || slug || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-')}`,
+                threeDUrl: `/${(category || 'laminates').toLowerCase().trim().replace(/\s+/g, '-')}/${(rawCode || slug || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-')}`,
                 threeDDataUrl: tempThreeDDataUrl || null,
                 hotspots: tempHotspotsList,
                 description: 'Registered product asset with hotspot placement'

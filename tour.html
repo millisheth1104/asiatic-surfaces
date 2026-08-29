@@ -50,9 +50,9 @@
                             <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/>
                         </svg>
                     </div>
-                    <div class="header-info">
-                        <h1 class="header-title">360° Virtual Tour</h1>
-                        <p class="header-subtitle">BEDROOM INTERIOR</p>
+                    <div class="header-text">
+                        <h1>360° Virtual Tour</h1>
+                        <p id="header-subtitle">BEDROOM INTERIOR</p>
                     </div>
                 </a>
             </div>
@@ -68,8 +68,8 @@
             </div>
 
             <div class="header-right">
-                <button class="header-action-btn" id="btn-fullsheet" title="View Fullsheet Texture" aria-label="View Fullsheet Texture">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <button class="fullsheet-toggle-btn" id="btn-fullsheet" title="View Fullsheet Texture" aria-label="View Fullsheet Texture">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <path d="M21 15l-5-5L5 21"/>
@@ -83,25 +83,25 @@
         <main id="panorama-viewer" role="region" aria-label="360 degree panoramic viewer"></main>
 
         <!-- Floating UI Elements -->
-        <div id="ui-overlay">
+        <div id="controls-overlay">
 
-            <!-- Top Right: Compass & Mini Map Indicator -->
-            <div class="compass-widget" id="compass-widget" title="Orientation">
-                <div class="compass-ring">
-                    <span class="compass-label north">N</span>
-                    <span class="compass-label east">E</span>
-                    <span class="compass-label south">S</span>
-                    <span class="compass-label west">W</span>
-                    <div class="compass-needle" id="compass-needle">
-                        <div class="needle-north"></div>
-                        <div class="needle-south"></div>
+            <!-- Bottom Left: Compass -->
+            <div class="controls-left">
+                <div class="compass-container" id="compass-container" title="Orientation">
+                    <div class="compass-ring">
+                        <div class="compass-needle" id="compass-needle">
+                            <span class="needle-north">N</span>
+                            <div class="needle-line"></div>
+                            <span class="needle-south">S</span>
+                        </div>
                     </div>
+                    <span class="compass-label">Compass</span>
                 </div>
             </div>
 
             <!-- Right: Interactive Controls Panel -->
-            <div class="controls-panel" id="controls-panel">
-                <div class="controls-group">
+            <div class="controls-right">
+                <div class="control-group">
                     <button class="control-btn" id="btn-zoom-in" title="Zoom In" aria-label="Zoom In">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                             <circle cx="11" cy="11" r="8"/>

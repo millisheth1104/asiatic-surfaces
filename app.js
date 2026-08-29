@@ -177,8 +177,11 @@
             }
 
             if (matched) {
+                const subEl = document.getElementById('header-subtitle');
+                if (subEl && matched.name) subEl.textContent = (matched.name || 'Room Interior').toUpperCase();
+
                 const roomNameEl = document.getElementById('room-name');
-                if (roomNameEl) roomNameEl.textContent = `${matched.category || ''} ${matched.code || ''}`.trim();
+                if (roomNameEl) roomNameEl.textContent = `${matched.category || ''} ${matched.code || ''}`.trim() || 'Living Space';
 
                 let matchedPanoSrc = null;
                 if (matched.threeDDataUrl) {
@@ -209,10 +212,21 @@
         }
 
         if (!panoramaSrc) {
-            if (loadingScreen) loadingScreen.style.display = 'none';
-            if (appContainer) appContainer.style.display = 'none';
-            document.body.innerHTML = '';
-            document.body.style.background = '#000000';
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+            if (appContainer) appContainer.classList.add('visible');
+            const viewerEl = document.getElementById('panorama-viewer');
+            if (viewerEl) {
+                viewerEl.innerHTML = `
+                    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0a09; color: #fff; text-align: center; padding: 24px; z-index: 1000;">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom: 18px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                        </svg>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;">No 3D Image Available</h2>
+                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 320px; line-height: 1.45;">No 360° panorama image has been uploaded for this product.</p>
+                    </div>
+                `;
+            }
             return;
         }
 
