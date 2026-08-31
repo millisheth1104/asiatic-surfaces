@@ -1,21 +1,37 @@
-# Asiatic Surfaces — Project Knowledge Base
+# Asiatic Surfaces — project memory
 
-## What this is
-Single-page brand home page for **Asiatic Surfaces** (surfaces / panels / laminates brand).
-Instagram reference: https://www.instagram.com/asiaticsurfaces/
+Context for anyone (or any future session) picking this up. Written 2026-08-28, at the end of
+the build session. `BUILD_LOG.md` has the blow-by-blow; this file is the part worth reading
+first.
 
-Three sections only, as specified:
-1. **Hero** — inset rounded card with **one fixed image** (no rotation), a full-sheet
-   one-line headline, a note beneath, and a plate of all 8 surface cards breaking the
-   hero's bottom edge
-2. **Collection** — bento grid of the 8 product families
-3. **Thank You** — closing section + footer
+---
 
-Hero layout follows the Mumbai Dabbawala launch page the user supplied as reference:
-white page frame around a rounded hero card, logo on a white plate, concave notch where
-the card plate meets the hero's bottom edge, cards overhanging below that edge.
+## 1. What this is
 
-## Brand tokens (locked)
+Single-page brand home page for **Asiatic Surfaces** — a surfaces / panels / laminates brand.
+Instagram: https://www.instagram.com/asiaticsurfaces/
+
+- Repo: https://github.com/millisheth1104/asiatic-surfaces (branch `main`)
+- Live: https://asiatic-surfaces.vercel.app
+- No build step. Plain HTML + CSS + JS. `python -m http.server 5599`, or the
+  `asiatic-static` config in `.claude/launch.json`.
+
+**Three sections, and only three** — that was the brief and it has not changed:
+
+1. **Hero** — an inset rounded card holding one fixed photograph. Eyebrow + headline
+   (*Full Sheet View*) at the top; sub-line + Instagram link near the bottom. A plate of all
+   eight surface cards breaks the hero's bottom-right edge, and a short note sits under the
+   hero to its left.
+2. **Collection** — a 12-column asymmetric bento of the eight families.
+3. **Thank You** — a looping name ticker, the sign-off, the palette bands, a footer.
+
+The hero's shape follows the Mumbai Dabbawala launch page the user supplied as reference:
+page frame around a rounded hero card, a plate breaking its bottom edge with cards on it, a
+concave fillet where the two meet.
+
+---
+
+## 2. Brand system (locked — supplied, not chosen)
 
 | Token | Hex | Name |
 |---|---|---|
@@ -23,191 +39,258 @@ the card plate meets the hero's bottom edge, cards overhanging below that edge.
 | `--powder` | `#b8d5de` | Powder Blue |
 | `--sky` | `#d2e8ff` | Light Blue |
 | `--ivory` | `#f5f0e8` | Warm Ivory |
-| `--ink` | `#1b211c` | derived deep green-charcoal (text) |
+| `--ink` | `#1b211c` | derived deep green-charcoal, body text |
+| `--accent-ink` | `#6c7f64` | heading emphasis on ivory |
+| `--accent-dark` | `#c8d6c1` | heading emphasis on the hero |
 
-Fonts: **Asar** = all headings (`--f-display`) · **Palanquin** = body/UI (`--f-body`).
-Loaded from Google Fonts in `index.html`.
+Fonts: **Asar** for every heading, **Palanquin** for body and UI. Google Fonts, linked in
+`index.html`.
 
-## The 8 product families (fixed order + numbering)
-01 Fabric · 02 Wooden · 03 Charcoal Panels · 04 Laminates · 05 Louvers · 06 Thermolam · 07 Edge Bands · 08 Texture
+**Eight families, fixed set and numbering:**
+01 Fabric · 02 Wooden · 03 Charcoal Panels · 04 Laminates · 05 Louvers · 06 Thermolam ·
+07 Edge Bands · 08 Texture
 
-Display order in the bento differs from the numbering — the grid is packed for visual
-rhythm, the `01–08` labels carry the sequence.
+The bento's visual order differs from the numbering; the `01–08` labels carry the sequence.
 
-## File map
+---
+
+## 3. File map
+
 ```
-index.html                    all markup (3 sections + topbar)
-assets/css/style.css          tokens, layout, all animation keyframes, responsive
-assets/js/main.js             slider, headline fitter, GSAP motion + CSS/IO fallback
-assets/textures/*.svg         8 surface visuals, one per family (hero composes from these)
-.claude/launch.json           `python -m http.server 5599` preview config
-```
-
-## Images — how to swap in real photos
-There are **8 files, one per family** — no separate hero art. Each is **procedural SVG**
-(real interlaced weave, cathedral wood grain bent by a displacement map, cylindrically
-shaded slats with cast shadows, a routed door profile, a laminate core edge), because no
-image-generation tool was available in the build session.
-
-⚠️ **Never put the webp and its fallback in one comma-separated `background-image`.** A
-layer list downloads **every** image in it, so phones were pulling 294 KB (39 KB webp +
-255 KB jpeg) to display one. Use two separate declarations instead — an overridden
-declaration downloads nothing, so exactly one image is fetched:
-`background-image:url(...jpg); background-image:var(--hero-img);`
-
-⚠️ **The phone variant is pre-exposed.** `hero-interior-900.webp` has the CSS filter baked
-in (brightness .82, saturate .96, contrast 1.02), so mobile sets `--hero-b:1` and disables
-`filter` and the drift animation — one fewer filtered, animated, composited layer for a
-mobile GPU to mishandle. If you regenerate that file, re-bake the exposure or reinstate the
-filter, or the phone hero will look washed out.
-
-The hero is **a real photograph** now — `hero-interior.webp` (1672×941, 16:9), served from
-`.hero__bg { --hero-img }` with `hero-interior.jpg` layered beneath as a non-WebP fallback and
-`hero-interior-900.webp` (38 KB) substituted below 680px. The 2.1 MB PNG master was converted
-and removed; keep it out of the repo if it comes back.
-
-The eight surface families are **photographs** too, each at two sizes:
-`<family>.webp` (1100px) for the bento tiles, `<family>-420.webp` for the plate cards. Two
-sizes because a card is ~196px and a tile reaches 733px — one file cannot serve both without
-wasting weight up front, and the cards load immediately while the tiles are lazy.
-
-The procedural SVGs remain in the folder, unreferenced, as a fallback and a record.
-
-**Tile caption scrims were re-verified against the photographs** — the existing grouping
-(dark scrim + light type for wooden, charcoal, louvers; light scrim + ink for the other five)
-still works, worst caption contrast 7.62:1. Both scrims reach ~0.9 alpha behind the text, so
-they are robust to whatever image sits underneath; that is why no tile needed flipping.
-
-**One place to change per family.** In `assets/css/style.css`:
-
-```css
-[data-tex="fabric"] { --tex:url("../textures/fabric.svg"); }   /* → your photo */
+index.html                      markup, all three sections
+assets/css/style.css            tokens, layout, keyframes, breakpoints, gsap-on block
+assets/js/main.js               headline fitter, card strip, marquee builder, GSAP + fallback
+assets/textures/
+  hero-interior.webp            hero, desktop (147 KB)
+  hero-interior-900.webp        hero, ≤680px, exposure pre-baked (30 KB)
+  hero-interior.jpg             hero, pre-var() browsers (255 KB, rarely fetched)
+  <family>.webp        ×8        bento tiles, 1100px, lazy-loaded (26–224 KB)
+  <family>-420.webp    ×8        hero plate cards, loaded up front (5–24 KB)
+  <family>.svg         ×8        the original procedural SVGs — unreferenced, kept as record
+  PROMPTS.md                    the prompts that produced the photographs
+README.md · BUILD_LOG.md · memory.md
+.claude/launch.json             preview server
 ```
 
-That single declaration feeds the hero planes AND the hero card. The bento tile uses a
-plain `<img src>` in `index.html`, so a full swap is 2 edits per family.
+---
 
-⚠️ **The `[data-tex]` rules are load-bearing and easy to lose.** They sit next to the shelf
-rules in `style.css`. They were once wiped out by a wholesale replacement of the hero CSS
-region and the eight plate cards silently rendered with no image at all — `--tex` resolved to
-empty, so `background-image: var(--tex)` became `none`. After any large edit to `style.css`,
-check that `document.querySelectorAll('.chip__media')` all report a `textures/` background.
+## 4. How this evolved (so you don't undo a decision)
 
-⚠️ **Keep those `url()`s in the stylesheet, not in an inline `style` attribute.** Chrome
-resolves a relative `url()` inside a custom property against the stylesheet that *uses*
-`var()`, not the document — inline `--tex:url('assets/…')` silently 404s as
-`assets/css/assets/…`. This was a real bug during the build.
+The design moved a long way during one session. The current state is the result of specific
+requests, several of which reversed earlier work:
 
-Recommended photo specs: **1600×1100** or larger, subject centred, even lighting.
-Hero legibility comes from the plane brightness filters plus the scrim — if a photo is
-much brighter than the current textures, re-check contrast (see below).
+1. Built first as a **4-slide "slide revolution"** hero with procedural SVG textures, because
+   no image-generation tool was available.
+2. Reference screenshots arrived → hero rebuilt as an **inset rounded card** with the plate
+   breaking its bottom edge; slides went 4 → **8**, one per family.
+3. **"I don't want this hero section's image to change — I want only one proper image"** →
+   the slider was removed entirely. The hero is now **static**. The eight cards became
+   anchors into the Collection, not slide controls. All slider machinery (slides, decks,
+   autoplay, rail, ticks, per-card progress, `--slide-dur`, the two-plane composition) is
+   gone. **Do not reintroduce it.**
+4. **"Full sheet view"** was said three times and read three times as a layout instruction
+   (span the sheet, one line, full width). It meant the **literal headline text**. It is now
+   the headline. Do not "improve" it.
+5. **Top bar removed on request** — wordmark, nav, counter chip, Explore button. The brand
+   appears only in the footer. Also removed: the "See The Collection" pill (the Instagram
+   link stays) and the rotating "SCROLL TO SEE" stamp.
+6. **Headings gained two colours and two styles** (roman in ink, emphasis word italic in the
+   accent) after an earlier instruction to make the gradient-filled word "a basic colour".
+   The gradient is gone; do not bring it back.
+7. **GSAP was requested by name** for smoother motion, and now drives everything.
+8. Images arrived last: the hero interior photograph, then all eight family photographs.
 
-## Motion: GSAP, and why the fallback matters
-GSAP 3.12.5 + ScrollTrigger load from jsDelivr (CDN script tags, `defer`, so order holds).
-When they load, JS adds `gsap-on` to `<html>` and **CSS stands down** — the `html.gsap-on`
-block neutralises every entrance/scroll start state. Without GSAP the IntersectionObserver
-+ rAF path runs, so content is never stranded.
+Things the user rejected along the way, so they stay rejected: the rotating stamp, the
+gradient-filled heading word, the card drop-shadow, a rotating hero image, oversized
+headings, and the two-line Collection heading.
 
-Three rules learned the hard way here:
+---
+
+## 5. Working preferences observed
+
+- Replies should be **terse and direct**. Organisation instruction: don't use 100 words where
+  20 will do; no filler affirmations.
+- Every project keeps a **`memory.md` knowledge base** and a **`BUILD_LOG.md`** updated on
+  completion. Organisation-level requirement, not a preference.
+- The user **reviews on a real phone** against the Vercel deployment, and sends annotated
+  screenshots (red circles) rather than descriptions. Mobile correctness matters as much as
+  desktop.
+- The user **wants everything pushed to git** as it lands.
+- The user **supplies the images** — generate prompts, not pictures (see §7).
+
+---
+
+## 6. Layout invariants — the load-bearing bits
+
+Break any of these and the hero visibly falls apart.
+
+- **`.hero-block` wraps ONLY the hero.** The plate is `position:absolute;
+  bottom:-var(--shelf-drop)` against that block. Put anything else inside it and the anchor
+  moves, so the overhang measures from the wrong edge (this happened: the plate hung 230px
+  instead of 115). The note lives *after* `.hero-block`, inside `.frame`.
+- **`.shelf` is a sibling of `.hero`, not a child** — `.hero` has `overflow:hidden`, so a
+  child could never overhang. The concave fillet is `.shelf::before`, a radial-gradient
+  inverted corner overlapping the plate by 1px on each side so no hairline seam shows.
+- **`.hero-foot` min-height must exceed `--shelf-drop`**, or the overhanging plate touches the
+  Collection section.
+- **Anything whose padding derives from `--shelf-w` must be reset at every breakpoint where
+  the plate stops sitting beside it.** This bit twice. `.hero__inner--bottom` and
+  `.hero-foot` both carry `padding-right: --shelf-w + 28px` for the desktop layout. At 375px
+  that was **291px of padding on a 375px screen** — the sub-line rendered in a 51px column
+  over 16 lines. At 700px it was still 498px. Below 900px the bottom copy now goes **above**
+  the plate at full width (hero `padding-bottom` grows to clear the plate's rise); below
+  680px the plate is a tray beneath the hero anyway.
+- **The headline is fitted by JS, but CSS owns the breakpoint.** `fitTitle()` measures the
+  one-line width and passes the result in as **`--fit`**;
+  `font-size:var(--fit, clamp(...))` consumes it. Above 900px it is one line at ~74% of the
+  sheet width; at ≤900px the media query sets font-size directly and ignores `--fit`, so a
+  stale value from a wider layout can never win. **Do not go back to setting `font-size`
+  inline** — that bug shipped once.
+- **Headline size is one number**: `FILL` in `main.js` (currently `0.74`, capped by
+  `FIT_MAX = 78`). The cap exists because a three-word headline would otherwise balloon.
+- **Mobile bento: 2 columns, only the FIRST and LAST tiles span both.** A full-width tile
+  placed after an odd number of half tiles cannot fit the single remaining column, so it
+  jumps a row and abandons the cell beside it — that left visible holes next to Wooden and
+  Louvers. DOM order is fabric, wooden, charcoal, laminates, thermolam, louvers, edge,
+  texture, so spanning only fabric and texture pairs the middle six into three clean rows.
+  `grid-auto-flow: row dense` guards the order.
+- **The marquee is built, not hard-coded.** The `translateX(-50%)` loop is seamless only when
+  half the track is at least as wide as the frame. `buildMarquee()` measures one group and
+  clones it to `2 × ceil(frameWidth / groupWidth)`, then derives the duration from the
+  distance so speed stays constant (~55 px/s). Re-runs on resize and after fonts load.
+- **Heading emphasis stays on headings.** `--accent-ink` `#6c7f64` on ivory measures ~3.8:1 —
+  AA for large text only. Never use it for body copy.
+
+---
+
+## 7. Imagery
+
+All nine images are lifestyle photographs, supplied by the user and converted here.
+
+**Two sizes per family, deliberately:** a plate card is ~196px and loads immediately, while a
+bento tile reaches 733px and is lazy. One file cannot serve both without wasting weight up
+front. Source PNGs were 17.5 MB total → **857 KB lazy + 110 KB up front**.
+
+**Always convert before committing.** Raw generated PNGs are ~2 MB each.
+
+To swap one family: the `[data-tex="<family>"]` rule in `style.css` (card) and the matching
+bento `<img src>` in `index.html` (tile). Two edits. The hero is one: `--hero-img` on
+`.hero__bg`.
+
+Four traps, all of which have already caused real bugs:
+
+- **Keep `url()`s in the stylesheet, never in an inline `style` attribute.** Chrome resolves a
+  relative `url()` inside a custom property against the stylesheet that *uses* `var()`, not
+  the document — inline `--tex:url('assets/…')` 404s as `assets/css/assets/…`. All 16
+  backgrounds broke this way once.
+- **The `[data-tex]` rules are easy to lose.** They sit next to the shelf rules. A wholesale
+  replacement of the hero CSS region once deleted them and all eight cards silently rendered
+  with **no image** — a missing custom property fails quietly, with no console error and no
+  404. After any large `style.css` edit, check that every `.chip__media` reports a
+  `textures/` background.
+- **Never put an image and its fallback in one comma-separated `background-image`.** A layer
+  list downloads *every* image in it; phones were pulling 294 KB to show one. Use two
+  declarations — the overridden one costs nothing:
+  `background-image:url(...jpg); background-image:var(--hero-img);`
+- **`hero-interior-900.webp` has the exposure baked in** (brightness .82, saturate .96,
+  contrast 1.02), so mobile sets `--hero-b:1` and disables `filter` and the drift animation.
+  Regenerate that file and you must re-bake the exposure or reinstate the filter, or the
+  phone hero looks washed out.
+
+The eight procedural SVGs remain in the folder, unreferenced. They were the original approach
+(SVG filters producing a real interlaced weave, cathedral wood grain, cylindrically shaded
+slats, a routed door profile, a laminate core edge) and are kept as a 52 KB fallback and a
+record. `PROMPTS.md` holds the prompts that produced the photographs, so a single family can
+be regenerated in the same style.
+
+**Image generation is not available from here.** Both configured providers refuse billable
+calls: OpenAI returns `billing_hard_limit_reached`; Gemini returns `429` with
+`generate_content_free_tier_requests, limit: 0`, i.e. the free tier includes no image
+generation at all, so retrying cannot succeed. An `image-gen` MCP server *is* installed and
+healthy (`node ~/.image-gen-mcp/server/index.js`, gpt-image-2 + Gemini) but MCP servers load
+only at session start, so one added mid-session stays invisible until restart.
+`scratchpad/gen_images.py` is ready if an account ever has billing.
+
+---
+
+## 8. Motion
+
+GSAP 3.12.5 + ScrollTrigger from jsDelivr (`defer`, so order holds). When they load, JS adds
+`gsap-on` to `<html>` and **the CSS start states stand down**. Without GSAP the
+IntersectionObserver + rAF path runs, so content is never stranded.
+
+Three rules learned painfully:
+
 - **Never put a CSS `transition` on a property GSAP animates.** `.tile__swatch` had
   `transition:transform`, which fought the tween's per-frame writes and left the value
-  unsettled. Hover-only transitions are fine; animated ones need `transition:none`.
-- **Never share one ScrollTrigger config object between two tweens** — the instance
-  consumes it and the second tween breaks silently.
+  unsettled. Hover-only transitions are fine; animated ones need `transition:none` under
+  `gsap-on`.
+- **Never share one ScrollTrigger config object between two tweens.** The instance consumes
+  it and the second tween breaks silently.
 - **`gsap.from()` writes its start state immediately**, so a dead ticker leaves content
-  invisible. A watchdog checks `gsap.ticker.frame` 1.8s after load and, if it hasn't
-  advanced *while the tab is visible*, reverts GSAP and starts the CSS/IO path. A
+  permanently invisible. A watchdog checks `gsap.ticker.frame` 1.8s after load and, if it
+  hasn't advanced *while the tab is visible*, reverts GSAP and starts the CSS/IO path. A
   backgrounded tab is deliberately not judged — rAF is throttled there by design.
 
-## Non-obvious decisions
-- **Hero scrim (`.hero::after`)** is load-bearing, not decoration. Measured across all 8
-  slides the headline sits at 9.07–17.68:1 and body copy at 11.76–18.91:1. Brighter
-  imagery erodes this — re-measure before shipping a photo swap.
-- **The headline is fitted by JS, but CSS owns the breakpoint.** `fitTitles()` measures the
-  one-line width and passes the result in as `--fit`; `font-size:var(--fit, clamp(...))`
-  consumes it. Above 900px every headline fills the hero width exactly on one line
-  (measured: 100% fill, 95–100px, 0 of 8 overflowing). At ≤900px the media query sets
-  font-size directly and ignores `--fit`, so a stale value from a wider layout can never
-  win. Do not switch this back to setting `font-size` inline.
-- **The hero headline text is literally "Full Sheet View."** That phrase was the user's
-  requirement, repeated several times before it became clear it meant the copy itself and not
-  a layout instruction. Do not "improve" it.
-- **Hero copy is split top/bottom.** Eyebrow + headline sit at the top of the sheet; the
-  sub-line and Instagram link sit near the bottom but lifted clear of the plate's top edge
-  (`padding-bottom: clamp(150px,21vh,250px)`), because sitting on the hero floor put them
-  level with the plate. `.hero__inner--bottom` also carries `padding-right: --shelf-w + 28px`
-  so it can never run under the plate.
-- **Every heading runs two colours and two styles**: roman in `--ink`, the emphasis word
-  italic in `--accent-ink` (`#6c7f64`, deep sage) on ivory, or `--accent-dark` (`#c8d6c1`) on
-  the hero. `#6c7f64` on ivory measures ~3.8:1, which passes AA for large text only — keep
-  this treatment on headings, never on body copy.
-- **Headline scale is `FILL` in `main.js`** (currently `0.74`: the headline spans ~74% of
-  the sheet on one line, ~70–74px at 1440). That one number is the whole size control.
-- **Headline copy must stay ~24–31 characters.** All eight are within that band, which is
-  why the fitted sizes land within 5px of each other. A much shorter or longer line will
-  visibly jump in size between slides.
-- **`.hero-block` must wrap ONLY the hero.** The plate is `position:absolute; bottom:-var(--shelf-drop)`
-  against that block, so anything else inside it (the note, once) moves the anchor and the
-  overhang measures from the wrong edge. The note lives after `.hero-block`, inside `.frame`.
-- **`.hero-foot` min-height must exceed `--shelf-drop`** or the overhanging plate touches the
-  collection section.
-- **The plate's left padding must clear the stamp** (`clamp(80px,7.6vw,118px)` vs a stamp
-  ~106px wide at its widest). Too little and the stamp crops the first card.
-- **`.shelf` is a sibling of `.hero`, not a child** — `.hero` has `overflow:hidden` for the
-  slide wipe, so a child could never overhang. The plate sits in `.hero-block` and hangs
-  `var(--shelf-drop)` below the hero's bottom edge; `.collection` adds that same variable to
-  its top padding to make room. The concave notch is `.shelf::before`, a radial-gradient
-  inverted corner pinned to the hero's bottom line.
-- **On mobile the bento uses 2 columns with only the FIRST and LAST tiles spanning both.**
-  A full-width tile placed after an odd number of half tiles cannot fit the remaining single
-  column, so it jumps to the next row and abandons the cell beside it — that left visible holes
-  next to Wooden and Louvers. DOM order is fabric, wooden, charcoal, laminates, thermolam,
-  louvers, edge, texture, so spanning only fabric and texture pairs the middle six into three
-  clean rows. `grid-auto-flow: row dense` is set as a guard if that order ever changes.
-- **Anything whose padding derives from `--shelf-w` MUST be reset at every breakpoint where
-  the plate stops sitting beside it.** This bit twice: `.hero__inner--bottom` and `.hero-foot`
-  both carry `padding-right: --shelf-w + 28px` so the desktop copy clears the plate. At 375px
-  that was 291px of padding on a 375px screen — the sub-line rendered in a **51px column over
-  16 lines**. At 700px it was still 498px, leaving 164px. Both ranges now reset it: below
-  900px the bottom copy goes **above** the plate at full width (hero `padding-bottom` grows to
-  clear the plate's rise), and below 680px the plate is a tray below the hero anyway.
-- **`--shelf-w` drives both sides of the hero floor.** The plate's width and the
-  `max-width` on `.hero__foot` / `.hero__rail` come from the same variable, which is what
-  keeps the CTA and slider controls clear of the plate at every width. Change it in one
-  place, then re-check clearances.
-- **Per-material hero exposure.** Each slide sets `--near-b`/`--far-b` (the plane
-  `brightness()`). A flat value cannot work across the set: at `.60` charcoal and louvers
-  rendered as a black void, so they run at `1.45`/`1.30` while pale materials sit at
-  `.64–.72`. Contrast was re-measured after every change.
-- **No top bar.** Removed on request — wordmark, nav, counter chip and Explore button are
-  gone, and the brand now appears only in the footer. The hero starts at the frame padding.
-- **The 8 cards are anchors to the collection**, not slider controls — the hero is static
-  now. The plate has its own prev/next arrows that scroll the strip and disable at the ends.
-- **Autoplay timing** lives in one place: `--slide-dur` (6800ms). JS reads it from CSS, and
-  the ken-burns zoom on both planes plus the active card's progress bar are keyed to the same
-  variable. Change it once.
+Why GSAP is genuinely smoother here: the old parallax called `getBoundingClientRect()` on all
+eight tile media wrappers **every scroll frame**. ScrollTrigger batches and caches that.
 
-## The marquee must be built, not hard-coded
-The `translateX(-50%)` loop is only seamless when **half the track is at least as wide as the
-frame**. One group of eight names is narrower than that on a wide screen, which showed as a
-gap mid-loop after the font size was reduced. `buildMarquee()` in `main.js` measures the group
-and clones it to `2 × ceil(frameWidth / groupWidth)` copies, then sets the duration from the
-distance so the speed stays constant (~55 px/s). It re-runs on resize and after fonts load.
-Never hard-code the number of copies.
+---
 
-## Verification notes
-Everything in this project was verified programmatically (canvas pixel sampling, geometry
-measurement, contrast compositing) because the Browser pane could not composite frames in
-the build sessions — no screenshots were available. Useful probes, if you need them again:
-- texture direction: compare row-mean vs column-mean standard deviation of luminance
-  (wood should read HORIZONTAL, louvers/charcoal VERTICAL)
-- hero contrast: draw the texture to canvas with `ctx.filter` set to the plane's CSS
-  filter, paint the two scrim gradients over it, then measure relative luminance
-- entrance animations must be neutralised before measuring geometry, or you measure the
-  `from` state
+## 9. Verification playbook
 
-## Preview
-```bash
-python -m http.server 5599
-```
-Then open http://localhost:5599 — or use the `asiatic-static` config in `.claude/launch.json`.
+The Browser pane in these sessions ran with `document.hidden = true` and **0 rAF frames** — no
+screenshots, and GSAP's ticker cannot advance. Everything was verified programmatically. If
+you are in the same position:
+
+- **Force tween end states before measuring geometry**, or you measure the `from` state:
+  entrance tweens to `progress(1)`, scrub tweens to `progress(0)`. Forcing scrub tweens too
+  produced a false "the CTA is clipped" reading.
+- **The preview browser caches `style.css` across navigations.** A CSS-only edit can appear
+  to do nothing. Re-fetch the stylesheet with a cache-busting query in-page before measuring.
+  This produced a false "the fix didn't work" reading.
+- **Contrast: measure with the text's own alpha.** The body copy is
+  `rgba(247,244,236,.70)`, not opaque white. Ignoring that overstated every figure (10–13:1
+  reported where the honest number was 7–8:1). `scratchpad/hero_contrast.py` does it properly
+  in Pillow: cover-crop → the CSS filter chain in order → both scrim gradients → per-zone
+  ratios against the composited text colour. **Python, not canvas** — the canvas version kept
+  timing out in a hidden pane.
+- **Lazy `<img>`s report `complete: false`** when below the fold. That is not a broken image.
+- **The tool's console/network log is cumulative across navigations.** Use
+  `performance.getEntriesByType('resource')` for per-load truth.
+- Grid holes: group tiles into row bands by `top` offset and check each band's widths plus
+  gaps sum to the grid width.
+
+Current measured state: hero headline 17.1:1, body copy 7.7–8.8:1, worst pixel 5.23:1; worst
+tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/700/768/900/
+1024/1440.
+
+---
+
+## 10. Bugs that shipped, and what each one teaches
+
+| Bug | Lesson |
+|---|---|
+| All 16 backgrounds 404'd as `assets/css/assets/…` | relative `url()` in a custom property resolves against the stylesheet using `var()` |
+| Eight cards rendered with no image at all | a wholesale CSS region replacement deleted the `[data-tex]` rules; a missing custom property fails silently |
+| Sub-line in a 51px column on a phone | desktop padding derived from `--shelf-w` was never reset for narrow screens |
+| Plate hung 230px instead of 115px | `.hero-block` grew to include the note, moving the absolute anchor |
+| Phones downloaded 294 KB to show one image | a comma-separated `background-image` list fetches every layer |
+| Swatch tween never settled | a CSS `transition` was fighting GSAP's per-frame writes |
+| Second tween silently dead | one ScrollTrigger config object shared between two tweens |
+| White headline at 2.24:1 on a pale slide | scrims are load-bearing; measure, don't eyeball |
+| Contrast overstated all session | measure with the text's actual alpha |
+| Mobile grid holes | a full-width grid item after an odd number of half items abandons a cell |
+
+---
+
+## 11. Outstanding
+
+- Nothing is broken or half-finished. Repo clean, in sync, deployed.
+- The eight procedural SVGs are unreferenced — keep or delete, but they are the documented
+  fallback.
+- Nav links are in-page anchors only; there are no sub-pages.
+- With the top bar gone there is no navigation. Scrolling and the Instagram link are the only
+  affordances. That was the explicit request.
+- If real photography ever replaces the AI images, re-run the contrast checks in §9 — that is
+  the only step easy to forget and expensive to get wrong.
