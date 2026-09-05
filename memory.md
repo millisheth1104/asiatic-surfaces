@@ -8,8 +8,9 @@ first.
 
 ## 1. What this is
 
-Single-page brand home page for **Asiatic Surfaces** — a surfaces / panels / laminates brand.
-Instagram: https://www.instagram.com/asiaticsurfaces/
+Brand site for a surfaces / panels / laminates brand: a home page plus four category
+galleries. **The site calls itself "Full Sheet View" and names no company** — see §11. The
+repo, and these docs, still carry the original name Asiatic Surfaces.
 
 - Repo: https://github.com/millisheth1104/asiatic-surfaces (branch `main`)
 - Live: https://asiatic-surfaces.vercel.app
@@ -19,9 +20,9 @@ Instagram: https://www.instagram.com/asiaticsurfaces/
 **Three sections, and only three** — that was the brief and it has not changed:
 
 1. **Hero** — an inset rounded card holding one fixed photograph. Eyebrow + headline
-   (*Full Sheet View*) at the top; sub-line + Instagram link near the bottom. A plate of all
-   eight surface cards breaks the hero's bottom-right edge, and a short note sits under the
-   hero to its left.
+   (*Full Sheet View*) at the top; sub-line + a link to the Collection near the bottom. A
+   plate of all eight surface cards breaks the hero's bottom-right edge, and a short note sits
+   under the hero to its left.
 2. **Collection** — a 12-column asymmetric bento of the eight families.
 3. **Thank You** — a looping name ticker, the sign-off, the palette bands, a footer.
 
@@ -85,7 +86,7 @@ assets/textures/
 45-degree.html digital.html    the four category galleries — GENERATED, never hand-edited
 stone.html wooden.html
 assets/css/gallery.css          category pages: sticky nav, masonry, lightbox
-assets/js/gallery.js            masonry row spans, reveal, lightbox
+assets/js/gallery.js            column masonry, reveal, lightbox
 assets/gallery/
   catalogue.json                every sheet: code, name, ratio, both file paths
   <family>/<code>.webp          grid image, 900px long edge (2–200 KB)
@@ -121,8 +122,9 @@ requests, several of which reversed earlier work:
    (span the sheet, one line, full width). It meant the **literal headline text**. It is now
    the headline. Do not "improve" it.
 5. **Top bar removed on request** — wordmark, nav, counter chip, Explore button. The brand
-   appears only in the footer. Also removed: the "See The Collection" pill (the Instagram
-   link stays) and the rotating "SCROLL TO SEE" stamp.
+   appears only in the footer. Also removed: the "See The Collection" pill and the rotating
+   "SCROLL TO SEE" stamp. (The Instagram links that survived this pass were removed later —
+   see §11.)
 6. **Headings gained two colours and two styles** (roman in ink, emphasis word italic in the
    accent) after an earlier instruction to make the gradient-filled word "a basic colour".
    The gradient is gone; do not bring it back.
