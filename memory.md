@@ -326,10 +326,12 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   each figure from the real pixel ratio, so the first `layout()` is correct and nothing jumps.
 - **The lightbox focuses one frame late.** `visibility` only flips once the transition starts,
   so a synchronous `btnX.focus()` lands on nothing.
-- **Seven supplied files were mockups floating in a flat mat** (18% white each side, one on
-  grey). `trim_flat_border()` strips a border only when every row or column of it is one flat
-  colour and the trim keeps ≥40% of the area — the guard exists because several sheets are
-  nearly white all over and would otherwise be eaten.
+- **Sheets ship exactly as supplied — no crop, no mat removal, nothing skipped.** Asked for
+  directly on 2026-09-05, after a first pass had trimmed the white mats off seven mockups and
+  dropped a duplicate. The folders are the source of truth: what is in a folder appears on that
+  folder's page, borders and all. `trim_flat_border()` is still in `build_gallery.py`, unused,
+  if that is ever wanted back. Resizing to 900/2000 px WebP stays — that is delivery, not
+  editing.
 - Digital carries 2.1 MB of grid images against 150 KB for the other three: eight of its
   sheets are dense woven repeats that WebP cannot compress. All lazy-loaded. If it ever needs
   to be lighter, those eight are the whole problem.
@@ -346,11 +348,11 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   tiles still scroll to `#collection`. When their images arrive, add a folder to `CATS` in
   `scripts/build_gallery.py`, add copy to `COPY` in `scripts/gen_pages.py`, re-run both, and
   point the chip and tile in `index.html` at the new page.
-- Two things in the supplied folders worth a decision: the Stone folder holds several
-  wood-named sheets (Natural Ashwood, Aromatic Walnut, Classic Walnut, Sandal Wood, Silver
-  Oak), and `ZO 95401 - Silver Oak` was in both Stone and Digital. It is published under
-  Stone only, so no visitor meets the same sheet twice; the skip is declared in `SKIP` in
-  `scripts/build_gallery.py`.
+- The Stone folder holds several wood-named sheets (Natural Ashwood, Aromatic Walnut, Classic
+  Walnut, Sandal Wood, Silver Oak) and `ZO 95401 - Silver Oak` sits in both Stone and Digital.
+  Raised with the user; the answer was to publish the folders as they are, so Silver Oak
+  appears on both pages. `SKIP` in `scripts/build_gallery.py` is empty and should stay empty
+  unless asked.
 - With the top bar gone there is no navigation. Scrolling and the Instagram link are the only
   affordances. That was the explicit request.
 - If real photography ever replaces the AI images, re-run the contrast checks in §9 — that is

@@ -14,9 +14,10 @@ CATS = [
     ("wooden",    "WOODEN1", "Wooden"),
 ]
 
-# Byte-identical duplicate: this sheet sits in both Stone/ and DIGITAL/New folder/.
-# Kept under Stone only, so a visitor never meets the same sheet twice.
-SKIP = {("digital", "ZO 95401 - Silver Oak")}
+# Nothing is skipped. ZO 95401 - Silver Oak is byte-identical in Stone/ and in
+# DIGITAL/New folder/, and it is published under both, because the folders are
+# the source of truth: what is in a folder goes on that folder's page.
+SKIP = set()
 
 GRID_EDGE, GRID_Q = 900, 75
 FULL_EDGE, FULL_Q = 2000, 80
@@ -111,7 +112,10 @@ for slug, folder, label in CATS:
         code, name = parse_name(stem)
         fslug = slugify(stem)
         im = load_flat(p)
-        im, trimmed = trim_flat_border(im)
+        # Sheets ship exactly as supplied — no crop, no mat removal. Some are
+        # mockups floating in a white border and they keep it. trim_flat_border()
+        # is left below, unused, in case that is ever wanted again.
+        trimmed = False
         w, h = im.size
 
         g = im.copy()

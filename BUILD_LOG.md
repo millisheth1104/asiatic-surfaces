@@ -695,3 +695,22 @@ Home page unchanged otherwise: 8 tiles, 8 chip textures, GSAP 3.12.5 still drivi
 
 The four tiles that now link became `<a class="tile">` in place of `<article>` — safe because
 the stylesheet has no element-qualified selectors and the JS keys on `[data-reveal-tile]`.
+
+---
+
+# Galleries reverted to the folders as supplied — 2026-09-05
+
+Asked for plainly: upload the sheets however they sit in the folders, duplicate included. So
+both of the previous entry's editorial decisions are undone.
+
+- **No mat trimming.** The seven mockups that float in a white or grey border keep it, so the
+  45 Degree and Stone grids mix 0.80-ratio mockups with 0.50 sheet scans. `trim_flat_border()`
+  stays in `scripts/build_gallery.py` but is never called.
+- **Nothing skipped.** `ZO 95401 - Silver Oak` is byte-identical in Stone and in
+  DIGITAL/New folder, and now publishes to both pages. `SKIP` is an empty set.
+
+Digital 26 → 27 sheets, 46 in total. Resizing to 900 px grid / 2000 px lightbox WebP is kept —
+that is delivery, not editing; the originals are 273 MB.
+
+Verified after the rebuild: 92/92 assets return 200, the mockups are back at their supplied
+0.7989 ratio, and Silver Oak appears on both Digital and Stone.
