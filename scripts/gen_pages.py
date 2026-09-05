@@ -68,8 +68,9 @@ def page(slug):
     for it in items:
         cap_name = ('<span>%s</span>' % esc(it["name"])) if it["name"] else ""
         alt = "Full sheet view of %s %s \u2014 %s" % (label, it["code"], c["alt"])
+        wide = " sheet--wide" if it.get("span", 1) == 2 else ""
         figs.append(
-            '    <figure class="sheet" style="--ar:%.4f">\n'
+            '    <figure class="sheet%s" style="--ar:%.4f">\n'
             '      <button class="sheet__hit" type="button" data-full="%s" data-code="%s" data-name="%s" data-alt="%s"\n'
             '              aria-label="View %s %s at full size">\n'
             '        <img src="%s" alt="%s" width="%d" height="%d" loading="lazy" decoding="async">\n'
@@ -77,7 +78,7 @@ def page(slug):
             '      </button>\n'
             '      <figcaption class="sheet__cap"><b>%s</b>%s</figcaption>\n'
             '    </figure>'
-            % (it["ar"], it["full"], esc(it["code"]), esc(it["name"]), esc(alt),
+            % (wide, it["ar"], it["full"], esc(it["code"]), esc(it["name"]), esc(alt),
                esc(label), esc(it["code"]),
                it["grid"], esc(alt), it["w"], it["h"], ZOOM,
                esc(it["code"]), cap_name)
@@ -113,7 +114,7 @@ def page(slug):
     <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
     <h1 class="ghead__title">%(roman)s <span class="italic">%(italic)s</span></h1>
     <p class="ghead__sub">%(sub)s</p>
-    <p class="ghead__meta"><span>%(count)d sheets</span><span>Full sheet view</span><span>Tap a sheet to enlarge</span></p>
+    <p class="ghead__meta"><span>%(count)d sheets</span><span>Tap one for the full sheet</span></p>
   </header>
 
   <div class="masonry" id="masonry">

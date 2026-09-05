@@ -714,3 +714,44 @@ that is delivery, not editing; the originals are 273 MB.
 
 Verified after the rebuild: 92/92 assets return 200, the mockups are back at their supplied
 0.7989 ratio, and Silver Oak appears on both Digital and Stone.
+
+---
+
+# The galleries made properly masonry — 2026-09-05
+
+Fair criticism: with every sheet at the same 1:2 ratio, an aspect-true grid is a lattice, not
+a masonry. 39 of the 46 sheets are that one shape.
+
+**Preview tiles now carry a rhythm of heights.** Each tile is centre-cropped at build time to
+the next ratio in a twelve-value cycle (0.50 · 0.74 · 0.58 · 1.00 · 0.64 · 0.50 · 0.86 · 0.56
+· 0.70 · 0.50 · 0.92 · 0.62). Two guards keep it honest:
+
+- a tile is only ever cropped **shorter** than its source, never stretched — a ratio below a
+  sheet's own is skipped, which is what keeps the 0.80 mockups from being letterboxed;
+- the eight landscape NMD composites are **never cropped**, because each has its code printed
+  into the artwork. They take two grid columns instead, which is the strongest bit of rhythm
+  on the Digital page.
+
+**`-full.webp` is untouched** — the lightbox still opens the whole sheet, and the page meta
+now says "Tap one for the full sheet" rather than claiming the grid is one.
+
+## Bug caught in the first attempt
+
+Indexing the rhythm by item position put **four squares in a row** on the 45 Degree page: the
+three 0.80 mockups each skipped the same three too-tall values and landed on the same 1.00.
+The rhythm is now walked with a cursor that advances past whatever it used, so those three
+mockups take 1.00, 0.86 and 0.92.
+
+## Measured after the change
+
+| | before | after |
+|---|---|---|
+| distinct tile heights, Digital | 2 | 12 |
+| distinct top offsets, Digital (27 cards, 4 columns) | 18 | 18 |
+| grid weight, all four pages | 2.47 MB | 2.23 MB |
+
+Weight fell despite larger tiles (520 px wide, up from 450) because the crop removes pixels.
+Wide tiles render 510×365 against a normal 249×522; on a 375 px phone the grid holds two
+columns and a wide tile takes the full width. 92/92 assets return 200, no console output, no
+horizontal overflow. Every page shows as many distinct ratios as it has room for: 5 of 5 on
+45 Degree, 4 of 4 on Wooden, 8 across Stone's 10, 11 across Digital's 27.

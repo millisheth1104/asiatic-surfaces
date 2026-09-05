@@ -326,12 +326,20 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   each figure from the real pixel ratio, so the first `layout()` is correct and nothing jumps.
 - **The lightbox focuses one frame late.** `visibility` only flips once the transition starts,
   so a synchronous `btnX.focus()` lands on nothing.
-- **Sheets ship exactly as supplied — no crop, no mat removal, nothing skipped.** Asked for
-  directly on 2026-09-05, after a first pass had trimmed the white mats off seven mockups and
-  dropped a duplicate. The folders are the source of truth: what is in a folder appears on that
-  folder's page, borders and all. `trim_flat_border()` is still in `build_gallery.py`, unused,
-  if that is ever wanted back. Resizing to 900/2000 px WebP stays — that is delivery, not
-  editing.
+- **Nothing is skipped and no mat is removed.** Asked for directly on 2026-09-05, after a
+  first pass had trimmed the white mats off seven mockups and dropped a duplicate. The folders
+  are the source of truth: what is in a folder appears on that folder's page, borders and all.
+  `trim_flat_border()` is still in `build_gallery.py`, unused, if that is ever wanted back.
+- **The preview tile is cropped; the lightbox sheet is not.** 39 of the 46 sheets are the same
+  1:2 shape, so an aspect-true grid came out as a plain lattice and the user said so. Each
+  preview is now centre-cropped to the next value in `RHYTHM` — twelve ratios between 0.50 and
+  1.00 — and `-full.webp` stays the whole uncropped sheet. Two rules make it work:
+  a tile is only ever cropped *shorter* than its source, never stretched; and the eight
+  landscape NMD composites are never cropped at all, because their code is printed into the
+  artwork — they take two columns instead.
+- **Walk the rhythm with a cursor, not with the item index.** Indexing by position looked
+  right on paper and put four squares in a row on the 45 Degree page: three 0.80 mockups each
+  skipped the same three too-tall values and landed on the same 1.00.
 - Digital carries 2.1 MB of grid images against 150 KB for the other three: eight of its
   sheets are dense woven repeats that WebP cannot compress. All lazy-loaded. If it ever needs
   to be lighter, those eight are the whole problem.

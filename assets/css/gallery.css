@@ -73,6 +73,11 @@
 }
 .masonry.is-masonry{ grid-auto-rows:4px; }
 
+/* The landscape composites take two columns. They are the only sheets whose
+   code is printed into the artwork, so they are also the only ones never
+   cropped — the wide tile is their true shape. */
+.sheet--wide{ grid-column:span 2; }
+
 .sheet{
   margin:0; display:flex; flex-direction:column; gap:9px;
   opacity:0; transform:translateY(26px);

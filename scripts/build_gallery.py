@@ -19,8 +19,53 @@ CATS = [
 # the source of truth: what is in a folder goes on that folder's page.
 SKIP = set()
 
-GRID_EDGE, GRID_Q = 900, 75
+GRID_W, GRID_W_WIDE, GRID_Q = 520, 800, 75
 FULL_EDGE, FULL_Q = 2000, 80
+
+# --- the masonry rhythm ---------------------------------------------------
+# 39 of the 46 sheets are the same 1:2 shape, so an honest aspect-preserving
+# grid comes out as a plain lattice of identical tiles. The preview tile is
+# therefore cropped to a repeating set of heights; the lightbox still opens
+# the whole uncropped sheet. Values are width/height, so a larger number is a
+# shorter tile. A tile is only ever cropped SHORTER than its source, never
+# stretched, so anything below a sheet's own ratio is skipped.
+RHYTHM = [0.50, 0.74, 0.58, 1.00, 0.64, 0.50, 0.86, 0.56, 0.70, 0.50, 0.92, 0.62]
+# A source already wider than this is left alone and given two columns: the
+# eight NMD composites are landscape and carry their code printed in the
+# artwork, which a crop would cut off.
+WIDE_AT = 1.2
+
+
+def display_ratio(src_ar, cursor):
+    """Pick this tile's display ratio and column span.
+
+    `cursor` walks the rhythm and is returned advanced, rather than being
+    indexed by position. Indexing by position looked fine on paper and put
+    four squares in a row on the 45 Degree page: three mockups at 0.80 all
+    skipped the same three too-tall values and landed on the same 1.00.
+    """
+    if src_ar >= WIDE_AT:
+        return src_ar, 2, cursor
+    n = len(RHYTHM)
+    for k in range(n):
+        r = RHYTHM[(cursor + k) % n]
+        if r >= src_ar - 0.004:
+            return r, 1, (cursor + k + 1) % n
+    return src_ar, 1, (cursor + 1) % n
+
+
+def crop_to(im, ar):
+    """Centre-crop to `ar` (width/height). Only ever removes height or width."""
+    w, h = im.size
+    if abs(w / h - ar) < 0.005:
+        return im
+    if w / h < ar:                      # too tall -> trim top and bottom
+        nh = int(round(w / ar))
+        top = (h - nh) // 2
+        return im.crop((0, top, w, top + nh))
+    nw = int(round(h * ar))             # too wide -> trim the sides
+    left = (w - nw) // 2
+    return im.crop((left, 0, left + nw, h))
 
 
 def parse_name(stem):
@@ -104,6 +149,7 @@ for slug, folder, label in CATS:
     files.sort(key=lambda p: os.path.basename(p).lower())
 
     items = []
+    cursor = 0
     for p in files:
         stem = os.path.splitext(os.path.basename(p))[0]
         if (slug, stem) in SKIP:
@@ -112,14 +158,16 @@ for slug, folder, label in CATS:
         code, name = parse_name(stem)
         fslug = slugify(stem)
         im = load_flat(p)
-        # Sheets ship exactly as supplied — no crop, no mat removal. Some are
-        # mockups floating in a white border and they keep it. trim_flat_border()
-        # is left below, unused, in case that is ever wanted again.
-        trimmed = False
+        # The sheet itself ships exactly as supplied — no mat removal, nothing
+        # skipped. The FULL image below is the whole sheet; only the preview
+        # tile is cropped, and only to give the grid its masonry rhythm.
         w, h = im.size
+        ar, span, cursor = display_ratio(w / h, cursor)
 
-        g = im.copy()
-        g.thumbnail((GRID_EDGE, GRID_EDGE), Image.LANCZOS)
+        g = crop_to(im.copy(), ar)
+        target = GRID_W_WIDE if span == 2 else GRID_W
+        if g.size[0] > target:
+            g = g.resize((target, max(1, int(round(target / ar)))), Image.LANCZOS)
         gp = os.path.join(dest, fslug + ".webp")
         g.save(gp, "WEBP", quality=GRID_Q, method=6)
 
@@ -134,14 +182,14 @@ for slug, folder, label in CATS:
         items.append({
             "code": code, "name": name, "slug": fslug,
             "w": g.size[0], "h": g.size[1], "ar": round(g.size[0] / g.size[1], 4),
-            "src_w": w, "src_h": h,
+            "span": span, "src_w": w, "src_h": h, "src_ar": round(w / h, 4),
             "grid": "assets/gallery/%s/%s.webp" % (slug, fslug),
             "full": "assets/gallery/%s/%s-full.webp" % (slug, fslug),
             "grid_kb": round(gs / 1024), "full_kb": round(fs / 1024),
         })
-        print("%-10s %-26s %5dx%-5d grid %4dKB  full %5dKB%s" %
-              (slug, code + (" " + name if name else ""), g.size[0], g.size[1], gs / 1024, fs / 1024,
-               "  trimmed" if trimmed else ""))
+        print("%-10s %-26s tile %4dx%-4d ar %.2f%s  grid %4dKB  full %5dKB" %
+              (slug, code + (" " + name if name else ""), g.size[0], g.size[1], ar,
+               " x2" if span == 2 else "   ", gs / 1024, fs / 1024))
 
     catalogue[slug] = {"label": label, "items": items}
 
