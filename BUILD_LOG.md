@@ -755,3 +755,53 @@ Wide tiles render 510×365 against a normal 249×522; on a 375 px phone the grid
 columns and a wide tile takes the full width. 92/92 assets return 200, no console output, no
 horizontal overflow. Every page shows as many distinct ratios as it has room for: 5 of 5 on
 45 Degree, 4 of 4 on Wooden, 8 across Stone's 10, 11 across Digital's 27.
+
+---
+
+# Galleries rebuilt as proper column masonry — 2026-09-05
+
+Two faults, both visible in the screenshots the user sent: white pillars beside the mockup
+sheets, and large ivory holes in the layout.
+
+## The holes were the layout technique, not the spacing
+
+The grid-with-row-spans trick cannot backfill. CSS auto-placement never moves backwards, so
+any tall tile leaves the cell beside it empty for good — and the two-column tiles I had added
+for variety made it worse, because a wide tile needs two *adjacent* free columns.
+
+Replaced with real column masonry: `gallery.js` deals each card into whichever of N columns is
+currently shortest, predicting the height from `--ar` rather than measuring, so the deal is
+correct before a single image has loaded and never reshuffles. **Columns cannot hole by
+construction.** Two-column tiles are gone — the concept does not exist in column masonry.
+
+Columns: 5 above 1500px, 4 above 1120, 3 above 820, 2 below. Two on phones rather than the
+one a Pinterest-style component would usually drop to, because a 1:2 sheet at full phone width
+is enormous. Without JS the container is still a plain responsive grid.
+
+## The white pillars were in the files
+
+Seven supplied files are sheets floating in a flat mat — 18.5% of the width on each side, six
+white and one grey. `trim_flat_border()` is called again and the mat comes off both the tile
+and the lightbox image. This reverses the instruction of an hour earlier; the sheet faces
+themselves are still untouched and nothing is skipped, so the duplicate stays on both pages.
+
+## Also fixed
+
+Focus on lightbox open was behind a `requestAnimationFrame` that **never fires in a hidden
+tab** — which is what the preview pane is, so it read as a broken feature for a while. The
+dialog's `visibility` now flips at `0s` on open and only after the fade on close, so `focus()`
+is synchronous. Closing now returns focus to the sheet being *viewed*, which after arrowing
+through is not the one that opened the lightbox.
+
+## Measured
+
+| | grid + spans | column masonry |
+|---|---|---|
+| Digital page height | 3717 px | 3203 px |
+| holes | visible | none — 4 columns from one top edge |
+| column fill, Digital | — | 6 / 7 / 7 / 7 cards, heights within 13% |
+| column fill, Digital at 375 px | — | 15 / 12 cards, heights within 5% |
+
+92/92 assets return 200, no console output, no horizontal overflow. Lightbox verified: opens
+on the right sheet, focus lands on the close button, arrow keys advance the counter, Esc
+closes and hands focus back to the sheet viewed. Grid weight 2.35 MB across four pages.

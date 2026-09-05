@@ -68,9 +68,8 @@ def page(slug):
     for it in items:
         cap_name = ('<span>%s</span>' % esc(it["name"])) if it["name"] else ""
         alt = "Full sheet view of %s %s \u2014 %s" % (label, it["code"], c["alt"])
-        wide = " sheet--wide" if it.get("span", 1) == 2 else ""
         figs.append(
-            '    <figure class="sheet%s" style="--ar:%.4f">\n'
+            '    <figure class="sheet" style="--ar:%.4f">\n'
             '      <button class="sheet__hit" type="button" data-full="%s" data-code="%s" data-name="%s" data-alt="%s"\n'
             '              aria-label="View %s %s at full size">\n'
             '        <img src="%s" alt="%s" width="%d" height="%d" loading="lazy" decoding="async">\n'
@@ -78,7 +77,7 @@ def page(slug):
             '      </button>\n'
             '      <figcaption class="sheet__cap"><b>%s</b>%s</figcaption>\n'
             '    </figure>'
-            % (wide, it["ar"], it["full"], esc(it["code"]), esc(it["name"]), esc(alt),
+            % (it["ar"], it["full"], esc(it["code"]), esc(it["name"]), esc(alt),
                esc(label), esc(it["code"]),
                it["grid"], esc(alt), it["w"], it["h"], ZOOM,
                esc(it["code"]), cap_name)

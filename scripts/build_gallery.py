@@ -30,9 +30,9 @@ FULL_EDGE, FULL_Q = 2000, 80
 # shorter tile. A tile is only ever cropped SHORTER than its source, never
 # stretched, so anything below a sheet's own ratio is skipped.
 RHYTHM = [0.50, 0.74, 0.58, 1.00, 0.64, 0.50, 0.86, 0.56, 0.70, 0.50, 0.92, 0.62]
-# A source already wider than this is left alone and given two columns: the
-# eight NMD composites are landscape and carry their code printed in the
-# artwork, which a crop would cut off.
+# A source already wider than this keeps its own shape: the eight NMD
+# composites are landscape and carry their code printed in the artwork, which
+# a crop would cut off. In a column masonry they simply make short tiles.
 WIDE_AT = 1.2
 
 
@@ -158,9 +158,12 @@ for slug, folder, label in CATS:
         code, name = parse_name(stem)
         fslug = slugify(stem)
         im = load_flat(p)
-        # The sheet itself ships exactly as supplied — no mat removal, nothing
-        # skipped. The FULL image below is the whole sheet; only the preview
-        # tile is cropped, and only to give the grid its masonry rhythm.
+        # Seven files are sheets floating in a flat white or grey mat. The mat is
+        # part of the file, not of the sheet, and in a gallery it reads as a hole
+        # in the layout — so it comes off both the tile and the lightbox image.
+        # Nothing else is cropped away: no sheet is skipped and no sheet loses any
+        # of its own face.
+        im, trimmed = trim_flat_border(im)
         w, h = im.size
         ar, span, cursor = display_ratio(w / h, cursor)
 
@@ -187,9 +190,9 @@ for slug, folder, label in CATS:
             "full": "assets/gallery/%s/%s-full.webp" % (slug, fslug),
             "grid_kb": round(gs / 1024), "full_kb": round(fs / 1024),
         })
-        print("%-10s %-26s tile %4dx%-4d ar %.2f%s  grid %4dKB  full %5dKB" %
+        print("%-10s %-26s tile %4dx%-4d ar %.2f  grid %4dKB  full %5dKB%s" %
               (slug, code + (" " + name if name else ""), g.size[0], g.size[1], ar,
-               " x2" if span == 2 else "   ", gs / 1024, fs / 1024))
+               gs / 1024, fs / 1024, "  mat trimmed" if trimmed else ""))
 
     catalogue[slug] = {"label": label, "items": items}
 

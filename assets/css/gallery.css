@@ -63,20 +63,22 @@
 }
 
 /* ---------- masonry ----------------------------------------------------
-   Grid, not columns, so the codes stay in reading order. JS measures each
-   card and sets `grid-row-end: span n` against the 4px auto-row; without
-   JS the cards simply sit in even rows, which still reads correctly.     */
+   Real column masonry: gallery.js deals the cards into N equal columns,
+   always into whichever column is currently shortest. The grid version this
+   replaces (auto-rows + row spans) could not backfill — CSS auto-placement
+   never moves backwards, so every tall tile left an ivory hole beside it.
+   Columns cannot hole by construction.
+   Before JS runs, `.masonry` is a plain responsive grid.                 */
 .masonry{
   display:grid; align-items:start;
   grid-template-columns:repeat(auto-fill, minmax(min(230px, 46%), 1fr));
   gap:var(--gap);
 }
-.masonry.is-masonry{ grid-auto-rows:4px; }
-
-/* The landscape composites take two columns. They are the only sheets whose
-   code is printed into the artwork, so they are also the only ones never
-   cropped — the wide tile is their true shape. */
-.sheet--wide{ grid-column:span 2; }
+.masonry.is-cols{ display:flex; align-items:flex-start; gap:var(--gap); }
+.masonry__col{
+  flex:1 1 0; min-width:0;
+  display:flex; flex-direction:column; gap:var(--gap);
+}
 
 .sheet{
   margin:0; display:flex; flex-direction:column; gap:9px;
@@ -133,9 +135,12 @@
   backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   color:var(--on-dark);
   opacity:0; visibility:hidden;
-  transition:opacity .35s ease, visibility .35s;
+  /* visibility flips instantly on open and only after the fade on close.
+     Transitioning it in both directions left the dialog unfocusable on the
+     frame it opened, so focus() landed on <body>. */
+  transition:opacity .35s ease, visibility 0s linear .35s;
 }
-.lb.is-open{ opacity:1; visibility:visible; }
+.lb.is-open{ opacity:1; visibility:visible; transition:opacity .35s ease, visibility 0s; }
 
 .lb__bar{
   display:flex; align-items:center; justify-content:space-between; gap:16px;

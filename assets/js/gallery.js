@@ -12,40 +12,55 @@
   var cards = [].slice.call(grid.querySelectorAll('.sheet'));
 
   /* ---------- masonry -----------------------------------------------------
-     Each card's height is intrinsic (aspect-ratio box + caption), so it can
-     be measured before the images load. We convert that height into a span
-     of the 4px auto-row. `align-items:start` is what keeps the measurement
-     honest — without it the card stretches to the row and every span grows. */
-  var ROW = 4;
-  grid.classList.add('is-masonry');
+     Cards are dealt into N equal columns, each one going to whichever column
+     is shortest so far — the Pinterest cascade, and the only arrangement that
+     cannot leave a hole. Heights are predicted from `--ar` rather than
+     measured, so the deal is right before a single image has loaded and never
+     reshuffles as they arrive.                                              */
+  var CAP_UNITS = 0.11;   // caption + gap, as a fraction of the column width
 
-  function layout() {
-    var cs = getComputedStyle(grid);
-    var gap = parseFloat(cs.rowGap) || 0;
-    for (var i = 0; i < cards.length; i++) {
-      var c = cards[i];
-      c.style.gridRowEnd = 'auto';
+  function columnCount() {
+    var w = window.innerWidth;
+    if (w >= 1500) return 5;
+    if (w >= 1120) return 4;
+    if (w >= 820) return 3;
+    return 2;             // two on phones: one 1:2 sheet per row is enormous
+  }
+
+  var dealt = 0;
+  function deal() {
+    var n = columnCount();
+    if (n === dealt) return;
+    dealt = n;
+
+    var cols = [], heights = [], i;
+    for (i = 0; i < n; i++) {
+      var col = document.createElement('div');
+      col.className = 'masonry__col';
+      cols.push(col);
+      heights.push(0);
     }
-    for (var j = 0; j < cards.length; j++) {
-      var card = cards[j];
-      var h = card.getBoundingClientRect().height;
-      card.style.gridRowEnd = 'span ' + Math.ceil((h + gap) / (ROW + gap));
+    for (i = 0; i < cards.length; i++) {
+      var shortest = 0, j;
+      for (j = 1; j < n; j++) if (heights[j] < heights[shortest] - 1e-6) shortest = j;
+      cols[shortest].appendChild(cards[i]);
+      var ar = parseFloat(cards[i].style.getPropertyValue('--ar')) || 0.5;
+      heights[shortest] += 1 / ar + CAP_UNITS;
     }
+    grid.textContent = '';
+    for (i = 0; i < n; i++) grid.appendChild(cols[i]);
+    grid.classList.add('is-cols');
   }
 
   var raf = 0;
   function relayout() {
     cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(layout);
+    raf = requestAnimationFrame(deal);
   }
 
-  layout();
+  deal();
   window.addEventListener('resize', relayout);
   window.addEventListener('orientationchange', relayout);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
-  // A tall image that fails to decode collapses its box; re-measure on load.
-  grid.addEventListener('load', relayout, true);
-  grid.addEventListener('error', relayout, true);
 
   /* ---------- reveal ---------------------------------------------------- */
   if (reduced || !('IntersectionObserver' in window)) {
@@ -75,7 +90,9 @@
   var btnNext = lb.querySelector('.lb__nav--next');
   var btnX = lb.querySelector('.lb__x');
 
-  var hits = [].slice.call(grid.querySelectorAll('.sheet__hit'));
+  // Source order, not the dealt order: arrowing through the lightbox should
+  // walk the codes in sequence, not zig-zag down whichever column they landed in.
+  var hits = cards.map(function (c) { return c.querySelector('.sheet__hit'); });
   var index = -1;
   var lastFocus = null;
 
@@ -114,9 +131,10 @@
     lb.classList.add('is-open');
     lb.removeAttribute('aria-hidden');
     show(i);
-    // `visibility` only flips once the transition starts, so a synchronous
-    // focus() lands on nothing. One frame later the dialog is focusable.
-    requestAnimationFrame(function () { btnX.focus(); });
+    // Synchronous, and it has to stay that way: `visibility` is transitioned
+    // to 0s on open precisely so the dialog is focusable on this frame. A
+    // rAF here would never fire in a throttled tab.
+    btnX.focus();
   }
 
   function close() {
@@ -125,7 +143,10 @@
     document.body.classList.remove('lb-open');
     // Drop the source so a 1 MB sheet is not held in memory behind the page.
     setTimeout(function () { if (!lb.classList.contains('is-open')) lbImg.removeAttribute('src'); }, 400);
-    if (lastFocus && lastFocus.focus) lastFocus.focus();
+    // Back to the sheet actually being viewed, which after arrowing through is
+    // not the one that opened the lightbox.
+    var back = hits[index] || lastFocus;
+    if (back && back.focus) back.focus();
   }
 
   hits.forEach(function (hit, i) {
