@@ -324,22 +324,38 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   grid row, every measurement returns the row height, and the spans grow on every relayout.
 - **Card height is known before the image loads** — `aspect-ratio: var(--ar)` is written into
   each figure from the real pixel ratio, so the first `layout()` is correct and nothing jumps.
-- **The lightbox focuses one frame late.** `visibility` only flips once the transition starts,
-  so a synchronous `btnX.focus()` lands on nothing.
-- **Nothing is skipped and no mat is removed.** Asked for directly on 2026-09-05, after a
-  first pass had trimmed the white mats off seven mockups and dropped a duplicate. The folders
-  are the source of truth: what is in a folder appears on that folder's page, borders and all.
-  `trim_flat_border()` is still in `build_gallery.py`, unused, if that is ever wanted back.
+- **Do not put focus behind `requestAnimationFrame`.** rAF does not fire in a throttled or
+  hidden tab, and the preview pane counts as hidden — that cost a debugging detour where the
+  lightbox looked like it was failing to take focus. The dialog's `visibility` is transitioned
+  at `0s` on open, and only after the fade on close, precisely so `focus()` can be synchronous.
+  Closing returns focus to the sheet being *viewed*, which after arrowing through is not the
+  one that opened the lightbox.
+- **Nothing is skipped; mats ARE removed.** The duplicate stays — both folders publish it. The
+  flat white or grey mat around seven mockup files comes off, of both the tile and the
+  lightbox image, because in a gallery it reads as a hole in the layout: *"there shouldn't be
+  such white blank spaces"*. No sheet loses any of its own face. This reversed an instruction
+  given an hour earlier, so read this line before assuming either way.
 - **The preview tile is cropped; the lightbox sheet is not.** 39 of the 46 sheets are the same
   1:2 shape, so an aspect-true grid came out as a plain lattice and the user said so. Each
   preview is now centre-cropped to the next value in `RHYTHM` — twelve ratios between 0.50 and
   1.00 — and `-full.webp` stays the whole uncropped sheet. Two rules make it work:
   a tile is only ever cropped *shorter* than its source, never stretched; and the eight
   landscape NMD composites are never cropped at all, because their code is printed into the
-  artwork — they take two columns instead.
+  artwork — in a column masonry they simply make short tiles.
 - **Walk the rhythm with a cursor, not with the item index.** Indexing by position looked
   right on paper and put four squares in a row on the 45 Degree page: three 0.80 mockups each
   skipped the same three too-tall values and landed on the same 1.00.
+- **The layout is column masonry, dealt in JS — never a CSS grid with row spans.** The grid
+  version was tried, shipped, and was wrong: CSS auto-placement never moves backwards, so
+  every tall tile left an ivory hole beside it, and the two-column tiles I had added for
+  variety made it worse — a wide tile needs two *adjacent* free columns. `gallery.js` now
+  deals each card into whichever of N columns is shortest, predicting height from `--ar` so
+  the deal is right before any image loads and never reshuffles. Columns cannot hole by
+  construction. 5 / 4 / 3 / 2 columns by width; two on phones, because one 1:2 sheet at full
+  phone width is enormous. Without JS the container stays a plain responsive grid.
+- **The lightbox walks source order, not dealt order.** `hits` is built from the cards before
+  they are distributed into columns, so arrow keys step through the codes in sequence instead
+  of zig-zagging down whichever column they landed in.
 - Digital carries 2.1 MB of grid images against 150 KB for the other three: eight of its
   sheets are dense woven repeats that WebP cannot compress. All lazy-loaded. If it ever needs
   to be lighter, those eight are the whole problem.
