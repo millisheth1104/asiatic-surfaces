@@ -8,3 +8,11 @@ desktop.ini
 # (uncomment if you do not want large photos in the repo)
 # assets/textures/*.png
 # assets/textures/*.jpg
+
+# Supplied sheet source folders (273 MB of originals). The web-ready
+# derivatives in assets/gallery/ are what ships; regenerate with
+# scratchpad build_gallery.py if the originals are ever needed again.
+/45 Degree/
+/DIGITAL-20260905T130641Z-1-001/
+/Stone/
+/WOODEN1/

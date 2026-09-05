@@ -625,3 +625,73 @@ Verified at 800px and 375px: all eight chips and tiles render the new names on o
 nothing clipped (`scrollWidth` equals `clientWidth` on every name, tagline and footer
 list), no horizontal overflow, and all eight chip backgrounds still resolve — "45 Degree"
 is the longest label in the set and was the one at risk.
+
+---
+
+# Four category galleries — 2026-09-05
+
+45 sheet scans arrived in four folders. Each family that has sheets now gets its own page
+with a masonry gallery and a lightbox, reachable from the hero plate chip and the bento tile.
+
+## What shipped
+
+| page | sheets | grid weight | notes |
+|---|---|---|---|
+| `45-degree.html` | 5 | 151 KB | 3 were mockups on a white mat |
+| `digital.html` | 26 | 2101 KB | 8 dense repeats dominate the weight |
+| `stone.html` | 10 | 152 KB | 4 mockups on a mat, 1 on grey |
+| `wooden.html` | 4 | 27 KB | |
+
+Source: 46 files, 273 MB, of which one was a byte-identical duplicate across two folders
+(`ZO 95401 - Silver Oak`, in both Stone and Digital — published under Stone only). Output is
+2.49 MB of grid images and 17.6 MB of lightbox images. The originals are gitignored.
+
+## Generated, not hand-written
+
+`scripts/build_gallery.py` walks the source folders, flattens alpha onto white, trims mats,
+writes `<code>.webp` at 900 px and `<code>-full.webp` at 2000 px, and emits
+`assets/gallery/catalogue.json`. `scripts/gen_pages.py` turns that into the four pages.
+Adding sheets is two commands; **hand-editing a category page loses the edit.**
+
+Codes come from the filenames: `RE-9535---Sandal-Wood_.jpg` → **RE 9535** *Sandal Wood*,
+`3039  5137.png` → **3039 / 5137**. Seven of the eight NMD sheets already carry their code
+printed in the artwork, and the parsed captions match them.
+
+## Decisions worth recording
+
+**Masonry as grid, not columns.** `grid-auto-rows:4px` plus a JS-computed
+`grid-row-end: span n`. CSS columns would have been zero-JS but reorder items down each
+column; in a sheet catalogue people scan for a code, so DOM order has to hold. Without JS the
+cards fall back to even rows.
+
+**`align-items:start` is load-bearing** — without it every card stretches to its row, every
+measurement returns the row height, and spans inflate on each relayout.
+
+**Ratios are baked into the markup** as `--ar`, so `aspect-ratio` reserves the right box
+before the image loads: the first layout pass is already correct and nothing reflows.
+
+**Mats trimmed, carefully.** Seven files were sheets floating in a flat border — 18.5% of the
+width on each side — while the rest ran edge to edge; side by side the white pillars read as
+a fault. `trim_flat_border()` strips a row or column only if it is one flat colour
+(std < 1.5) and abandons the trim unless ≥40% of the area survives, because several digital
+sheets are near-white across the whole face and a naive threshold would eat them. Six landed
+at exactly 450×900; the seventh sits on grey with a drop shadow and trimmed to 659×900.
+
+## Bugs found and fixed during the build
+
+| symptom | cause |
+|---|---|
+| Lightbox opened with focus still on `<body>` | `visibility` only flips once the transition begins, so a synchronous `focus()` lands on a still-hidden dialog. Deferred one frame. |
+| Three of five 45 Degree cards showed white pillars | mockups on a mat mixed with edge-to-edge scans (above) |
+
+## Verified
+
+All four pages: correct titles and headings, every sheet present, **90/90 assets return 200**,
+no console output, no horizontal overflow. Masonry stagger confirmed on Digital — 26 cards on
+18 distinct top offsets across 4 columns, so it is genuinely interleaving rather than sitting
+in rows. Lightbox open/next/Esc tested: code, counter and the 2000 px source all track, body
+scroll locks and releases. At 375 px all four pages hold 2 columns with no clipped captions.
+Home page unchanged otherwise: 8 tiles, 8 chip textures, GSAP 3.12.5 still driving.
+
+The four tiles that now link became `<a class="tile">` in place of `<article>` — safe because
+the stylesheet has no element-qualified selectors and the JS keys on `[data-reveal-tile]`.

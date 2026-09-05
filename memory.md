@@ -82,9 +82,24 @@ assets/textures/
   <family>-420.webp    ×8        hero plate cards, loaded up front (5–24 KB)
   <family>.svg         ×8        the original procedural SVGs — unreferenced, kept as record
   PROMPTS.md                    the prompts that produced the photographs
+45-degree.html digital.html    the four category galleries — GENERATED, never hand-edited
+stone.html wooden.html
+assets/css/gallery.css          category pages: sticky nav, masonry, lightbox
+assets/js/gallery.js            masonry row spans, reveal, lightbox
+assets/gallery/
+  catalogue.json                every sheet: code, name, ratio, both file paths
+  <family>/<code>.webp          grid image, 900px long edge (2–200 KB)
+  <family>/<code>-full.webp     lightbox image, 2000px long edge (14 KB–1.1 MB)
+scripts/build_gallery.py        source folders → assets/gallery + catalogue.json
+scripts/gen_pages.py            catalogue.json → the four category pages
 README.md · BUILD_LOG.md · memory.md
 .claude/launch.json             preview server
 ```
+
+**The four category pages are build output.** Edit `scripts/gen_pages.py` for layout or copy
+and `scripts/build_gallery.py` for the images, then re-run both — in that order, because the
+generator reads the catalogue the converter writes. A hand-edit to `digital.html` is lost the
+next time anyone adds a sheet.
 
 ---
 
@@ -298,12 +313,44 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
 
 ---
 
+## 10b. The category galleries
+
+- **Masonry is a CSS grid, not CSS columns.** `grid-auto-rows: 4px`, and `gallery.js`
+  converts each card's measured height into a `grid-row-end: span n`. Columns would have been
+  zero-JS but would reorder the codes down each column; in a catalogue people scan for a code,
+  so DOM order has to survive. Without JS the cards fall back to even rows — plainer, still
+  correct.
+- **`align-items:start` on `.masonry` is load-bearing.** Without it each card stretches to its
+  grid row, every measurement returns the row height, and the spans grow on every relayout.
+- **Card height is known before the image loads** — `aspect-ratio: var(--ar)` is written into
+  each figure from the real pixel ratio, so the first `layout()` is correct and nothing jumps.
+- **The lightbox focuses one frame late.** `visibility` only flips once the transition starts,
+  so a synchronous `btnX.focus()` lands on nothing.
+- **Seven supplied files were mockups floating in a flat mat** (18% white each side, one on
+  grey). `trim_flat_border()` strips a border only when every row or column of it is one flat
+  colour and the trim keeps ≥40% of the area — the guard exists because several sheets are
+  nearly white all over and would otherwise be eaten.
+- Digital carries 2.1 MB of grid images against 150 KB for the other three: eight of its
+  sheets are dense woven repeats that WebP cannot compress. All lazy-loaded. If it ever needs
+  to be lighter, those eight are the whole problem.
+
+---
+
 ## 11. Outstanding
 
 - Nothing is broken or half-finished. Repo clean, in sync, deployed.
 - The eight procedural SVGs are unreferenced — keep or delete, but they are the documented
   fallback.
-- Nav links are in-page anchors only; there are no sub-pages.
+- **Four of the eight families have gallery pages** (45 Degree, Digital, Stone, Wooden — 45
+  sheets). Texture, Edge Bands, Laminates and Louvers have no sheets yet, so their chips and
+  tiles still scroll to `#collection`. When their images arrive, add a folder to `CATS` in
+  `scripts/build_gallery.py`, add copy to `COPY` in `scripts/gen_pages.py`, re-run both, and
+  point the chip and tile in `index.html` at the new page.
+- Two things in the supplied folders worth a decision: the Stone folder holds several
+  wood-named sheets (Natural Ashwood, Aromatic Walnut, Classic Walnut, Sandal Wood, Silver
+  Oak), and `ZO 95401 - Silver Oak` was in both Stone and Digital. It is published under
+  Stone only, so no visitor meets the same sheet twice; the skip is declared in `SKIP` in
+  `scripts/build_gallery.py`.
 - With the top bar gone there is no navigation. Scrolling and the Instagram link are the only
   affordances. That was the explicit request.
 - If real photography ever replaces the AI images, re-run the contrast checks in §9 — that is

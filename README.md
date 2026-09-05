@@ -3,6 +3,12 @@
 Single-page site for **Asiatic Surfaces** (laminates, panels and surface finishes).
 Instagram: [@asiaticsurfaces](https://www.instagram.com/asiaticsurfaces/)
 
+Five pages: the home page, plus a masonry sheet gallery for each of the four families
+whose photography has arrived (`45-degree.html`, `digital.html`, `stone.html`,
+`wooden.html`).
+
+## Home page
+
 Three sections, as specified:
 
 1. **Hero** — an inset rounded card with one fixed image, the headline *Full Sheet View*
@@ -23,14 +29,36 @@ Then open <http://localhost:5599>. There is no build step — it is plain HTML, 
 ## Layout
 
 ```
-index.html                    markup for all three sections
+index.html                    markup for all three home sections
+45-degree.html digital.html   the four category galleries — GENERATED, do not hand-edit
+stone.html wooden.html
 assets/css/style.css          design tokens, layout, keyframes, breakpoints
+assets/css/gallery.css        category pages: nav, masonry, lightbox
 assets/js/main.js             headline fitter, card strip, GSAP motion + fallback
-assets/textures/*.svg         the eight surface visuals
-assets/textures/PROMPTS.md    prompts + filenames for replacing them with photography
+assets/js/gallery.js          masonry spans, reveal, lightbox
+assets/gallery/<family>/      web-ready sheets, two sizes each, + catalogue.json
+assets/textures/*.webp        the eight lifestyle images used on the home page
+assets/textures/PROMPTS.md    prompts + filenames for regenerating those
+scripts/build_gallery.py      source folders -> assets/gallery + catalogue.json
+scripts/gen_pages.py          catalogue.json -> the four category pages
 memory.md                     project knowledge base — read this before changing anything
 BUILD_LOG.md                  what was built, what broke, what was measured
 ```
+
+## Category galleries
+
+Each page is a masonry grid of full sheet scans; clicking one opens a lightbox with
+arrow-key navigation. **The four HTML files are generated** — edit `scripts/gen_pages.py`
+(layout and copy) or `assets/gallery/catalogue.json` (the sheets), never the pages.
+
+To add sheets: drop the originals into a folder, point `CATS` in
+`scripts/build_gallery.py` at it, then
+
+```bash
+python scripts/build_gallery.py && python scripts/gen_pages.py
+```
+
+The originals stay out of git (273 MB); only the derivatives ship.
 
 ## Brand
 
