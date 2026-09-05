@@ -1,5 +1,5 @@
 /* =========================================================
-   ASIATIC SURFACES — category pages (masonry sheet gallery)
+   FULL SHEET VIEW — category pages (masonry sheet gallery)
    Loaded AFTER style.css, which supplies the tokens, the type
    and the base reset. This file adds only what the galleries need.
    ========================================================= */
@@ -56,10 +56,6 @@
 .ghead__sub{
   margin:0; max-width:52ch; color:var(--ink-soft);
   font-size:clamp(.95rem,1.05vw,1.06rem);
-}
-.ghead__meta{
-  margin:18px 0 0; display:flex; flex-wrap:wrap; gap:8px 22px;
-  font-size:.74rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-mute);
 }
 
 /* ---------- masonry ----------------------------------------------------

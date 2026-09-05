@@ -805,3 +805,32 @@ through is not the one that opened the lightbox.
 92/92 assets return 200, no console output, no horizontal overflow. Lightbox verified: opens
 on the right sheet, focus lands on the close button, arrow keys advance the counter, Esc
 closes and hands focus back to the sheet viewed. Grid weight 2.35 MB across four pages.
+
+---
+
+# Renamed to Full Sheet View, Instagram removed — 2026-09-05
+
+Three requests, all site-wide.
+
+**The sheet-count line is gone.** `.ghead__meta` — "5 SHEETS · TAP ONE FOR THE FULL SHEET" —
+removed from the generator along with its now-dead CSS rule.
+
+**"Asiatic Surfaces" no longer appears anywhere a visitor can see it.** Replaced with
+**Full Sheet View** in: both page titles, the meta descriptions, the hero eyebrow, the home
+footer, the gallery nav's home link, the lightbox footer and the gallery footer. Source-file
+header comments updated too. Verified as zero matches for "asiatic" across all five pages.
+
+**Both Instagram links are gone**, and with them every external link on the site — the page
+now links only to itself. Two buttons carried them and both were load-bearing bits of layout,
+so they were repointed rather than deleted:
+
+| where | was | now |
+|---|---|---|
+| hero CTA | "See it on Instagram" → instagram.com | "See the collection" → `#collection` |
+| thank-you pill | "@asiaticsurfaces" → instagram.com | "The Collection" → `#collection` |
+
+The repo's own docs (`README.md`, `memory.md`, this log) still say Asiatic Surfaces — they are
+project records, not shipped pages, and the repository itself is named for it.
+
+Verified across all five pages: 0 occurrences of "asiatic", 0 of "instagram", 0 external
+links, no console output, titles correct.

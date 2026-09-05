@@ -356,6 +356,14 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
 
 ---
 
+- **The site says "Full Sheet View", never "Asiatic Surfaces".** Asked for on 2026-09-05:
+  every visible instance of the company name was replaced, and both Instagram links were
+  removed — the hero CTA and the thank-you pill now point at `#collection`, so the site has
+  no external links at all. The repo docs still use the old name; they are records, not pages.
+  A new page must not reintroduce either.
+
+---
+
 ## 11. Outstanding
 
 - Nothing is broken or half-finished. Repo clean, in sync, deployed.

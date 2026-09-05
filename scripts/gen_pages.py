@@ -88,8 +88,8 @@ def page(slug):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>%(label)s \u2014 Asiatic Surfaces</title>
-<meta name="description" content="%(count)d %(lower)s sheets from Asiatic Surfaces, each shown as a full sheet. %(subplain)s">
+<title>%(label)s \u2014 Full Sheet View</title>
+<meta name="description" content="%(count)d %(lower)s sheets, each shown as a full sheet. %(subplain)s">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Asar&family=Palanquin:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@ def page(slug):
 <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
 
 <header class="gnav">
-  <a class="gnav__home" href="index.html">%(arrow)s<span>Asiatic Surfaces</span></a>
+  <a class="gnav__home" href="index.html">%(arrow)s<span>Full Sheet View</span></a>
   <nav class="gnav__cats" aria-label="Surface categories">
 %(nav)s
   </nav>
@@ -113,7 +113,6 @@ def page(slug):
     <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
     <h1 class="ghead__title">%(roman)s <span class="italic">%(italic)s</span></h1>
     <p class="ghead__sub">%(sub)s</p>
-    <p class="ghead__meta"><span>%(count)d sheets</span><span>Tap one for the full sheet</span></p>
   </header>
 
   <div class="masonry" id="masonry">
@@ -133,11 +132,11 @@ def page(slug):
     <img alt="">
     <button class="lb__nav lb__nav--next" type="button" aria-label="Next sheet">%(chevr)s</button>
   </div>
-  <p class="lb__foot">%(label)s \u00b7 Asiatic Surfaces</p>
+  <p class="lb__foot">%(label)s \u00b7 Full Sheet View</p>
 </div>
 
 <footer class="gfoot">
-  <span>Asiatic Surfaces</span>
+  <span>Full Sheet View</span>
   <span class="gfoot__mid">%(footnav)s</span>
   <span>\u00a9 <span id="yr">2026</span></span>
 </footer>

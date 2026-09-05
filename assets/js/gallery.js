@@ -1,6 +1,6 @@
 /* =========================================================
-   ASIATIC SURFACES — category page
-   Masonry row spans, reveal-on-scroll, and the sheet lightbox.
+   FULL SHEET VIEW — category page
+   Column masonry, reveal-on-scroll, and the sheet lightbox.
    No dependencies: the gallery must render even if a CDN is down.
    ========================================================= */
 (function () {
