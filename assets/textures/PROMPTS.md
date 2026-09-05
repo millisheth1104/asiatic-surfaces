@@ -12,6 +12,13 @@ Save into this folder with these **exact filenames**, square **1:1**, 1024–204
 `fabric` · `texture` · `wooden` · `thermolam` · `edgebands` · `laminates` · `louvers` ·
 `charcoal`
 
+> **Filenames are slugs, not labels.** Three families were renamed on the site but keep
+> their original filenames: `fabric` is shown as **45 Degree**, `charcoal` as **Digital**,
+> `thermolam` as **Stone**. The prompts below still describe the photograph that is in
+> place. If a renamed family is ever reshot to suit its new name, rewrite its prompt here
+> at the same time — and re-check the tile's caption scrim, since a lighter or darker
+> photo may need the other group.
+
 ---
 
 ## Append this tail to every prompt

@@ -47,10 +47,24 @@ Fonts: **Asar** for every heading, **Palanquin** for body and UI. Google Fonts, 
 `index.html`.
 
 **Eight families, fixed set and numbering:**
-01 Fabric · 02 Wooden · 03 Charcoal Panels · 04 Laminates · 05 Louvers · 06 Thermolam ·
+01 45 Degree · 02 Wooden · 03 Digital · 04 Laminates · 05 Louvers · 06 Stone ·
 07 Edge Bands · 08 Texture
 
 The bento's visual order differs from the numbering; the `01–08` labels carry the sequence.
+
+**Display name ≠ slug.** Three families were renamed on 2026-09-05 and the internal slugs
+were deliberately left alone, because they key the CSS `[data-tex]` rules, the `.tile--*`
+grid placements, the caption-scrim groups and the image filenames — renaming them would
+touch four files and 16 assets to change nothing a visitor sees.
+
+| shown to the visitor | slug / class / image |
+|---|---|
+| 45 Degree | `fabric` |
+| Digital | `charcoal` |
+| Stone | `thermolam` |
+
+So a grep for a label will not find its styling, and vice versa. The five unchanged families
+(Texture, Wooden, Edge Bands, Laminates, Louvers) still match their slugs.
 
 ---
 

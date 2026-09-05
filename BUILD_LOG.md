@@ -591,3 +591,37 @@ scrims reach ~0.9 alpha behind the caption, which is what makes them robust to a
 
 Verified: all 16 files return 200, all eight tile images decode at 1100×1100, every card maps
 to its own family with zero mismatches, zero 404s.
+
+---
+
+# Three families renamed — 2026-09-05
+
+Requested: Fabric → **45 Degree**, Charcoal Panels → **Digital**, Thermolam → **Stone**.
+
+Changed in `index.html` only, at every place a visitor reads a name: the hero plate chips,
+the bento tile headings, the thank-you marquee, the footer list, and the `<meta
+description>`. The hero sub-line mentioning "fluted charcoal" now reads "digital prints".
+
+**Slugs deliberately left alone.** `data-tex="fabric"`, `.tile--charcoal`,
+`thermolam.webp` and friends still carry the old words. They key the `[data-tex]` texture
+rules, the grid placements, the caption-scrim light/dark groups and 16 image files;
+renaming them would touch four files and every asset to change nothing on screen. The
+mapping is recorded in `memory.md` so a future grep for "Digital" that finds no CSS is not
+mistaken for a bug.
+
+**Taglines rewritten to match**, since a heading that contradicts its own caption is broken
+copy rather than a style preference:
+
+| family | chip line | tile line |
+|---|---|---|
+| 45 Degree | Mitred faces, seamless corners. | Precision 45-degree mitred profiles — seamless corners, no visible core. |
+| Digital | Print-true, any artwork. | High-resolution digital print faces. Any artwork, colour-true, wear-rated. |
+| Stone | Stone-true depth and grain. | Stone-look faces with true veining depth. Satin, fingerprint-forgiving. |
+
+Images and alt text untouched — the photographs still show the material that was shot, and
+alt text describes the photograph, not the category.
+
+Verified at 800px and 375px: all eight chips and tiles render the new names on one line,
+nothing clipped (`scrollWidth` equals `clientWidth` on every name, tagline and footer
+list), no horizontal overflow, and all eight chip backgrounds still resolve — "45 Degree"
+is the longest label in the set and was the one at risk.
