@@ -315,15 +315,9 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
 
 ## 10b. The category galleries
 
-- **Masonry is a CSS grid, not CSS columns.** `grid-auto-rows: 4px`, and `gallery.js`
-  converts each card's measured height into a `grid-row-end: span n`. Columns would have been
-  zero-JS but would reorder the codes down each column; in a catalogue people scan for a code,
-  so DOM order has to survive. Without JS the cards fall back to even rows — plainer, still
-  correct.
-- **`align-items:start` on `.masonry` is load-bearing.** Without it each card stretches to its
-  grid row, every measurement returns the row height, and the spans grow on every relayout.
 - **Card height is known before the image loads** — `aspect-ratio: var(--ar)` is written into
-  each figure from the real pixel ratio, so the first `layout()` is correct and nothing jumps.
+  each figure from the real pixel ratio, so the column deal is right on the first pass and
+  nothing jumps as images arrive.
 - **Do not put focus behind `requestAnimationFrame`.** rAF does not fire in a throttled or
   hidden tab, and the preview pane counts as hidden — that cost a debugging detour where the
   lightbox looked like it was failing to take focus. The dialog's `visibility` is transitioned
