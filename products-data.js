@@ -2,12 +2,16 @@
    Shared Real-Time Product Catalog Data Engine
    Connects the 360° Panorama Viewer & Product Table
    Synced with Vercel KV & Vercel Blob Storage
+   Resilient Offline-First Architecture (IndexedDB + Sync Queue)
    ==================================================== */
 
 window.ProductCatalog = (function () {
     'use strict';
 
     const STORAGE_KEY = 'realtime_360_product_catalog_v2';
+    const SYNC_QUEUE_KEY = 'realtime_360_sync_queue_v1';
+    const DB_NAME = 'ProductAssetsDB_v3';
+    const STORE_NAME = 'assets';
 
     const REAL_WORKSPACE_PRODUCTS = [
         {
@@ -26,6 +30,97 @@ window.ProductCatalog = (function () {
         }
     ];
 
+    // ---- IndexedDB Helper for Large Binary Assets ----
+    function getDB() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') {
+                return reject(new Error('IndexedDB not supported'));
+            }
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    async function storeAsset(key, dataUrl) {
+        if (!dataUrl) return false;
+        try {
+            const db = await getDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.put(dataUrl, key);
+            return new Promise((resolve) => {
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch (e) {
+            console.error('IndexedDB storage error:', e);
+            return false;
+        }
+    }
+
+    async function getAsset(key) {
+        if (!key) return null;
+        // Direct URL or local relative path returns directly
+        if (typeof key === 'string' && (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('data:') || key.startsWith('src/'))) {
+            return key;
+        }
+        try {
+            const db = await getDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.get(key);
+            return new Promise((resolve) => {
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            console.error('IndexedDB retrieval error:', e);
+            return null;
+        }
+    }
+
+    async function deleteAsset(key) {
+        if (!key) return false;
+        try {
+            const db = await getDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.delete(key);
+            return new Promise((resolve) => {
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch (e) {
+            console.error('IndexedDB deletion error:', e);
+            return false;
+        }
+    }
+
+    // ---- Clean Product for LocalStorage (Strip Heavy Base64) ----
+    function sanitizeForStorage(product) {
+        const p = { ...product };
+        // If fullsheetUrl contains large base64, offload to IndexedDB asynchronously
+        if (typeof p.fullsheetUrl === 'string' && p.fullsheetUrl.startsWith('data:')) {
+            const dbKey = `fullsheet-${p.id}`;
+            storeAsset(dbKey, p.fullsheetUrl);
+            p.fullsheetUrl = `db:${dbKey}`;
+        }
+        // If threeDDataUrl contains large base64, offload to IndexedDB asynchronously
+        if (typeof p.threeDDataUrl === 'string' && p.threeDDataUrl.startsWith('data:')) {
+            const dbKey = `threeD-${p.id}`;
+            storeAsset(dbKey, p.threeDDataUrl);
+            p.threeDDataUrl = `db:${dbKey}`;
+        }
+        return p;
+    }
+
     // Synchronous local read for instant render
     function getProducts() {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -33,53 +128,111 @@ window.ProductCatalog = (function () {
             try {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
+                    // Check if any legacy product still has bloated data: URLs and sanitize
+                    let hasBloat = false;
+                    const cleaned = parsed.map(p => {
+                        if ((p.fullsheetUrl && p.fullsheetUrl.startsWith('data:')) ||
+                            (p.threeDDataUrl && p.threeDDataUrl.startsWith('data:'))) {
+                            hasBloat = true;
+                            return sanitizeForStorage(p);
+                        }
+                        return p;
+                    });
+                    if (hasBloat) {
+                        try {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+                        } catch (e) {
+                            console.warn('LocalStorage cleanup quota warning:', e);
+                        }
+                    }
+                    return cleaned;
                 }
             } catch (e) {
-                console.error('Failed to parse local stored catalog', e);
+                console.error('Failed to parse local stored catalog:', e);
             }
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(REAL_WORKSPACE_PRODUCTS));
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(REAL_WORKSPACE_PRODUCTS));
+        } catch (e) {}
         return REAL_WORKSPACE_PRODUCTS;
     }
 
-    // Background sync from Vercel KV
+    // Background sync from Vercel KV or Blob
     async function syncFromCloud() {
         try {
             const res = await fetch('/api/products?t=' + Date.now(), { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.success && Array.isArray(data.products) && data.products.length > 0) {
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(data.products));
-                    window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: data.products }));
-                    return data.products;
+                    // Merge cloud products with any pending local uploads
+                    const localProducts = getProducts();
+                    const pendingQueue = getSyncQueue();
+
+                    // If there are pending local items, preserve local db: pointers
+                    const merged = data.products.map(cloudProd => {
+                        const localMatch = localProducts.find(lp => lp.id === cloudProd.id);
+                        if (localMatch) {
+                            const hasPendingFs = pendingQueue.some(q => q.productId === cloudProd.id && q.field === 'fullsheet');
+                            const hasPending3D = pendingQueue.some(q => q.productId === cloudProd.id && q.field === 'threeD');
+                            return {
+                                ...cloudProd,
+                                fullsheetUrl: hasPendingFs && localMatch.fullsheetUrl ? localMatch.fullsheetUrl : cloudProd.fullsheetUrl,
+                                threeDDataUrl: hasPending3D && localMatch.threeDDataUrl ? localMatch.threeDDataUrl : cloudProd.threeDDataUrl
+                            };
+                        }
+                        return cloudProd;
+                    });
+
+                    // Also preserve any newly created local products not yet on cloud
+                    localProducts.forEach(lp => {
+                        if (!merged.some(mp => mp.id === lp.id)) {
+                            merged.unshift(lp);
+                        }
+                    });
+
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                    } catch (e) {
+                        console.warn('Quota warning while caching cloud products:', e);
+                    }
+                    window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: merged }));
+                    return merged;
                 }
             }
         } catch (err) {
-            // Local / Offline mode fallback
+            // Offline / server down mode fallback
         }
         return getProducts();
     }
 
-    // Auto-sync in background on init
-    syncFromCloud();
-
     async function syncToCloud(productsList) {
         try {
+            // Strip any internal local db: pointers before saving to cloud so cloud only has permanent URLs or null
+            const cloudPayload = productsList.map(p => ({
+                ...p,
+                fullsheetUrl: p.fullsheetUrl && p.fullsheetUrl.startsWith('db:') ? null : p.fullsheetUrl,
+                threeDDataUrl: p.threeDDataUrl && p.threeDDataUrl.startsWith('db:') ? null : p.threeDDataUrl
+            }));
+
             await fetch('/api/products', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ products: productsList })
+                body: JSON.stringify({ products: cloudPayload })
             });
         } catch (err) {
-            console.warn('Could not sync catalog to cloud KV:', err);
+            console.warn('Cloud catalog sync deferred (server unreachable):', err.message);
         }
     }
 
     function saveProducts(productsList) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(productsList));
-        window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: productsList }));
-        syncToCloud(productsList);
+        const sanitized = productsList.map(sanitizeForStorage);
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+        } catch (e) {
+            console.error('localStorage quota exceeded during saveProducts:', e);
+        }
+        window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: sanitized }));
+        syncToCloud(sanitized);
     }
 
     function addProduct(productData) {
@@ -105,11 +258,15 @@ window.ProductCatalog = (function () {
         saveProducts(productsList);
         deleteAsset(`fullsheet-${id}`);
         deleteAsset(`threeD-${id}`);
+        // Remove from pending sync queue if present
+        const queue = getSyncQueue().filter(q => q.productId !== id);
+        saveSyncQueue(queue);
         return productsList;
     }
 
     function resetToRealDefaults() {
         saveProducts(REAL_WORKSPACE_PRODUCTS);
+        saveSyncQueue([]);
         return REAL_WORKSPACE_PRODUCTS;
     }
 
@@ -129,80 +286,129 @@ window.ProductCatalog = (function () {
                 }
             }
         } catch (err) {
-            console.warn('Vercel Blob upload failed, falling back to local storage:', err);
+            console.warn('Vercel Blob upload call note (server might be down or offline):', err.message);
         }
         return null;
     }
 
-    // ---- IndexedDB Fallback for Large Assets Storage ----
-    const DB_NAME = 'ProductAssetsDB_v3';
-    const STORE_NAME = 'assets';
+    // ---- Offline Sync Queue Mechanism ----
+    function getSyncQueue() {
+        try {
+            const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    }
 
-    function getDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
+    function saveSyncQueue(queue) {
+        try {
+            localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+        } catch (e) {
+            console.warn('Could not save sync queue:', e);
+        }
+    }
+
+    function enqueueSync(item) {
+        const queue = getSyncQueue();
+        // Remove existing queue item for same product and field to avoid duplicates
+        const filtered = queue.filter(q => !(q.productId === item.productId && q.field === item.field));
+        filtered.push({
+            ...item,
+            timestamp: Date.now()
         });
+        saveSyncQueue(filtered);
     }
 
-    async function storeAsset(key, dataUrl) {
-        if (!dataUrl) return false;
+    let isProcessingQueue = false;
+
+    async function processSyncQueue() {
+        if (isProcessingQueue) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+        const queue = getSyncQueue();
+        if (!queue || queue.length === 0) return;
+
+        isProcessingQueue = true;
         try {
-            const db = await getDB();
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            store.put(dataUrl, key);
-            return new Promise((resolve) => {
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = () => resolve(false);
-            });
+            // Quick health check to see if server is online
+            const ping = await fetch('/api/products?t=' + Date.now(), { method: 'GET', cache: 'no-store' }).catch(() => null);
+            if (!ping || (!ping.ok && ping.status !== 304)) {
+                // Server is down or unreachable, gracefully exit and try again later
+                isProcessingQueue = false;
+                return;
+            }
+
+            const remainingQueue = [];
+            let catalogChanged = false;
+            const currentProducts = getProducts();
+
+            for (const item of queue) {
+                try {
+                    const rawAsset = await getAsset(item.dbKey);
+                    if (!rawAsset || !rawAsset.startsWith('data:')) {
+                        // Asset not found or already a remote URL, no need to upload
+                        continue;
+                    }
+
+                    const cdnUrl = await uploadAssetToBlob(item.filename, rawAsset);
+                    if (cdnUrl) {
+                        const targetProd = currentProducts.find(p => p.id === item.productId);
+                        if (targetProd) {
+                            if (item.field === 'fullsheet') {
+                                targetProd.fullsheetUrl = cdnUrl;
+                            } else if (item.field === 'threeD') {
+                                targetProd.threeDDataUrl = cdnUrl;
+                            }
+                            catalogChanged = true;
+                        }
+                        // Clean up heavy Base64 from local IndexedDB now that it has a permanent CDN URL
+                        await deleteAsset(item.dbKey);
+                    } else {
+                        // Upload failed (e.g. server error), keep in queue for next cycle
+                        remainingQueue.push(item);
+                    }
+                } catch (err) {
+                    console.warn('Sync queue error for item:', item, err);
+                    remainingQueue.push(item);
+                }
+            }
+
+            saveSyncQueue(remainingQueue);
+
+            if (catalogChanged) {
+                saveProducts(currentProducts);
+                window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: currentProducts }));
+                console.log('✅ Background sync successfully uploaded offline assets to Vercel Blob');
+            }
         } catch (e) {
-            console.error('IndexedDB storage error', e);
-            return false;
+            console.warn('Sync queue execution paused:', e);
+        } finally {
+            isProcessingQueue = false;
         }
     }
 
-    async function getAsset(key) {
-        // If it is already a direct URL (HTTP or Blob CDN or file path), return directly
-        if (typeof key === 'string' && (key.startsWith('http://') || key.startsWith('https://') || key.startsWith('data:') || key.startsWith('src/'))) {
-            return key;
-        }
-        try {
-            const db = await getDB();
-            const tx = db.transaction(STORE_NAME, 'readonly');
-            const store = tx.objectStore(STORE_NAME);
-            const request = store.get(key);
-            return new Promise((resolve) => {
-                request.onsuccess = () => resolve(request.result || null);
-                request.onerror = () => resolve(null);
-            });
-        } catch (e) {
-            console.error('IndexedDB retrieval error', e);
-            return null;
-        }
-    }
+    // Auto-sync triggers
+    syncFromCloud().then(() => processSyncQueue());
 
-    async function deleteAsset(key) {
-        try {
-            const db = await getDB();
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            const store = tx.objectStore(STORE_NAME);
-            store.delete(key);
-            return new Promise((resolve) => {
-                tx.oncomplete = () => resolve(true);
-                tx.onerror = () => resolve(false);
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', () => {
+            syncFromCloud();
+            processSyncQueue();
+        });
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    processSyncQueue();
+                }
             });
-        } catch (e) {
-            console.error('IndexedDB deletion error', e);
-            return false;
         }
+
+        // Periodic background poll every 40 seconds
+        setInterval(() => {
+            processSyncQueue();
+        }, 40000);
     }
 
     return {
@@ -216,6 +422,9 @@ window.ProductCatalog = (function () {
         uploadAssetToBlob,
         storeAsset,
         getAsset,
-        deleteAsset
+        deleteAsset,
+        enqueueSync,
+        processSyncQueue,
+        getSyncQueue
     };
 })();

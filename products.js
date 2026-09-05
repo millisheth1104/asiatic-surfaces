@@ -195,21 +195,33 @@
         if (!tableBody) return;
 
         tableBody.innerHTML = filtered.map(product => {
+            const isFsLocal = product.fullsheetUrl && product.fullsheetUrl.startsWith('db:');
             const fullsheetCell = product.fullsheet
-                ? `<span class="grid-status-badge yes" style="cursor: default; user-select: none;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    Uploaded
-                   </span>`
+                ? (isFsLocal
+                    ? `<span class="grid-status-badge local" title="Saved locally in IndexedDB. Will auto-sync to cloud when online." style="cursor: default; user-select: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10m0 0l-4-4m4 4l4-4"/><path d="M20 16.5A4.5 4.5 0 0 0 17.5 8a6 6 0 0 0-11.5 2 4 4 0 0 0 .5 8h13"/></svg>
+                        Local
+                       </span>`
+                    : `<span class="grid-status-badge yes" title="Synced to permanent cloud storage" style="cursor: default; user-select: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Uploaded
+                       </span>`)
                 : `<span class="grid-status-badge no" style="cursor: default; user-select: none;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     No
                    </span>`;
 
+            const is3DLocal = product.threeDDataUrl && product.threeDDataUrl.startsWith('db:');
             const threeDCell = product.threeD
-                ? `<span class="grid-status-badge yes" style="cursor: default; user-select: none;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    Uploaded
-                   </span>`
+                ? (is3DLocal
+                    ? `<span class="grid-status-badge local" title="Saved locally in IndexedDB. Will auto-sync to cloud when online." style="cursor: default; user-select: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v10m0 0l-4-4m4 4l4-4"/><path d="M20 16.5A4.5 4.5 0 0 0 17.5 8a6 6 0 0 0-11.5 2 4 4 0 0 0 .5 8h13"/></svg>
+                        Local
+                       </span>`
+                    : `<span class="grid-status-badge yes" title="Synced to permanent cloud storage" style="cursor: default; user-select: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Uploaded
+                       </span>`)
                 : `<span class="grid-status-badge no" style="cursor: default; user-select: none;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     No
@@ -271,6 +283,9 @@
         if (!cardsViewContainer) return;
 
         cardsViewContainer.innerHTML = filtered.map(product => {
+            const isFsLocal = product.fullsheetUrl && product.fullsheetUrl.startsWith('db:');
+            const is3DLocal = product.threeDDataUrl && product.threeDDataUrl.startsWith('db:');
+
             return `
                 <div class="product-card" data-id="${product.id}">
                     <div class="card-header">
@@ -281,18 +296,18 @@
                     <div class="card-name">${product.name}</div>
 
                     <div class="card-status-row">
-                        <div class="status-chip ${product.fullsheet ? 'status-chip--yes' : 'status-chip--no'}">
+                        <div class="status-chip ${product.fullsheet ? (isFsLocal ? 'status-chip--local' : 'status-chip--yes') : 'status-chip--no'}">
                             <span class="status-chip__dot"></span>
                             <span class="status-chip__label">
                                 <span class="status-chip__title">Full Sheet</span>
-                                <span class="status-chip__value">${product.fullsheet ? 'Uploaded' : '✕ No'}</span>
+                                <span class="status-chip__value">${product.fullsheet ? (isFsLocal ? 'Local' : 'Uploaded') : '✕ No'}</span>
                             </span>
                         </div>
-                        <div class="status-chip ${product.threeD ? 'status-chip--yes' : 'status-chip--no'}">
+                        <div class="status-chip ${product.threeD ? (is3DLocal ? 'status-chip--local' : 'status-chip--yes') : 'status-chip--no'}">
                             <span class="status-chip__dot"></span>
                             <span class="status-chip__label">
                                 <span class="status-chip__title">3D Image</span>
-                                <span class="status-chip__value">${product.threeD ? 'Uploaded' : '✕ No'}</span>
+                                <span class="status-chip__value">${product.threeD ? (is3DLocal ? 'Local' : 'Uploaded') : '✕ No'}</span>
                             </span>
                         </div>
                     </div>
@@ -817,7 +832,7 @@
         inputFullsheet.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempFullsheetDataUrl = await compressImageFile(file, 1920, 0.85);
+                tempFullsheetDataUrl = await compressImageFile(file, 1920, 0.82);
                 if (imgFullsheet && wrapFullsheet) {
                     imgFullsheet.src = tempFullsheetDataUrl;
                     wrapFullsheet.style.display = 'flex';
@@ -833,7 +848,7 @@
         inputThreeD.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempThreeDDataUrl = await compressImageFile(file, 4096, 0.88);
+                tempThreeDDataUrl = await compressImageFile(file, 2880, 0.82);
                 if (imgThreeD && wrapThreeD) {
                     imgThreeD.src = tempThreeDDataUrl;
                     wrapThreeD.style.display = 'flex';
@@ -1288,6 +1303,56 @@
             // Retain current ID if in Edit mode, otherwise generate a new unique ID
             const productId = editingProductId || `prod-${Date.now()}`;
 
+            // Check if fullsheet / 3D data are base64 strings and store in IndexedDB
+            let finalFullsheetUrl = null;
+            let finalThreeDDataUrl = null;
+
+            if (tempFullsheetDataUrl) {
+                if (tempFullsheetDataUrl.startsWith('data:')) {
+                    const key = `fullsheet-${productId}`;
+                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                        await window.ProductCatalog.storeAsset(key, tempFullsheetDataUrl);
+                    }
+                    finalFullsheetUrl = `db:${key}`;
+                    if (window.ProductCatalog && typeof window.ProductCatalog.enqueueSync === 'function') {
+                        window.ProductCatalog.enqueueSync({
+                            productId,
+                            field: 'fullsheet',
+                            dbKey: key,
+                            filename: `fullsheet-${slug}.jpg`
+                        });
+                    }
+                } else {
+                    finalFullsheetUrl = tempFullsheetDataUrl;
+                }
+            } else if (editingProductId) {
+                const existing = getRealTimeProducts().find(p => p.id === editingProductId);
+                if (existing) finalFullsheetUrl = existing.fullsheetUrl;
+            }
+
+            if (tempThreeDDataUrl) {
+                if (tempThreeDDataUrl.startsWith('data:')) {
+                    const key = `threeD-${productId}`;
+                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
+                        await window.ProductCatalog.storeAsset(key, tempThreeDDataUrl);
+                    }
+                    finalThreeDDataUrl = `db:${key}`;
+                    if (window.ProductCatalog && typeof window.ProductCatalog.enqueueSync === 'function') {
+                        window.ProductCatalog.enqueueSync({
+                            productId,
+                            field: 'threeD',
+                            dbKey: key,
+                            filename: `panorama-3d-${slug}.jpg`
+                        });
+                    }
+                } else {
+                    finalThreeDDataUrl = tempThreeDDataUrl;
+                }
+            } else if (editingProductId) {
+                const existing = getRealTimeProducts().find(p => p.id === editingProductId);
+                if (existing) finalThreeDDataUrl = existing.threeDDataUrl;
+            }
+
             const newProduct = {
                 id: productId,
                 code: rawCode,
@@ -1296,21 +1361,19 @@
                 slug: slug,
                 pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,
                 yaw: tempHotspotsList.length > 0 ? tempHotspotsList[0].yaw : 0,
-                fullsheet: !!tempFullsheetDataUrl,
-                fullsheetUrl: tempFullsheetDataUrl || null,
-                threeD: !!tempThreeDDataUrl,
+                fullsheet: !!finalFullsheetUrl,
+                fullsheetUrl: finalFullsheetUrl,
+                threeD: !!finalThreeDDataUrl,
                 threeDUrl: `/${(category || 'laminates').toLowerCase().trim().replace(/\s+/g, '-')}/${(rawCode || slug || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-')}`,
-                threeDDataUrl: tempThreeDDataUrl || null,
+                threeDDataUrl: finalThreeDDataUrl,
                 hotspots: tempHotspotsList,
                 description: 'Registered product asset with hotspot placement'
             };
 
-            // 1. Instant optimistic save & UI update
+            // 1. Instant optimistic save & UI update (Safe: No Base64 in LocalStorage)
             if (window.ProductCatalog && typeof window.ProductCatalog.addProduct === 'function') {
                 if (editingProductId) {
-                    if (typeof window.ProductCatalog.updateProduct === 'function') {
-                        window.ProductCatalog.updateProduct(editingProductId, newProduct);
-                    }
+                    window.ProductCatalog.updateProduct(editingProductId, newProduct);
                 } else {
                     window.ProductCatalog.addProduct(newProduct);
                 }
@@ -1325,47 +1388,16 @@
                 saveRealTimeProducts(list);
             }
 
-            const activeFullsheet = tempFullsheetDataUrl;
-            const activeThreeD = tempThreeDDataUrl;
             editingProductId = null;
 
             renderCatalog();
             closeAddModal();
             showToast(`Product ${rawCode} saved successfully!`, 'success');
 
-            // 2. Background async upload for permanent CDN Blob URLs & KV sync
-            (async () => {
-                let updated = false;
-                let finalFullsheet = newProduct.fullsheetUrl;
-                let finalThreeD = newProduct.threeDDataUrl;
-
-                if (activeFullsheet && activeFullsheet.startsWith('data:')) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`fullsheet-${slug}.jpg`, activeFullsheet);
-                        if (blobUrl) {
-                            finalFullsheet = blobUrl;
-                            updated = true;
-                        }
-                    }
-                }
-
-                if (activeThreeD && activeThreeD.startsWith('data:')) {
-                    if (window.ProductCatalog && typeof window.ProductCatalog.uploadAssetToBlob === 'function') {
-                        const blobUrl = await window.ProductCatalog.uploadAssetToBlob(`panorama-3d-${slug}.jpg`, activeThreeD);
-                        if (blobUrl) {
-                            finalThreeD = blobUrl;
-                            updated = true;
-                        }
-                    }
-                }
-
-                if (updated && window.ProductCatalog && typeof window.ProductCatalog.updateProduct === 'function') {
-                    window.ProductCatalog.updateProduct(productId, {
-                        fullsheetUrl: finalFullsheet,
-                        threeDDataUrl: finalThreeD
-                    });
-                }
-            })().catch(e => console.warn('Background asset sync note:', e));
+            // 2. Trigger background upload sync immediately if online
+            if (window.ProductCatalog && typeof window.ProductCatalog.processSyncQueue === 'function') {
+                window.ProductCatalog.processSyncQueue();
+            }
         } catch (err) {
             console.error('Failed to save product:', err);
             showToast('Error saving product: ' + err.message, 'error');

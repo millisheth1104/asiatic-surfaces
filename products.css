@@ -622,6 +622,12 @@ body {
     border: 1px solid rgba(74, 99, 64, 0.2);
 }
 
+.grid-status-badge.local {
+    background: rgba(212, 163, 115, 0.25);
+    color: #8c5a2b;
+    border: 1px solid rgba(212, 163, 115, 0.4);
+}
+
 .grid-status-badge.no {
     background: rgba(229, 200, 185, 0.4);
     color: var(--ink-2);
@@ -781,6 +787,11 @@ body {
     color: #4a6340;
 }
 
+.status-chip--local {
+    background: rgba(212, 163, 115, 0.2);
+    color: #8c5a2b;
+}
+
 .status-chip--no {
     background: rgba(229, 200, 185, 0.35);
     color: var(--ink-2);
@@ -794,6 +805,7 @@ body {
 }
 
 .status-chip--yes .status-chip__dot { background: #5d8a4e; }
+.status-chip--local .status-chip__dot { background: #d4a373; }
 .status-chip--no .status-chip__dot  { background: var(--ink-2); }
 
 .status-chip__label {
