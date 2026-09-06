@@ -201,3 +201,104 @@ body.lb-open{ overflow:hidden; }
   .sheet{ opacity:1; transform:none; transition:none; }
   .sheet__hit, .sheet__hit img, .sheet__zoom{ transition:none; }
 }
+
+/* ---------- empty state & tour enhancements ---------- */
+.gallery-empty{
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: clamp(60px, 10vw, 120px) 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--ivory-lift);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sheet);
+  margin: 20px 0;
+}
+.gallery-empty__icon{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(20, 17, 15, 0.05);
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+.gallery-empty__title{
+  font-size: clamp(1.2rem, 1.8vw, 1.6rem);
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.gallery-empty__sub{
+  font-size: clamp(0.85rem, 0.95vw, 0.95rem);
+  color: var(--ink-soft);
+  max-width: 42ch;
+  line-height: 1.5;
+}
+.gallery-empty__cta{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 22px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: var(--ivory);
+  text-decoration: none;
+  font-size: 0.76rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.35s;
+}
+.gallery-empty__cta:hover{
+  background: var(--accent-ink);
+  transform: translateY(-2px);
+  color: var(--ivory);
+}
+
+.sheet__tour-link{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  text-decoration: none;
+  border: 1px solid rgba(126, 95, 77, 0.3);
+  padding: 3px 8px;
+  border-radius: 99px;
+  transition: all 0.25s;
+  margin-left: auto;
+}
+.sheet__tour-link:hover{
+  background: var(--accent-ink);
+  color: var(--ivory);
+  border-color: var(--accent-ink);
+}
+
+.lb__tour-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 99px;
+  background: rgba(247,244,236,.12);
+  border: 1px solid rgba(247,244,236,.25);
+  color: var(--on-dark);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  margin-left: 12px;
+  transition: all 0.25s;
+}
+.lb__tour-btn:hover{
+  background: rgba(247,244,236,.25);
+  border-color: rgba(247,244,236,.5);
+}

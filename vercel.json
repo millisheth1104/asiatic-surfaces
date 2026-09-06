@@ -4,11 +4,7 @@
   "cleanUrls": false,
   "rewrites": [
     {
-      "source": "/fabric/:code*",
-      "destination": "/tour.html"
-    },
-    {
-      "source": "/texture/:code*",
+      "source": "/45-degree/:code*",
       "destination": "/tour.html"
     },
     {
@@ -16,7 +12,19 @@
       "destination": "/tour.html"
     },
     {
-      "source": "/thermolam/:code*",
+      "source": "/digital/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/laminates/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/stone/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/louvers/:code*",
       "destination": "/tour.html"
     },
     {
@@ -28,19 +36,7 @@
       "destination": "/tour.html"
     },
     {
-      "source": "/laminates/:code*",
-      "destination": "/tour.html"
-    },
-    {
-      "source": "/louvers/:code*",
-      "destination": "/tour.html"
-    },
-    {
-      "source": "/charcoal-panels/:code*",
-      "destination": "/tour.html"
-    },
-    {
-      "source": "/charcoal/:code*",
+      "source": "/texture/:code*",
       "destination": "/tour.html"
     },
     {

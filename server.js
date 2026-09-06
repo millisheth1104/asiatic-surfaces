@@ -10,12 +10,14 @@ const MIME_TYPES = {
     '.css': 'text/css; charset=UTF-8',
     '.js': 'application/javascript; charset=UTF-8',
     '.json': 'application/json; charset=UTF-8',
+    '.webp': 'image/webp',
     '.jpeg': 'image/jpeg',
     '.jpg': 'image/jpeg',
     '.png': 'image/png',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon'
+    '.ico': 'image/x-icon',
+    '.woff2': 'font/woff2'
 };
 
 const server = http.createServer((req, res) => {
@@ -33,7 +35,7 @@ const server = http.createServer((req, res) => {
     let reqUrl = decodeURIComponent(req.url.split('?')[0]);
     const hasExtension = path.extname(reqUrl) !== '';
 
-    const CATEGORY_PREFIXES = ['/fabric/', '/texture/', '/wooden/', '/thermolam/', '/edge-bands/', '/edgebands/', '/laminates/', '/louvers/', '/charcoal-panels/', '/charcoal/'];
+    const CATEGORY_PREFIXES = ['/45-degree/', '/wooden/', '/digital/', '/laminates/', '/stone/', '/louvers/', '/edge-bands/', '/edgebands/', '/texture/'];
     const isCategoryProductRoute = CATEGORY_PREFIXES.some(prefix => reqUrl.startsWith(prefix));
 
     if (reqUrl === '/' || reqUrl === '/home.html') {
