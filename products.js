@@ -1153,6 +1153,7 @@
     }
 
     btnAddProduct.addEventListener('click', () => {
+        editingProductId = null;
         addProductForm.reset();
         tempFullsheetDataUrl = null;
         tempThreeDDataUrl = null;
@@ -1169,6 +1170,11 @@
             try { wizardViewerInstance.destroy(); } catch (e) { }
             wizardViewerInstance = null;
         }
+        editingProductId = null;
+        addProductForm.reset();
+        tempFullsheetDataUrl = null;
+        tempThreeDDataUrl = null;
+        tempHotspotsList = [];
         addProductModal.style.display = 'none';
     }
 
@@ -1257,9 +1263,11 @@
     });
 
     const btnSaveProduct = document.getElementById('btn-save-product');
+    let isFormSubmitting = false;
 
     addProductForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isFormSubmitting) return;
 
         let rawCode = document.getElementById('form-code').value.trim();
         const category = document.getElementById('form-category').value;
@@ -1297,7 +1305,12 @@
             return;
         }
 
+        isFormSubmitting = true;
         const submitBtn = btnSaveProduct || document.querySelector('#add-product-form button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+        }
 
         try {
             // Retain current ID if in Edit mode, otherwise generate a new unique ID
@@ -1401,16 +1414,14 @@
         } catch (err) {
             console.error('Failed to save product:', err);
             showToast('Error saving product: ' + err.message, 'error');
+        } finally {
+            isFormSubmitting = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+            }
         }
     });
-
-    if (btnSaveProduct) {
-        btnSaveProduct.addEventListener('click', () => {
-            if (typeof addProductForm.requestSubmit === 'function') {
-                addProductForm.requestSubmit();
-            }
-        });
-    }
 
     // ---- Search & Filter Listeners ----
     searchInput.addEventListener('input', (e) => {

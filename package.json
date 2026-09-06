@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "start": "node server.js",
     "build": "echo Static build ready",
     "vercel-build": "echo Static build ready"
   },
