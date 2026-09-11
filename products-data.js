@@ -132,10 +132,20 @@ window.ProductCatalog = (function () {
 
     function isDeleted(id) {
         return Object.prototype.hasOwnProperty.call(getTombstones(), id);
+    function normalizeProduct(product) {
+        if (!product) return product;
+        const p = { ...product };
+        if (typeof p.category === 'string') {
+            const catLower = p.category.trim().toLowerCase();
+            if (catLower === 'wooden' || catLower === 'syncro' || catLower === 'synchro') {
+                p.category = 'Synchro';
+            }
+        }
+        return p;
     }
 
     function sanitizeForStorage(product) {
-        const p = { ...product };
+        const p = normalizeProduct(product);
         // If fullsheetUrl contains large base64, offload to IndexedDB asynchronously
         if (typeof p.fullsheetUrl === 'string' && p.fullsheetUrl.startsWith('data:')) {
             const dbKey = `fullsheet-${p.id}`;
@@ -164,17 +174,18 @@ window.ProductCatalog = (function () {
                     parsed = parsed.filter(p => !Object.prototype.hasOwnProperty.call(graves, p.id));
                 }
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    // Check if any legacy product still has bloated data: URLs and sanitize
-                    let hasBloat = false;
+                    let needsUpdate = false;
                     const cleaned = parsed.map(p => {
-                        if ((p.fullsheetUrl && p.fullsheetUrl.startsWith('data:')) ||
-                            (p.threeDDataUrl && p.threeDDataUrl.startsWith('data:'))) {
-                            hasBloat = true;
-                            return sanitizeForStorage(p);
+                        const norm = normalizeProduct(p);
+                        if (norm.category !== p.category) needsUpdate = true;
+                        if ((norm.fullsheetUrl && norm.fullsheetUrl.startsWith('data:')) ||
+                            (norm.threeDDataUrl && norm.threeDDataUrl.startsWith('data:'))) {
+                            needsUpdate = true;
+                            return sanitizeForStorage(norm);
                         }
-                        return p;
+                        return norm;
                     });
-                    if (hasBloat) {
+                    if (needsUpdate) {
                         try {
                             localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
                         } catch (e) {
@@ -206,17 +217,18 @@ window.ProductCatalog = (function () {
 
                     // If there are pending local items, preserve local db: pointers
                     const merged = data.products.map(cloudProd => {
-                        const localMatch = localProducts.find(lp => lp.id === cloudProd.id);
+                        const normCloud = normalizeProduct(cloudProd);
+                        const localMatch = localProducts.find(lp => lp.id === normCloud.id);
                         if (localMatch) {
-                            const hasPendingFs = pendingQueue.some(q => q.productId === cloudProd.id && q.field === 'fullsheet');
-                            const hasPending3D = pendingQueue.some(q => q.productId === cloudProd.id && q.field === 'threeD');
+                            const hasPendingFs = pendingQueue.some(q => q.productId === normCloud.id && q.field === 'fullsheet');
+                            const hasPending3D = pendingQueue.some(q => q.productId === normCloud.id && q.field === 'threeD');
                             return {
-                                ...cloudProd,
-                                fullsheetUrl: hasPendingFs && localMatch.fullsheetUrl ? localMatch.fullsheetUrl : cloudProd.fullsheetUrl,
-                                threeDDataUrl: hasPending3D && localMatch.threeDDataUrl ? localMatch.threeDDataUrl : cloudProd.threeDDataUrl
+                                ...normCloud,
+                                fullsheetUrl: hasPendingFs && localMatch.fullsheetUrl ? localMatch.fullsheetUrl : normCloud.fullsheetUrl,
+                                threeDDataUrl: hasPending3D && localMatch.threeDDataUrl ? localMatch.threeDDataUrl : normCloud.threeDDataUrl
                             };
                         }
-                        return cloudProd;
+                        return normCloud;
                     });
 
                     // Preserve products created locally that the cloud has not seen yet -
@@ -284,7 +296,7 @@ window.ProductCatalog = (function () {
 
     function addProduct(productData) {
         const productsList = getProducts();
-        productsList.unshift(productData);
+        productsList.unshift(normalizeProduct(productData));
         saveProducts(productsList);
         return productsList;
     }
@@ -293,7 +305,7 @@ window.ProductCatalog = (function () {
         const productsList = getProducts();
         const index = productsList.findIndex(p => p.id === id);
         if (index !== -1) {
-            productsList[index] = { ...productsList[index], ...updatedFields };
+            productsList[index] = normalizeProduct({ ...productsList[index], ...updatedFields });
             saveProducts(productsList);
         }
         return productsList;

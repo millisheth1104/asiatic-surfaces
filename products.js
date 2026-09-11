@@ -20,6 +20,13 @@
         }
     }
 
+    function normalizeCategory(cat) {
+        if (!cat) return '';
+        const c = cat.trim().toLowerCase();
+        if (c === 'wooden' || c === 'syncro' || c === 'synchro') return 'Synchro';
+        return cat;
+    }
+
     // ---- State ----
     let products = getRealTimeProducts();
     let sortField = 'code';
@@ -126,7 +133,7 @@
         if (statFullsheet) statFullsheet.textContent = products.filter(p => p.fullsheet).length;
         if (stat3D) stat3D.textContent = products.filter(p => p.threeD).length;
 
-        const uniqueCategories = new Set(products.map(p => p.category));
+        const uniqueCategories = new Set(products.map(p => normalizeCategory(p.category)));
         if (statCategories) statCategories.textContent = uniqueCategories.size;
     }
 
@@ -139,7 +146,9 @@
             const codeClean = (item.code || '').toLowerCase().replace(/^#/, '');
             const nameLower = (item.name || '').toLowerCase();
             const matchesQuery = !query || codeClean.includes(query) || nameLower.includes(query);
-            const matchesCategory = currentFilter.category === 'ALL' || item.category === currentFilter.category;
+            const cleanFilterCat = normalizeCategory(currentFilter.category);
+            const matchesCategory = currentFilter.category === 'ALL' ||
+                normalizeCategory(item.category) === cleanFilterCat;
             const matchesFullsheet = currentFilter.fullsheet === 'ALL' ||
                 (currentFilter.fullsheet === 'YES' && item.fullsheet) ||
                 (currentFilter.fullsheet === 'NO' && !item.fullsheet);
@@ -236,7 +245,7 @@
                         <span class="grid-product-name">${product.name || ''}</span>
                     </td>
                     <td>
-                        <span class="grid-cat-pill">${product.category}</span>
+                        <span class="grid-cat-pill">${normalizeCategory(product.category)}</span>
                     </td>
                     <td class="text-center">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -290,7 +299,7 @@
                 <div class="product-card" data-id="${product.id}">
                     <div class="card-header">
                         <span class="card-code">${product.code}</span>
-                        <span class="card-category">${product.category}</span>
+                        <span class="card-category">${normalizeCategory(product.category)}</span>
                     </div>
 
                     <div class="card-name">${product.name || ''}</div>
@@ -797,7 +806,7 @@
 
         // Populate Step 1 fields
         document.getElementById('form-code').value = product.code;
-        document.getElementById('form-category').value = product.category;
+        document.getElementById('form-category').value = normalizeCategory(product.category);
         document.getElementById('form-name').value = product.name || '';
         document.getElementById('form-slug').value = product.slug || '';
 
@@ -1234,7 +1243,7 @@
             }
 
             let rawCode = codeInput.value.trim();
-            const category = categorySelect.value.trim();
+            const category = normalizeCategory(categorySelect.value.trim());
 
             if (rawCode && category) {
                 if (!rawCode.startsWith('#')) rawCode = '#' + rawCode;
@@ -1306,7 +1315,7 @@
         if (isFormSubmitting) return;
 
         let rawCode = document.getElementById('form-code').value.trim();
-        const category = document.getElementById('form-category').value;
+        const category = normalizeCategory(document.getElementById('form-category').value);
         const name = document.getElementById('form-name').value.trim();
         const slug = document.getElementById('form-slug').value || `prod-${Date.now()}`;
 

@@ -12,7 +12,7 @@ RewriteRule ^uploads/([A-Za-z0-9._-]+)$ /uploads.php?f=$1 [L,QSA]
 
 # 2. Route category product slugs to tour.html
 # e.g., /wooden/4006, /laminates/4011, /digital/102 -> /tour.html
-RewriteRule ^(45-degree|wooden|digital|laminates|stone|louvers|edge-bands|edgebands|texture)/[a-zA-Z0-9_-]+/?$ /tour.html [L,QSA]
+RewriteRule ^(45-degree|wooden|synchro|syncro|digital|laminates|stone|louvers|edge-bands|edgebands|texture)/[a-zA-Z0-9_-]+/?$ /tour.html [L,QSA]
 
 # 2. Redirect /home to /index.html
 RewriteRule ^home/?$ /index.html [L]
