@@ -16,7 +16,11 @@ $products  = ($dataFile && is_file($dataFile)) ? json_decode(file_get_contents($
 // left behind while diagnosing the deploy wipe.
 if (isset($_GET['cleanup']) && $_GET['cleanup'] === '1' && $uploads !== false) {
     $removed = [];
-    foreach (glob($uploads . '/zz-*') ?: [] as $f) {
+    $probes = array_merge(
+        glob($uploads . '/*zz-*') ?: [],   // size/diagnostic probes
+        glob($uploads . '/*-t.jpg') ?: []  // console round-trip tests
+    );
+    foreach ($probes as $f) {
         if (is_file($f) && @unlink($f)) {
             $removed[] = basename($f);
         }
