@@ -309,13 +309,11 @@
       return pCat === cleanActive;
     });
 
-    // Nothing in the database for this category has a real image? Show the curated
-    // sheets instead of 49 identical fallback swatches.
-    var withImages = filtered.filter(function (p) {
-      return (p.fullsheetUrl && String(p.fullsheetUrl).trim() !== '') ||
-             (p.threeDDataUrl && !String(p.threeDDataUrl).startsWith('db:'));
-    });
-    if (withImages.length === 0 && await renderStaticSheets()) {
+    // Every product added to a category appears on that category's page, whether or
+    // not it has an image yet - one without falls back to the category texture.
+    // The curated sheets shipped with the build only stand in for a category that
+    // has no products at all.
+    if (filtered.length === 0 && await renderStaticSheets()) {
       return;
     }
 
