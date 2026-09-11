@@ -385,3 +385,51 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   affordances. That was the explicit request.
 - If real photography ever replaces the AI images, re-run the contrast checks in §9 — that is
   the only step easy to forget and expensive to get wrong.
+
+---
+
+## 12. Deployment — Hostinger (verified 2026-09-12)
+
+**Live URL:** `https://forestgreen-cormorant-187060.hostingersite.com` (temporary domain, no
+custom domain connected yet). PHP 8.3.33, Apache (`Server: hcdn`).
+
+**How a change goes live:**
+```bash
+git add -A && git commit -m "..." && git push origin main
+```
+then hPanel → website **Dashboard** → **Tools → Git** → **Redeploy**. Deploy pulls into
+`public_html` and does **not** delete existing files, so the server-side `products.json` and
+`uploads/` survive every deploy. That is deliberate — `products.json` is live data and must
+never be committed.
+
+**Where Git lives in the new hPanel:** the account-level sidebar (Hostinger apps / AI agents /
+Dev tools) does *not* contain it. Websites → your site → **Dashboard** → **Tools → Git**.
+
+**The failure that cost an hour on 2026-09-11:** two deployments reported "Completed" while the
+live site never changed. Cause: the Hostinger Git connection pointed at a *different repository*
+(shown as `From: 360VIEW` in the Deployments header) than the one being pushed to
+(`luci15/360Viewportal`). A successful deploy of the wrong repo looks identical to a broken
+deploy. **Diagnostic that isolates it in one command** — compare hashes rather than eyeballing
+the page, because the wrong repo held an older copy of the same site and the page looked right:
+```bash
+BASE=https://forestgreen-cormorant-187060.hostingersite.com
+curl -s $BASE/products.js | md5sum ; md5sum products.js     # must match
+curl -s -o /dev/null -w "%{http_code}" $BASE/api/products   # must be 200
+```
+`/api/products` returning HTML instead of JSON means `.htaccess` is absent; a 404 on
+`/products-api.php` means no PHP reached the server at all.
+
+**Backend files must stay tracked.** `.htaccess`, `products-api.php`, `upload-api.php` and
+`api/*.php` were untracked until 2026-09-11. Git deploy only ships what is committed, so an
+untracked `.htaccess` silently kills every API route and every pretty URL. Committed in
+`db0bbb1`.
+
+**Expected response codes when healthy** (all confirmed): `/api/products` 200 JSON ·
+`/products-api.php` 200 · `/upload-api.php` **405** (POST-only, 405 is correct) · `/uploads/`
+**403** (listing blocked, correct) · `/wooden/nsy-022`, `/laminates/4011`, `/home` 200 via
+rewrite.
+
+**Known rough edge:** §4 of `.htaccess` caches CSS and JS for one week and the HTML carries no
+version strings, so returning visitors keep stale assets after a deploy. `Ctrl+Shift+R` to check
+your own work. The permanent fix is `?v=<date>` on the `<script>` and `<link>` tags — offered,
+not yet applied.
