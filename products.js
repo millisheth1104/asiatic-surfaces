@@ -763,7 +763,7 @@
         // Populate Step 1 fields
         document.getElementById('form-code').value = product.code;
         document.getElementById('form-category').value = product.category;
-        document.getElementById('form-name').value = product.name;
+        document.getElementById('form-name').value = product.name || '';
         document.getElementById('form-slug').value = product.slug || '';
 
         // Reset previous preview images
