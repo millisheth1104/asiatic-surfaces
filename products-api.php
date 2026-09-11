@@ -9,7 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$dataFile = __DIR__ . '/products.json';
+require_once __DIR__ . '/storage.php';
+
+$dataFile = storage_products_file();
+if ($dataFile === false) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Storage unavailable: no writable data directory']);
+    exit;
+}
 
 // Initialize default products if products.json doesn't exist
 if (!file_exists($dataFile)) {

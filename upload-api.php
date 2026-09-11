@@ -9,6 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+require_once __DIR__ . '/storage.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method Not Allowed']);
@@ -39,9 +41,11 @@ try {
         exit;
     }
 
-    $uploadDir = __DIR__ . '/uploads';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+    $uploadDir = storage_uploads_dir();
+    if ($uploadDir === false) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Storage unavailable: uploads directory not writable']);
+        exit;
     }
 
     $targetFile = $uploadDir . '/' . time() . '-' . $filename;

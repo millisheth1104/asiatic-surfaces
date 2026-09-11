@@ -6,6 +6,10 @@ RewriteBase /
 RewriteRule ^api/products/?$ /products-api.php [L,QSA]
 RewriteRule ^api/upload/?$ /upload-api.php [L,QSA]
 
+# 1b. Uploaded images live above the web root so deploys cannot wipe them.
+# Product records still store plain /uploads/<file> URLs; this maps them to the reader.
+RewriteRule ^uploads/([A-Za-z0-9._-]+)$ /uploads.php?f=$1 [L,QSA]
+
 # 2. Route category product slugs to tour.html
 # e.g., /wooden/4006, /laminates/4011, /digital/102 -> /tour.html
 RewriteRule ^(45-degree|wooden|digital|laminates|stone|louvers|edge-bands|edgebands|texture)/[a-zA-Z0-9_-]+/?$ /tour.html [L,QSA]
@@ -44,7 +48,9 @@ RewriteRule ^home/?$ /index.html [L]
         Header set Cache-Control "no-cache, must-revalidate"
     </FilesMatch>
     # API responses are live data and must never be cached.
-    <FilesMatch "\.php$">
+    # uploads.php is deliberately excluded: it serves immutable images and sets its own
+    # long-lived Cache-Control header.
+    <FilesMatch "^(products-api|upload-api|health)\.php$">
         Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
     </FilesMatch>
 </IfModule>
