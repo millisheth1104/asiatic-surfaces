@@ -973,3 +973,56 @@ Measured at 1440px: one line, wordmark at the left edge, family list centred, cr
 the right. Below ~700px the row wraps, as it did before.
 
 Not pushed.
+
+---
+
+# Hero rewritten as product features — 2026-09-12
+
+From the annotated mockup. Four copy changes, one structural change, nine new images.
+
+| where | now reads |
+|---|---|
+| hero eyebrow | See the Surface. Feel the Design. |
+| hero sub-line | Explore full-sheet views and immersive 360° interiors to visualise designs in their complete environment. |
+| note under the hero | From the visual appeal to the performance behind every surface, every detail is engineered to deliver lasting quality, functionality and style. |
+| home footer | family list deleted; `Full Sheet View` left, `Designed by The Pure Studio` right |
+
+## The plate now shows features, not categories
+
+The eight category chips became **nine feature cards** — Full Sheet View, Immersive 360°,
+Premium Grade, Trending Designs, Anti Scratch, Strong & Durable, Anti Termite, Water
+Resistant, Anti Yellow — each with a photograph, a drawn line icon and one line of copy.
+
+They are `<div>`, not `<a>`: **nothing on the plate navigates**, as asked. `cursor:default`
+and no hover lift, so they do not pretend to. The eight bento tiles below still carry every
+link into the family galleries, which is now the only route in — confirmed as intended.
+
+`main.js` reads the strip through `.chip`, not `a.chip`, so the prev/next scroller kept
+working across the element change.
+
+## Images
+
+Both image providers configured in the MCP server were dead — OpenAI `429 no credits`,
+Gemini `429 free_tier_requests limit: 0`. The user supplied a **fal.ai** key instead, so the
+nine images were generated through `fal-ai/flux/dev` at 768×1024 and converted to
+`assets/features/<slug>-420.webp`. **57 KB for all nine**, 3–12 KB each.
+
+The key was passed through an environment variable and never written to a file; the
+generation scripts live outside the repo. It should still be rotated — it passed through a
+chat transcript.
+
+Prompts followed the rule already recorded in `PROMPTS.md`: a literal photographable scene
+first, one style anchor, no trade jargon. Anti Termite took three attempts — a panel leaning
+on a wall said nothing about termites, and a second try lost the panel entirely; the version
+that shipped is a macro of a board's dense, unbroken cut edge, which is the actual claim.
+
+Card images are keyed by `[data-feat="..."]` rules **in style.css**, never inline — the same
+relative-`url()`-inside-a-custom-property trap that cost a day earlier in this project.
+
+## Verified
+
+Nine cards, zero links in the plate, all nine backgrounds resolving (the silent-failure case
+that has bitten this file twice), all eight tiles still linking, footer list gone, all four
+copy strings in place, no console errors.
+
+Not pushed.

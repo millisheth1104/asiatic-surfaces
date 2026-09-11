@@ -285,6 +285,17 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
 [data-tex="louvers"]  { --tex:url("../textures/louvers-420.webp"); }
 [data-tex="charcoal"] { --tex:url("../textures/charcoal-420.webp"); }
 
+/* the hero plate's feature cards */
+[data-feat="full-sheet-view"]   { --tex:url("../features/full-sheet-view-420.webp"); }
+[data-feat="immersive-360"]     { --tex:url("../features/immersive-360-420.webp"); }
+[data-feat="premium-grade"]     { --tex:url("../features/premium-grade-420.webp"); }
+[data-feat="trending-designs"]  { --tex:url("../features/trending-designs-420.webp"); }
+[data-feat="anti-scratch"]      { --tex:url("../features/anti-scratch-420.webp"); }
+[data-feat="strong-durable"]    { --tex:url("../features/strong-durable-420.webp"); }
+[data-feat="anti-termite"]      { --tex:url("../features/anti-termite-420.webp"); }
+[data-feat="water-resistant"]   { --tex:url("../features/water-resistant-420.webp"); }
+[data-feat="anti-yellow"]       { --tex:url("../features/anti-yellow-420.webp"); }
+
 .shelf__strip{
   display:flex; gap:clamp(8px,.8vw,14px);
   overflow-x:auto; scroll-behavior:smooth; scroll-snap-type:x proximity;
@@ -335,6 +346,8 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
 .chip:hover{ transform:translateY(-8px); }
+.chip--feat{ cursor:default; }
+.chip--feat:hover{ transform:none; }
 .chip:hover .chip__media{ transform:scale(1.07); }
 .chip:hover .chip__badge{ background:var(--sage); transform:rotate(-8deg); }
 
