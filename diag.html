@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload Diagnostic — Full Sheet View</title>
+<style>
+  :root { color-scheme: light; }
+  body { margin:0; padding:24px; background:#f5f0e8; color:#14110f;
+         font:15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { margin:0 0 22px; color:#6b625a; }
+  .row { display:flex; gap:14px; align-items:baseline; padding:11px 14px; border-radius:9px;
+         background:#fffdf8; border:1px solid #e3dcd0; margin-bottom:7px; }
+  .row b { min-width:270px; font-weight:600; }
+  .row span { font-variant-numeric:tabular-nums; }
+  .ok   { color:#1f6b35; font-weight:700; }
+  .bad  { color:#9c2b1c; font-weight:700; }
+  .warn { color:#8a6212; font-weight:700; }
+  pre { background:#14110f; color:#e8e2d6; padding:14px; border-radius:9px;
+        overflow-x:auto; font-size:12.5px; line-height:1.5; }
+  button { font:inherit; font-weight:600; padding:11px 18px; border-radius:8px; cursor:pointer;
+           border:1px solid #14110f; background:#14110f; color:#f5f0e8; margin:14px 8px 0 0; }
+  button.alt { background:transparent; color:#14110f; }
+  h2 { font-size:15px; margin:26px 0 9px; text-transform:uppercase; letter-spacing:.07em; color:#6b625a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Upload Diagnostic</h1>
+  <p class="sub">Where the full-sheet images actually are. Nothing here changes your data unless you press a button.</p>
+
+  <div id="out">Running…</div>
+
+  <button id="sync">Force sync now</button>
+  <button id="again" class="alt">Re-run checks</button>
+
+  <h2>Detail</h2>
+  <pre id="detail"></pre>
+</div>
+
+<script src="products-data.js"></script>
+<script>
+(function () {
+  var out = document.getElementById('out');
+  var detail = document.getElementById('detail');
+
+  function row(label, value, cls) {
+    return '<div class="row"><b>' + label + '</b><span class="' + (cls || '') + '">' + value + '</span></div>';
+  }
+
+  function idbKeys() {
+    return new Promise(function (resolve) {
+      try {
+        var open = indexedDB.open('ProductAssetsDB_v3');
+        open.onsuccess = function (e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains('assets')) return resolve([]);
+          var q = db.transaction('assets').objectStore('assets').getAllKeys();
+          q.onsuccess = function () { resolve(q.result || []); };
+          q.onerror = function () { resolve([]); };
+        };
+        open.onerror = function () { resolve(null); };
+      } catch (err) { resolve(null); }
+    });
+  }
+
+  async function run() {
+    out.innerHTML = 'Running…';
+    var PC = window.ProductCatalog;
+    if (!PC) { out.innerHTML = row('ProductCatalog loaded', 'NO — script failed', 'bad'); return; }
+
+    var ps = PC.getProducts() || [];
+    var counts = { db: 0, uploads: 0, none: 0, other: 0 };
+    ps.forEach(function (p) {
+      var u = p.fullsheetUrl;
+      if (!u) counts.none++;
+      else if (String(u).indexOf('db:') === 0) counts.db++;
+      else if (String(u).indexOf('/uploads/') === 0) counts.uploads++;
+      else counts.other++;
+    });
+
+    var queue = PC.getSyncQueue ? (PC.getSyncQueue() || []) : [];
+    var keys = await idbKeys();
+
+    var server = { total: '?', withImg: '?', files: '?' };
+    try {
+      var r = await fetch('/api/products?t=' + Date.now(), { cache: 'no-store' });
+      var j = await r.json();
+      server.total = (j.products || []).length;
+      server.withImg = (j.products || []).filter(function (p) { return p.fullsheetUrl; }).length;
+      var h = await (await fetch('/health.php?t=' + Date.now(), { cache: 'no-store' })).json();
+      server.files = h.uploaded_files;
+    } catch (e) {}
+
+    var html = '';
+    html += row('Products in this browser', ps.length);
+    html += row('&nbsp;&nbsp;· image in browser only (db:)', counts.db, counts.db ? 'warn' : '');
+    html += row('&nbsp;&nbsp;· image uploaded (/uploads/)', counts.uploads, counts.uploads ? 'ok' : '');
+    html += row('&nbsp;&nbsp;· no image at all', counts.none, counts.none ? 'bad' : '');
+    html += row('Images held in browser storage', keys === null ? 'IndexedDB BLOCKED' : keys.length,
+                keys === null ? 'bad' : (keys.length ? 'warn' : ''));
+    html += row('Waiting in upload queue', queue.length, queue.length ? 'warn' : '');
+    html += row('Products on server', server.total);
+    html += row('Products on server with an image', server.withImg, server.withImg ? 'ok' : 'bad');
+    html += row('Image files on server', server.files, server.files ? 'ok' : 'bad');
+
+    var verdict;
+    if (server.withImg > 0 && counts.uploads > 0) {
+      verdict = '<span class="ok">WORKING — images are on the server.</span>';
+    } else if (keys && keys.length > 0) {
+      verdict = '<span class="warn">Images are sitting in this browser and have not uploaded. Press “Force sync now”.</span>';
+    } else if (counts.none === ps.length) {
+      verdict = '<span class="bad">No images anywhere — the form is not capturing the file you pick.</span>';
+    } else {
+      verdict = '<span class="warn">Mixed state — see detail below.</span>';
+    }
+    html += '<h2>Verdict</h2><div class="row"><b>Result</b>' + verdict + '</div>';
+    out.innerHTML = html;
+
+    detail.textContent = JSON.stringify({
+      localCounts: counts,
+      queue: queue.slice(0, 10),
+      indexedDbKeys: keys === null ? 'BLOCKED' : keys.slice(0, 20),
+      server: server,
+      sampleProducts: ps.slice(0, 5).map(function (p) {
+        return { code: p.code, category: p.category, fullsheetUrl: p.fullsheetUrl };
+      })
+    }, null, 2);
+  }
+
+  document.getElementById('again').addEventListener('click', run);
+  document.getElementById('sync').addEventListener('click', async function () {
+    this.textContent = 'Syncing…'; this.disabled = true;
+    try { await window.ProductCatalog.processSyncQueue(); } catch (e) {}
+    this.textContent = 'Force sync now'; this.disabled = false;
+    run();
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>
