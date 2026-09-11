@@ -108,13 +108,8 @@ body {
     align-items: center;
     justify-content: center;
     color: var(--charcoal);
-    transition: all var(--dur-micro) var(--ease-soft);
-}
-
-.logo-mark:hover {
-    background: var(--dusty-peach);
-    border-color: var(--dusty-peach);
-    color: var(--charcoal);
+    cursor: default;
+    user-select: none;
 }
 
 .header-titles h1 {

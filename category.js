@@ -158,13 +158,14 @@
             const has3D = Boolean(p.threeD && p.threeDDataUrl);
             const tourUrl = has3D ? productSlugUrl : null;
 
+            const hasName = Boolean(p.name && p.name.trim().length > 0);
             card.innerHTML = `
                 <a ${tourUrl ? `href="${tourUrl}"` : `role="button" tabindex="0"`} class="masonry-img-card" data-id="${p.id}" title="${has3D ? 'Click to view 3D virtual tour' : 'Click to view fullsheet image'}" style="cursor: pointer; text-decoration: none;">
-                    <img src="${imgUrl}" alt="${p.name}" loading="lazy" onerror="if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';this.src='${fallbackTexture}';}">
+                    <img src="${imgUrl}" alt="${p.name || p.code || 'Product'}" loading="lazy" onerror="if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';this.src='${fallbackTexture}';}">
                 </a>
                 <div class="masonry-caption">
                     <span class="masonry-code">${p.code}</span>
-                    <span class="masonry-name">${p.name}</span>
+                    ${hasName ? `<span class="masonry-name">${p.name}</span>` : ''}
                 </div>
             `;
             colElements[i % colCount].appendChild(card);

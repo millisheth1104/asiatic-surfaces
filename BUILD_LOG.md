@@ -1026,3 +1026,44 @@ that has bitten this file twice), all eight tiles still linking, footer list gon
 copy strings in place, no console errors.
 
 Not pushed.
+
+---
+
+## 2026-09-12 — Hostinger Git deployment brought online and verified
+
+**Objective:** make local changes reflect on the live site, globally, for all visitors.
+
+**Starting state.** The site was running on an old manual upload. `.htaccess`, `products-api.php`,
+`upload-api.php` and `api/*.php` existed on disk but were untracked by git, so nothing that
+served the API had ever been in the repo.
+
+**Work done.**
+1. Tracked and committed the backend and rewrite rules (`db0bbb1`), pushed to `origin/main`.
+2. Connected Hostinger Git (website Dashboard → Tools → Git) targeting `public_html`.
+3. Diagnosed two "Completed" deployments that changed nothing on the server. The connection was
+   bound to a different repository (`360VIEW`) than the one receiving pushes
+   (`luci15/360Viewportal`). Reconnected to the correct repo and redeployed.
+
+**Verification after the corrected deploy** — all checks passed against
+`https://forestgreen-cormorant-187060.hostingersite.com`:
+
+| Check | Result |
+|---|---|
+| `products.js` live vs local (md5) | match — `6e632250f152227a40a3cda126d92b7c` |
+| `/api/products` | 200, JSON, 15 products |
+| `/products-api.php`, `/api/products.php` | 200 |
+| `/upload-api.php` | 405 (POST-only — correct) |
+| `/uploads/` | 403 (listing blocked — correct) |
+| `/wooden/nsy-022`, `/laminates/4011`, `/home` | 200 via `.htaccess` rewrite |
+| PHP | 8.3.33 |
+
+Live API confirmed serving persisted uploads, e.g. `#NSY 022` →
+`/uploads/1789152350-fullsheet-prod-nsy-022.jpg`.
+
+**Outcome.** Product edits made in the admin panel were already global via
+`products-data.js` → `/api/products` → `products.json`; that path is now actually reachable in
+production. Code changes go live with `git push origin main` followed by Redeploy in hPanel.
+
+**Left undone, deliberately.** Auto-deployment webhook not configured (still a manual Redeploy
+click) and the asset cache-busting `?v=` strings were offered but not applied — see the rough
+edge noted in `memory.md` §12. No code was changed in this session beyond the tracking commit.

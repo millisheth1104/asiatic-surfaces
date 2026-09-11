@@ -233,7 +233,7 @@
                         <span class="grid-code-badge">${product.code}</span>
                     </td>
                     <td>
-                        <span class="grid-product-name">${product.name}</span>
+                        <span class="grid-product-name">${product.name || ''}</span>
                     </td>
                     <td>
                         <span class="grid-cat-pill">${product.category}</span>
@@ -293,7 +293,7 @@
                         <span class="card-category">${product.category}</span>
                     </div>
 
-                    <div class="card-name">${product.name}</div>
+                    <div class="card-name">${product.name || ''}</div>
 
                     <div class="card-status-row">
                         <div class="status-chip ${product.fullsheet ? (isFsLocal ? 'status-chip--local' : 'status-chip--yes') : 'status-chip--no'}">
@@ -763,7 +763,7 @@
         // Populate Step 1 fields
         document.getElementById('form-code').value = product.code;
         document.getElementById('form-category').value = product.category;
-        document.getElementById('form-name').value = product.name;
+        document.getElementById('form-name').value = product.name || '';
         document.getElementById('form-slug').value = product.slug || '';
 
         // Reset previous preview images
@@ -1190,10 +1190,9 @@
             const categorySelect = document.getElementById('form-category');
             const nameInput = document.getElementById('form-name');
 
-            if (!codeInput.checkValidity() || !categorySelect.checkValidity() || !nameInput.checkValidity()) {
+            if (!codeInput.checkValidity() || !categorySelect.checkValidity()) {
                 if (!codeInput.checkValidity()) codeInput.reportValidity();
                 else if (!categorySelect.checkValidity()) categorySelect.reportValidity();
-                else if (!nameInput.checkValidity()) nameInput.reportValidity();
                 return;
             }
 
@@ -1274,10 +1273,10 @@
         const name = document.getElementById('form-name').value.trim();
         const slug = document.getElementById('form-slug').value || `prod-${Date.now()}`;
 
-        // Validate required Step 1 fields
-        if (!rawCode || !category || !name) {
+        // Validate required Step 1 fields (Code and Category are required, Name is optional)
+        if (!rawCode || !category) {
             showFormStep(1);
-            showToast('Please fill out all required product fields (*)', 'error');
+            showToast('Please fill out Code Number and Category (*)', 'error');
             return;
         }
 
@@ -1369,7 +1368,7 @@
             const newProduct = {
                 id: productId,
                 code: rawCode,
-                name: name,
+                name: name || '',
                 category: category,
                 slug: slug,
                 pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,

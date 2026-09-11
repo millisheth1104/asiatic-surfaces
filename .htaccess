@@ -1,0 +1,50 @@
+# Enable Rewrite Engine
+RewriteEngine On
+RewriteBase /
+
+# 1. Route API calls to PHP backend (root-level handlers)
+RewriteRule ^api/products/?$ /products-api.php [L,QSA]
+RewriteRule ^api/upload/?$ /upload-api.php [L,QSA]
+
+# 2. Route category product slugs to tour.html
+# e.g., /wooden/4006, /laminates/4011, /digital/102 -> /tour.html
+RewriteRule ^(45-degree|wooden|digital|laminates|stone|louvers|edge-bands|edgebands|texture)/[a-zA-Z0-9_-]+/?$ /tour.html [L,QSA]
+
+# 2. Redirect /home to /index.html
+RewriteRule ^home/?$ /index.html [L]
+
+# 3. Ensure HTML5 / Pannellum assets serve properly
+<IfModule mod_mime.c>
+    AddType application/javascript .js
+    AddType text/css .css
+    AddType image/webp .webp
+    AddType image/jpeg .jpeg .jpg
+    AddType image/png .png
+    AddType font/woff2 .woff2
+</IfModule>
+
+# 4. Browser Caching
+# Images are content-addressed by filename and effectively immutable - cache them hard.
+# CSS/JS/HTML must revalidate on every load, or a deploy takes up to a week to reach
+# returning visitors. Revalidation is cheap: unchanged files answer 304 Not Modified.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 month"
+    ExpiresByType text/css "access plus 0 seconds"
+    ExpiresByType application/javascript "access plus 0 seconds"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|html)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+    # API responses are live data and must never be cached.
+    <FilesMatch "\.php$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    </FilesMatch>
+</IfModule>
