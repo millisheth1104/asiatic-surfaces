@@ -223,6 +223,74 @@
     else if (e.key === 'ArrowRight') showLightbox(index + 1);
   });
 
+  // Curated sheets shipped with the build. Used when the database has no imagery
+  // for this category, so a category never renders as a wall of flat swatches.
+  var staticCatalogue = null;
+  async function loadStaticSheets() {
+    if (staticCatalogue !== null) return staticCatalogue;
+    try {
+      var res = await fetch('assets/gallery/catalogue.json', { cache: 'no-store' });
+      staticCatalogue = res.ok ? await res.json() : {};
+    } catch (e) {
+      staticCatalogue = {};
+    }
+    return staticCatalogue;
+  }
+
+  function staticKey(cat) {
+    return String(cat || '').toLowerCase().trim().replace(/\s+/g, '-');
+  }
+
+  function buildFigure(opts) {
+    var figure = document.createElement('figure');
+    figure.className = 'sheet is-in';
+    figure.style.setProperty('--ar', String(opts.ar || 0.65));
+    if (opts.id) figure.setAttribute('data-id', opts.id);
+    figure.innerHTML = `
+        <button class="sheet__hit" type="button" data-full="${opts.full}" data-code="${opts.code}" data-name="${opts.name || ''}" data-tour="${opts.tour || ''}" aria-label="View ${opts.code} at full size">
+          <img src="${opts.grid}" alt="${opts.code}${opts.name ? ' — ' + opts.name : ''}" loading="lazy" decoding="async">
+          <span class="sheet__zoom" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.4" stroke="currentColor" stroke-width="1.5"/><path d="M9 6.8v4.4M6.8 9h4.4M13 13l3.4 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </button>
+        <figcaption class="sheet__cap">
+          <b>${opts.code}</b>
+          ${opts.name ? `<span>${opts.name}</span>` : ''}
+          ${opts.tour ? `<a href="${opts.tour}" class="sheet__tour-link" title="Open 360° Virtual Tour">360° Tour ↗</a>` : ''}
+        </figcaption>
+      `;
+    return figure;
+  }
+
+  async function renderStaticSheets() {
+    var cat = (await loadStaticSheets())[staticKey(activeCategory)];
+    var items = (cat && Array.isArray(cat.items)) ? cat.items : [];
+    if (items.length === 0) return false;
+
+    grid.innerHTML = '';
+    cards = [];
+    hits = [];
+
+    items.forEach(function (it, i) {
+      var figure = buildFigure({
+        code: it.code,
+        name: it.name,
+        grid: it.grid,
+        full: it.full || it.grid,
+        ar: it.ar
+      });
+      var hitBtn = figure.querySelector('.sheet__hit');
+      (function (hitIndex) {
+        hitBtn.addEventListener('click', function () { openLightbox(hitIndex); });
+      })(i);
+      cards.push(figure);
+      hits.push(hitBtn);
+    });
+
+    deal();
+    return true;
+  }
+
   // Render Category Products dynamically from Shared ProductCatalog
   async function renderGallery() {
     var allProducts = [];
@@ -240,6 +308,16 @@
       var pCat = (p.category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return pCat === cleanActive;
     });
+
+    // Nothing in the database for this category has a real image? Show the curated
+    // sheets instead of 49 identical fallback swatches.
+    var withImages = filtered.filter(function (p) {
+      return (p.fullsheetUrl && String(p.fullsheetUrl).trim() !== '') ||
+             (p.threeDDataUrl && !String(p.threeDDataUrl).startsWith('db:'));
+    });
+    if (withImages.length === 0 && await renderStaticSheets()) {
+      return;
+    }
 
     grid.innerHTML = '';
     cards = [];
