@@ -305,6 +305,13 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   padding:2px;                    /* so the first card's ring is never clipped */
   margin:-2px;
 }
+
+/* While the plate drives itself, smooth-scrolling and snapping both fight the
+   per-frame scrollLeft writes: the first queues an animation for every frame,
+   the second tugs the strip back to a card edge. The prev/next buttons pass
+   behavior:'smooth' explicitly, so they are unaffected. */
+.shelf__strip.is-auto{ scroll-behavior:auto; scroll-snap-type:none; }
+
 .shelf__strip::-webkit-scrollbar{ display:none; }
 
 .chip{

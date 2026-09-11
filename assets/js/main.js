@@ -71,7 +71,7 @@
   if (mqOneLine.addEventListener) mqOneLine.addEventListener('change', fitTitle);
 
   /* ---------------------------------------------------------
-     2 — THE EIGHT-FAMILY STRIP
+     2 — THE FEATURE STRIP
      --------------------------------------------------------- */
   if (strip) {
     var navBtns = [].slice.call(document.querySelectorAll('[data-strip]'));
@@ -97,6 +97,111 @@
     strip.addEventListener('scroll', function () { raf(syncNav); }, { passive: true });
     window.addEventListener('resize', function () { raf(syncNav); });
     syncNav();
+
+    /* ---- auto-scroll -------------------------------------------------
+       The cards are cloned until the track is at least two viewports wide,
+       then scrollLeft is advanced a fixed number of pixels per second and
+       wrapped back by exactly one group's width — measured as the offset
+       between an original and its first clone, NOT as scrollWidth / 2, which
+       is half a gap short and shows as a jump on every lap.
+
+       scrollLeft is used rather than a transform so the prev/next buttons,
+       the snap points and touch dragging all keep working.               */
+    var SPEED = 85;                    // px per second
+    var RESUME_AFTER = 2200;           // ms of stillness after a manual scroll
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    var wrapAt = 0, autoOn = false, lastT = 0, lastLeft = -1, idleTimer = 0, loopId = 0;
+
+    function cloneUntilWide() {
+      var originals = [].slice.call(strip.children).filter(function (el) {
+        return !el.hasAttribute('data-clone');
+      });
+      if (!originals.length) return;
+
+      // At least one duplicate always, or there is nothing to wrap into: the
+      // first version only cloned when the track was narrower than two
+      // viewports, which on a wide screen is never, so wrapAt stayed 0 and the
+      // strip sat still.
+      var guard = 0;
+      do {
+        originals.forEach(function (el) {
+          var c = el.cloneNode(true);
+          c.setAttribute('aria-hidden', 'true');
+          c.setAttribute('data-clone', '');
+          strip.appendChild(c);
+        });
+      } while (strip.scrollWidth < strip.clientWidth * 2 + 1 && guard++ < 6);
+
+      var firstClone = strip.querySelector('[data-clone]');
+      wrapAt = firstClone ? firstClone.offsetLeft - originals[0].offsetLeft : 0;
+    }
+
+    function step(t) {
+      if (!autoOn) return;
+      if (!lastT) lastT = t;
+      var dt = Math.min(t - lastT, 100) / 1000;  // cap the catch-up after a stall
+      lastT = t;
+      if (wrapAt > 0) {
+        var next = strip.scrollLeft + SPEED * dt;
+        if (next >= wrapAt) next -= wrapAt;
+        strip.scrollLeft = next;
+        lastLeft = strip.scrollLeft;
+      }
+      loopId = requestAnimationFrame(step);
+    }
+
+    function play() {
+      if (autoOn || reduced.matches || !wrapAt) return;
+      autoOn = true; lastT = 0;
+      strip.classList.add('is-auto');
+      loopId = requestAnimationFrame(step);
+    }
+
+    function pause() {
+      autoOn = false;
+      cancelAnimationFrame(loopId);
+      strip.classList.remove('is-auto');
+    }
+
+    function pauseThenResume() {
+      pause();
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(play, RESUME_AFTER);
+    }
+
+    // Reading a card means stopping on it.
+    strip.addEventListener('pointerenter', pause);
+    strip.addEventListener('pointerleave', play);
+    strip.addEventListener('focusin', pause);
+    strip.addEventListener('focusout', play);
+    navBtns.forEach(function (b) { b.addEventListener('click', pauseThenResume); });
+
+    // Any scroll we did not write ourselves is the visitor's.
+    strip.addEventListener('scroll', function () {
+      if (autoOn && Math.abs(strip.scrollLeft - lastLeft) > 2) pauseThenResume();
+    }, { passive: true });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) pause(); else play();
+    });
+
+    window.addEventListener('resize', function () {
+      // Widths changed, so the wrap distance did too.
+      var wasOn = autoOn;
+      pause();
+      [].slice.call(strip.querySelectorAll('[data-clone]')).forEach(function (c) { c.remove(); });
+      strip.scrollLeft = 0;
+      cloneUntilWide();
+      if (wasOn) play();
+    });
+
+    if (reduced.addEventListener) {
+      reduced.addEventListener('change', function () { reduced.matches ? pause() : play(); });
+    }
+
+    cloneUntilWide();
+    play();
   }
 
   /* ---------------------------------------------------------

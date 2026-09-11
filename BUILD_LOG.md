@@ -1067,3 +1067,47 @@ production. Code changes go live with `git push origin main` followed by Redeplo
 **Left undone, deliberately.** Auto-deployment webhook not configured (still a manual Redeploy
 click) and the asset cache-busting `?v=` strings were offered but not applied — see the rough
 edge noted in `memory.md` §12. No code was changed in this session beyond the tracking commit.
+
+---
+
+# Multiple families, and the feature plate drives itself — 2026-09-12
+
+**Heading**: "Eight families. One *material* language." → "**Multiple** families…". The word
+is one of the `.word` spans the GSAP entrance masks, so it was swapped in place rather than
+rewriting the line.
+
+**The plate now auto-scrolls**, continuously, at **85 px/s**.
+
+How, and why this way:
+
+- **`scrollLeft`, not a transform.** The plate already had prev/next buttons, scroll snapping
+  and touch dragging; a translated track would have broken all three. Driving the real scroll
+  position keeps them working.
+- **The cards are cloned** until the track is at least two viewports wide, and the wrap
+  distance is measured as `firstClone.offsetLeft - firstOriginal.offsetLeft`. Not
+  `scrollWidth / 2` — with 18 children and 17 gaps that is half a gap short, and the error
+  shows up as a jolt on every lap.
+- **`.is-auto` turns off `scroll-behavior:smooth` and `scroll-snap-type`** while it runs. Left
+  on, the first queues an animation per frame and the second drags the strip back to a card
+  edge. The buttons pass `behavior:'smooth'` explicitly, so they are unaffected.
+- **It stops when it should**: on hover and on focus (you cannot read a card that is moving
+  away), for 2.2s after any manual scroll or button press, while the tab is hidden, and
+  entirely under `prefers-reduced-motion`.
+- Clones are `aria-hidden` and the frame delta is clamped at 100ms, so a stalled tab resumes
+  instead of leaping.
+
+## Bug caught in the first attempt
+
+`cloneUntilWide()` only cloned *while* the track was narrower than two viewports — which on a
+wide screen is never true, since nine cards already overflow. So no clone existed, the wrap
+distance stayed 0, and `play()` silently refused to start. It now always appends one group
+before testing the width.
+
+## Verified
+
+18 children from 9 originals, wrap distance 1350px measured; seeded at `wrap - 30` it crossed
+and continued from 78px with no backwards jump; hover pauses it dead (0px moved in 2s) and
+leaving resumes it; the next button still steps 308px and the loop picks up again after the
+idle window; nothing moves while the tab is hidden. Heading reads "Multiple families."
+
+Not pushed.
