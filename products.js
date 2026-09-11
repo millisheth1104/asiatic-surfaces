@@ -1215,7 +1215,9 @@
 
     addModalClose.addEventListener('click', closeAddModal);
     btnCancelAdd.addEventListener('click', closeAddModal);
-    addProductModal.addEventListener('click', (e) => { if (e.target === addProductModal) closeAddModal(); });
+    // Deliberately no backdrop-click close here. This form is three steps long and holds
+    // uploaded images; a stray click outside the card used to discard all of it. It closes
+    // only through Cancel or the X. The read-only viewers below keep backdrop dismissal.
 
     // Step 1 validation & Navigation
     const btnNextStep1 = document.getElementById('btn-next-step-1');
