@@ -347,7 +347,10 @@ window.ProductCatalog = (function () {
                 try {
                     const rawAsset = await getAsset(item.dbKey);
                     if (!rawAsset || !rawAsset.startsWith('data:')) {
-                        // Asset not found or already a remote URL, no need to upload
+                        // Nothing left to upload for this entry. Say so rather than dropping
+                        // it silently - a queue that empties itself with the images still
+                        // missing is how the catalogue lost them without a trace before.
+                        console.warn('Sync queue: no asset for', item.dbKey, '- entry discarded');
                         continue;
                     }
 
@@ -414,6 +417,7 @@ window.ProductCatalog = (function () {
     return {
         getProducts,
         syncFromCloud,
+        syncToCloud,
         saveProducts,
         addProduct,
         updateProduct,

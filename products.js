@@ -699,6 +699,41 @@
     const imgFullsheet = document.getElementById('img-preview-fullsheet');
     const imgThreeD = document.getElementById('img-preview-threeD');
 
+    /**
+     * Gets an image to the server before the product is saved, so the catalogue never
+     * records a product whose image exists only in this browser.
+     *
+     * The previous flow wrote to IndexedDB, recorded a db: pointer and left a background
+     * queue to upload later. When that queue failed - or dropped an entry, which it does
+     * silently when the asset read comes back empty - the image was lost with no trace,
+     * and the browser copy is deleted as soon as an upload reports success. Uploading
+     * first makes the server the primary home; IndexedDB is now only the offline retry.
+     *
+     * Returns a permanent /uploads/ URL, or a db: pointer if the upload could not be made.
+     */
+    async function persistAsset(productId, field, dataUrl, filename) {
+        const PC = window.ProductCatalog;
+        if (PC && typeof PC.uploadAssetToBlob === 'function') {
+            try {
+                const url = await PC.uploadAssetToBlob(filename, dataUrl);
+                if (url) return url;
+            } catch (err) {
+                console.warn('Immediate upload failed, falling back to offline queue:', err);
+            }
+        }
+
+        // Offline or server unreachable: hold it locally and let the queue retry.
+        const key = `${field}-${productId}`;
+        if (PC && typeof PC.storeAsset === 'function') {
+            await PC.storeAsset(key, dataUrl);
+        }
+        if (PC && typeof PC.enqueueSync === 'function') {
+            PC.enqueueSync({ productId, field, dbKey: key, filename });
+        }
+        showToast('Image saved offline — it will upload when the connection returns.', 'info');
+        return `db:${key}`;
+    }
+
     function compressImageFile(file, maxWidth = 1920, quality = 0.85) {
         return new Promise((resolve) => {
             if (!file) {
@@ -1321,19 +1356,9 @@
 
             if (tempFullsheetDataUrl) {
                 if (tempFullsheetDataUrl.startsWith('data:')) {
-                    const key = `fullsheet-${productId}`;
-                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                        await window.ProductCatalog.storeAsset(key, tempFullsheetDataUrl);
-                    }
-                    finalFullsheetUrl = `db:${key}`;
-                    if (window.ProductCatalog && typeof window.ProductCatalog.enqueueSync === 'function') {
-                        window.ProductCatalog.enqueueSync({
-                            productId,
-                            field: 'fullsheet',
-                            dbKey: key,
-                            filename: `fullsheet-${slug}.jpg`
-                        });
-                    }
+                    finalFullsheetUrl = await persistAsset(
+                        productId, 'fullsheet', tempFullsheetDataUrl, `fullsheet-${slug}.jpg`
+                    );
                 } else {
                     finalFullsheetUrl = tempFullsheetDataUrl;
                 }
@@ -1344,19 +1369,9 @@
 
             if (tempThreeDDataUrl) {
                 if (tempThreeDDataUrl.startsWith('data:')) {
-                    const key = `threeD-${productId}`;
-                    if (window.ProductCatalog && typeof window.ProductCatalog.storeAsset === 'function') {
-                        await window.ProductCatalog.storeAsset(key, tempThreeDDataUrl);
-                    }
-                    finalThreeDDataUrl = `db:${key}`;
-                    if (window.ProductCatalog && typeof window.ProductCatalog.enqueueSync === 'function') {
-                        window.ProductCatalog.enqueueSync({
-                            productId,
-                            field: 'threeD',
-                            dbKey: key,
-                            filename: `panorama-3d-${slug}.jpg`
-                        });
-                    }
+                    finalThreeDDataUrl = await persistAsset(
+                        productId, 'threeD', tempThreeDDataUrl, `panorama-3d-${slug}.jpg`
+                    );
                 } else {
                     finalThreeDDataUrl = tempThreeDDataUrl;
                 }
@@ -1401,6 +1416,16 @@
             }
 
             editingProductId = null;
+
+            // saveProducts fires its cloud POST without awaiting it, so a save could be cut
+            // short by the re-render that follows. Push once more and wait for it.
+            if (window.ProductCatalog && typeof window.ProductCatalog.syncToCloud === 'function') {
+                try {
+                    await window.ProductCatalog.syncToCloud(window.ProductCatalog.getProducts());
+                } catch (err) {
+                    console.warn('Catalogue sync deferred:', err);
+                }
+            }
 
             renderCatalog();
             closeAddModal();
