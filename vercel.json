@@ -8,6 +8,10 @@
       "destination": "/tour.html"
     },
     {
+      "source": "/synchro/:code*",
+      "destination": "/tour.html"
+    },
+    {
       "source": "/wooden/:code*",
       "destination": "/tour.html"
     },

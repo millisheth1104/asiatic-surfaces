@@ -4,49 +4,67 @@
    and the base reset. This file adds only what the galleries need.
    ========================================================= */
 
+html:has(.page-gallery){ scroll-padding-top:76px; }
+
 .page-gallery{
   --gap: clamp(10px, 1.1vw, 18px);
   --gpad: clamp(16px, 3.4vw, 60px);
   --r-sheet: 14px;
 }
 
-/* ---------- top bar ---------------------------------------------------- */
+/* ---------- top bar -----------------------------------------------------
+   The wordmark, centred, and nothing else: the back link and the category
+   pill row were both removed on request. Nothing in this bar navigates. */
 .gnav{
   position:sticky; top:0; z-index:60;
-  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  display:flex; align-items:center; justify-content:center;
   padding:14px var(--gpad);
   background:rgba(245,240,232,.82);
   backdrop-filter:saturate(1.4) blur(14px);
   -webkit-backdrop-filter:saturate(1.4) blur(14px);
   border-bottom:1px solid var(--line-soft);
 }
-.gnav__home{
-  display:inline-flex; align-items:center; gap:10px; flex:none;
-  font-size:.74rem; font-weight:500; letter-spacing:.14em; text-transform:uppercase;
+.gnav__brand{
+  font-family:var(--f-display); font-weight:400;
+  font-size:.92rem; letter-spacing:.22em; text-transform:uppercase;
   color:var(--ink);
 }
-.gnav__home svg{ width:15px; height:15px; display:block; transition:transform .45s var(--e-out); }
-.gnav__home:hover svg{ transform:translateX(-4px); }
-
-.gnav__cats{
-  display:flex; align-items:center; gap:4px;
-  overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
-  margin:-6px -4px; padding:6px 4px;
-}
-.gnav__cats::-webkit-scrollbar{ display:none; }
-.gnav__cats a{
-  flex:none; padding:7px 14px; border-radius:99px; white-space:nowrap;
-  font-size:.76rem; font-weight:400; letter-spacing:.03em; color:var(--ink-mute);
-  border:1px solid transparent;
-  transition:color .35s, background .35s, border-color .35s;
-}
-.gnav__cats a:hover{ color:var(--ink); border-color:var(--line); }
-.gnav__cats a.is-current{ color:var(--ink); background:var(--ivory-lift); border-color:var(--line); }
 
 /* ---------- page head -------------------------------------------------- */
 .gpage{ padding:clamp(34px,6vw,86px) var(--gpad) clamp(50px,7vw,96px); }
 
-.ghead{ max-width:760px; margin:0 0 clamp(26px,4vw,52px); }
+.ghead-row{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:clamp(18px,3vw,48px); flex-wrap:wrap;
+  margin:0 0 clamp(26px,4vw,52px);
+}
+.ghead{ max-width:760px; margin:0; flex:1 1 340px; }
+
+/* search: filters the dealt cards by code or name, live */
+.gsearch{
+  position:relative; display:flex; align-items:center; flex:0 1 320px;
+  margin-top:6px;
+}
+.gsearch__ico{
+  position:absolute; left:15px; width:16px; height:16px;
+  color:var(--ink-mute); pointer-events:none;
+}
+.gsearch__in{
+  width:100%; font:inherit; font-size:.9rem; color:var(--ink);
+  padding:11px 16px 11px 40px;
+  background:var(--ivory-lift); border:1px solid var(--line);
+  border-radius:99px; outline:none;
+  transition:border-color .35s, box-shadow .35s;
+}
+.gsearch__in::placeholder{ color:var(--ink-mute); }
+.gsearch__in:focus{
+  border-color:var(--accent-ink);
+  box-shadow:0 0 0 3px rgba(108,127,100,.14);
+  /* forced-colors mode drops the box-shadow; a transparent outline is the only
+     thing left for it to paint over. */
+  outline:2px solid transparent; outline-offset:2px;
+}
+.gsearch__in::-webkit-search-cancel-button{ cursor:pointer; }
 .ghead .eyebrow{ margin:0 0 14px; }
 .ghead__title{
   font-size:clamp(2.5rem,7.4vw,4.6rem); line-height:.99; letter-spacing:-.02em;
@@ -84,13 +102,23 @@
 }
 .sheet.is-in{ opacity:1; transform:none; }
 
+/* The 360 link cannot live inside .sheet__hit — an <a> inside a <button> is
+   invalid — so the two are siblings inside a positioned frame, and the frame
+   is what lifts on hover so the pill rides with the image. */
+.sheet__frame{
+  position:relative; border-radius:var(--r-sheet);
+  transition:transform .55s var(--e-out), box-shadow .55s var(--e-out);
+  box-shadow:0 1px 0 rgba(27,33,28,.05), 0 18px 40px -34px rgba(27,33,28,.75);
+}
+.sheet__frame:hover{
+  transform:translateY(-3px);
+  box-shadow:0 1px 0 rgba(27,33,28,.05), 0 30px 54px -34px rgba(27,33,28,.62);
+}
 .sheet__hit{
   display:block; width:100%; padding:0; border:0; cursor:zoom-in;
   position:relative; overflow:hidden; isolation:isolate;
   border-radius:var(--r-sheet);
   background:var(--ivory-lift);
-  box-shadow:0 1px 0 rgba(27,33,28,.05), 0 18px 40px -34px rgba(27,33,28,.75);
-  transition:box-shadow .55s var(--e-out), transform .55s var(--e-out);
 }
 .sheet__hit::after{
   content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
@@ -100,19 +128,34 @@
   width:100%; height:auto; aspect-ratio:var(--ar, .5); object-fit:cover;
   transition:transform .8s var(--e-out);
 }
-.sheet__hit:hover{ transform:translateY(-3px); box-shadow:0 1px 0 rgba(27,33,28,.05), 0 30px 54px -34px rgba(27,33,28,.62); }
-.sheet__hit:hover img{ transform:scale(1.035); }
+.sheet__frame:hover .sheet__hit img{ transform:scale(1.035); }
 .sheet__hit:focus-visible{ outline:2px solid var(--accent-ink); outline-offset:3px; }
 
-.sheet__zoom{
-  position:absolute; right:10px; bottom:10px; z-index:2;
-  width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
-  background:rgba(251,248,242,.92); color:var(--ink);
-  opacity:0; transform:scale(.85);
-  transition:opacity .4s var(--e-out), transform .4s var(--e-out);
+/* one hover affordance per card: open the immersive tour */
+.sheet__frame::after{
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  border-radius:var(--r-sheet); background:rgba(18,16,13,.28);
+  opacity:0; transition:opacity .4s var(--e-out);
 }
-.sheet__zoom svg{ width:15px; height:15px; display:block; }
-.sheet__hit:hover .sheet__zoom, .sheet__hit:focus-visible .sheet__zoom{ opacity:1; transform:none; }
+.sheet__frame--tour:hover::after, .sheet__frame--tour:focus-within::after{ opacity:1; }
+
+.sheet__360{
+  position:absolute; z-index:2; left:50%; top:50%;
+  transform:translate(-50%,-50%) scale(.9);
+  display:inline-flex; align-items:center; gap:8px; white-space:nowrap;
+  padding:10px 18px; border-radius:99px;
+  background:rgba(251,248,242,.96); color:var(--ink);
+  font-size:.72rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase;
+  box-shadow:0 14px 30px -18px rgba(27,33,28,.8);
+  opacity:0; pointer-events:none;
+  transition:opacity .4s var(--e-out), transform .4s var(--e-out), background .3s;
+}
+.sheet__360 svg{ width:16px; height:16px; display:block; flex:none; }
+.sheet__frame:hover .sheet__360, .sheet__frame:focus-within .sheet__360{
+  opacity:1; transform:translate(-50%,-50%); pointer-events:auto;
+}
+.sheet__360:hover{ background:var(--ivory-lift); }
+.sheet__360:focus-visible{ outline:2px solid var(--accent-ink); outline-offset:3px; }
 
 .sheet__cap{
   display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
@@ -130,13 +173,13 @@
   background:rgba(18,16,13,.93);
   backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   color:var(--on-dark);
-  opacity:0; visibility:hidden;
+  opacity:0; visibility:hidden; pointer-events:none;
   /* visibility flips instantly on open and only after the fade on close.
      Transitioning it in both directions left the dialog unfocusable on the
      frame it opened, so focus() landed on <body>. */
   transition:opacity .35s ease, visibility 0s linear .35s;
 }
-.lb.is-open{ opacity:1; visibility:visible; transition:opacity .35s ease, visibility 0s; }
+.lb.is-open{ opacity:1; visibility:visible; pointer-events:auto; transition:opacity .35s ease, visibility 0s; }
 
 .lb__bar{
   display:flex; align-items:center; justify-content:space-between; gap:16px;
@@ -179,27 +222,50 @@
 body.lb-open{ overflow:hidden; }
 
 /* ---------- foot -------------------------------------------------------- */
+.gfoot__credit a{ text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;
+  transition:color .3s, text-decoration-color .3s; }
+.gfoot__credit a:hover{ color:var(--ink); text-decoration-color:currentColor; }
+
 .gfoot{
   border-top:1px solid var(--line-soft);
   padding:clamp(26px,4vw,44px) var(--gpad);
   display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap;
   font-size:.76rem; color:var(--ink-mute);
 }
-.gfoot a:hover{ color:var(--ink); }
-.gfoot__mid{ display:flex; gap:16px; flex-wrap:wrap; }
 
 /* ---------- narrow ------------------------------------------------------ */
 @media (max-width:680px){
-  .gnav{ flex-direction:column; align-items:stretch; gap:10px; padding:12px var(--gpad); }
-  .gnav__cats{ margin:0 calc(-1 * var(--gpad)); padding:0 var(--gpad) 2px; }
+  .gnav{ padding:12px var(--gpad); }
+  .gnav__brand{ font-size:.82rem; letter-spacing:.18em; }
+  /* Stacked, the row's main axis is vertical, so the flex-basis meant for the
+     column width would become a 340px minimum HEIGHT. Reset both items. */
+  .ghead-row{ flex-direction:column; }
+  .ghead{ flex:0 0 auto; }
+  .gsearch{ flex:0 0 auto; width:100%; margin-top:2px; }
   .sheet__cap b{ font-size:.7rem; }
   .sheet__cap span{ font-size:.72rem; }
   .lb__stage{ padding:0 6px; }
 }
 
+/* A touch screen never hovers, so the tour would be unreachable there. Dock
+   the pill into the corner of the sheet permanently instead, and drop the
+   scrim — a dimmed card with no way to undim reads as broken. */
+@media (hover:none){
+  .sheet__360{
+    left:10px; top:auto; bottom:10px;
+    opacity:1; pointer-events:auto; transform:none;
+    padding:8px 13px; font-size:.66rem; gap:6px;
+  }
+  .sheet__frame:hover .sheet__360,
+  .sheet__frame:focus-within .sheet__360{ transform:none; }
+  .sheet__360 svg{ width:14px; height:14px; }
+  .sheet__frame--tour:hover::after,
+  .sheet__frame--tour:focus-within::after{ opacity:0; }
+}
+
 @media (prefers-reduced-motion:reduce){
   .sheet{ opacity:1; transform:none; transition:none; }
-  .sheet__hit, .sheet__hit img, .sheet__zoom{ transition:none; }
+  .sheet__frame, .sheet__hit img, .sheet__360{ transition:none; }
 }
 
 /* ---------- empty state & tour enhancements ---------- */
@@ -240,48 +306,6 @@ body.lb-open{ overflow:hidden; }
   max-width: 42ch;
   line-height: 1.5;
 }
-.gallery-empty__cta{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 10px 22px;
-  border-radius: 99px;
-  background: var(--ink);
-  color: var(--ivory);
-  text-decoration: none;
-  font-size: 0.76rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: all 0.35s;
-}
-.gallery-empty__cta:hover{
-  background: var(--accent-ink);
-  transform: translateY(-2px);
-  color: var(--ivory);
-}
-
-.sheet__tour-link{
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-ink);
-  text-decoration: none;
-  border: 1px solid rgba(126, 95, 77, 0.3);
-  padding: 3px 8px;
-  border-radius: 99px;
-  transition: all 0.25s;
-  margin-left: auto;
-}
-.sheet__tour-link:hover{
-  background: var(--accent-ink);
-  color: var(--ivory);
-  border-color: var(--accent-ink);
-}
-
 .lb__tour-btn{
   display: inline-flex;
   align-items: center;

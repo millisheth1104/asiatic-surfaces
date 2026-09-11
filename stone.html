@@ -16,29 +16,24 @@
 <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
 
 <header class="gnav">
-  <a class="gnav__home" href="index.html">
-    <svg viewBox="0 0 20 20" fill="none"><path d="M16 10H4M9 4.5 3.5 10 9 15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Full Sheet View</span>
-  </a>
-  <nav class="gnav__cats" aria-label="Surface categories">
-      <a href="45-degree.html">45 Degree</a>
-      <a href="wooden.html">Wooden</a>
-      <a href="digital.html">Digital</a>
-      <a href="laminates.html">Laminates</a>
-      <a href="stone.html" class="is-current" aria-current="page">Stone</a>
-      <a href="louvers.html">Louvers</a>
-      <a href="edge-bands.html">Edge Bands</a>
-      <a href="texture.html">Texture</a>
-  </nav>
+  <span class="gnav__brand">Full Sheet View</span>
 </header>
 
 <main class="gpage" data-category="Stone">
 
-  <header class="ghead">
-    <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
-    <h1 class="ghead__title">Stone <span class="italic">sheets</span></h1>
-    <p class="ghead__sub">Stone-look faces with true veining depth. Satin, fingerprint-forgiving, and tactile.</p>
-  </header>
+  <div class="ghead-row">
+    <header class="ghead">
+      <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
+      <h1 class="ghead__title">Stone <span class="italic">sheets</span></h1>
+      <p class="ghead__sub">Stone-look faces with true veining depth. Satin, fingerprint-forgiving, and tactile.</p>
+    </header>
+
+  <form class="gsearch" role="search">
+    <svg class="gsearch__ico" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="5.4" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 3.6 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <input class="gsearch__in" id="sheetSearch" type="search" placeholder="Search by code or name"
+           aria-label="Search sheets by code or name" autocomplete="off" spellcheck="false">
+  </form>
+  </div>
 
   <!-- Masonry Gallery - dynamically populated from Product Catalog -->
   <div class="masonry" id="masonry"></div>
@@ -60,18 +55,8 @@
 </div>
 
 <footer class="gfoot">
-  <span>Full Sheet View</span>
-  <span class="gfoot__mid">
-    <a href="45-degree.html">45 Degree</a>
-    <a href="wooden.html">Wooden</a>
-    <a href="digital.html">Digital</a>
-    <a href="laminates.html">Laminates</a>
-    <a href="stone.html">Stone</a>
-    <a href="louvers.html">Louvers</a>
-    <a href="edge-bands.html">Edge Bands</a>
-    <a href="texture.html">Texture</a>
-  </span>
-  <span>© <span id="yr">2026</span></span>
+  <span class="gfoot__brand">Full Sheet View</span>
+  <span class="gfoot__credit"><a href="https://thepurestudio.in/" target="_blank" rel="noopener">Designed by The Pure Studio</a></span>
 </footer>
 
 <!-- Shared Product Data Engine & Dynamic Masonry Gallery -->

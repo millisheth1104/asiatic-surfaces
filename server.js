@@ -35,7 +35,7 @@ const server = http.createServer((req, res) => {
     let reqUrl = decodeURIComponent(req.url.split('?')[0]);
     const hasExtension = path.extname(reqUrl) !== '';
 
-    const CATEGORY_PREFIXES = ['/45-degree/', '/wooden/', '/digital/', '/laminates/', '/stone/', '/louvers/', '/edge-bands/', '/edgebands/', '/texture/'];
+    const CATEGORY_PREFIXES = ['/45-degree/', '/synchro/', '/wooden/', '/digital/', '/laminates/', '/stone/', '/louvers/', '/edge-bands/', '/edgebands/', '/texture/'];
     const isCategoryProductRoute = CATEGORY_PREFIXES.some(prefix => reqUrl.startsWith(prefix));
 
     if (reqUrl === '/' || reqUrl === '/home.html') {

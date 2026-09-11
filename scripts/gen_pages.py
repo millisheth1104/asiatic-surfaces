@@ -1,5 +1,20 @@
+# ============================== DO NOT RUN =================================
+# SUPERSEDED 2026-09-11. The category pages are no longer generated from this
+# template. There are eight of them now, they are hand-maintained, and their
+# sheets are populated at runtime by products-data.js + assets/js/gallery.js
+# keyed on each page's `data-category`. Running this script would overwrite
+# four pages with static <figure> markup carrying a stale nav, and leave the
+# other four inconsistent with them.
+#
+# Kept as the record of how the original static pages were built. To bring it
+# back, it needs: the eight-category ORDER, the current gnav/gfoot markup, and
+# a decision about static vs runtime sheets. Delete the guard below when that
+# is done.
+# ===========================================================================
+import sys
+sys.exit("gen_pages.py is superseded - see the banner at the top of this file.")
+
 # Generate the four category pages from assets/gallery/catalogue.json.
-# Rerun after adding sheets: python gen_pages.py
 import json, io, os
 
 ROOT = r"C:\Users\Lenovo\OneDrive\Desktop\asiatic surface"

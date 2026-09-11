@@ -837,6 +837,198 @@ links, no console output, titles correct.
 
 ---
 
+# Gallery chrome stripped to the open category — 2026-09-11
+
+The top bar read `← FULL SHEET VIEW` with a pill row of all eight families on the right, and
+the footer repeated that list. Both lists are gone. The bar now reads `← STONE` — whichever
+page is open — and the footer carries only the name and the year.
+
+Applied to all **eight** category pages, plus the dead CSS (`.gnav__cats`, `.gfoot__mid`,
+the `justify-content` and the ≤680px stacking rule that existed only for the pill row) and
+the dead JS (the `.gnav__cats a` highlight loop in `assets/js/gallery.js`).
+
+**The label is still a link home.** The back arrow needs a destination, and with both lists
+gone it is now the only route off a category page.
+
+## The repo had moved 32 commits under us
+
+Worth recording, because it nearly cost someone else's work. The first attempt at this change
+was made against a local tree that was **32 commits behind `origin/main`** — the push was
+rejected, which is the only reason it was caught. In the meantime the repository had gained a
+whole product-catalog app (`products.html`, `category.html`, `tour.html`, `api/`, `server.js`,
+Upstash/Blob sync) merged in from another line of work, and with it:
+
+- **eight** category pages instead of four, hand-written rather than generated;
+- **zero** `<figure class="sheet">` in any of them — `assets/js/gallery.js` now builds the
+  masonry at runtime from `products-data.js`, keyed on `data-category`.
+
+The stale commit regenerated four pages from `scripts/gen_pages.py`. Had it landed it would
+have replaced four dynamic pages with static markup and left the other four inconsistent. It
+was parked on branch `stale-navbar-edit` and the change was redone against the real tree.
+
+**`scripts/gen_pages.py` now refuses to run**, with a banner saying why and what reviving it
+would take. It is the trap that was one force-push away from firing.
+
+## Verified
+
+All eight pages: the bar shows that page's own name, exactly one link in it pointing at
+`index.html`, zero `.gnav__cats` nodes, zero footer links, footer text `Full Sheet View ©
+2026`. No console errors beyond the pre-existing `/api/products` 404, which is the static
+preview server having no API — unrelated to this change.
+
+---
+
+# 360 hover button, search, sticky wordmark, and Wooden → Synchro — 2026-09-12
+
+## What was asked
+
+| ask | done |
+|---|---|
+| hover shows a 360 button, not the magnifier | `.sheet__360` pill, centred, one per card |
+| only ONE 360 button per card | the caption's `360° Tour ↗` link removed |
+| the tour opens in a new tab | `target="_blank" rel="noopener"`, on the card and in the lightbox |
+| add a search bar (code or name) | `#sheetSearch`, live-filters the dealt cards |
+| no back link, no category name in the bar | sticky bar is one centred `Full Sheet View` wordmark |
+| bottom left / bottom right | footer: `Full Sheet View` ← → `Designed by The Pure Studio` |
+| Wooden → Synchro throughout | see below |
+
+The card is now `.sheet__frame` wrapping the button and the anchor as **siblings** — an `<a>`
+inside a `<button>` is invalid HTML, so the frame is what positions both and what lifts on
+hover. The magnifier is gone; only products that actually have a tour get a button.
+
+**The © year was dropped from the footer** — the ask named both corners and there is no third
+slot. Say the word and it goes back beside the wordmark.
+
+## Wooden → Synchro
+
+Renamed everywhere a visitor reads it: the page, the home chip and tile, the marquee, the
+footer list, the admin category dropdown. Three things make it safe rather than destructive:
+
+- **`synchro.html` is canonical; `wooden.html` is now a redirect.** Old links, bookmarks and
+  any saved `/wooden/CODE` tour route keep working.
+- **Products already saved as `Wooden` still appear.** The catalogue is live data this repo
+  cannot migrate, so `CATEGORY_ALIASES` folds `wooden → synchro` on both sides of the filter.
+  Verified: five products stored as `Wooden` render on the Synchro page.
+- **`/synchro/:code*` added to `server.js` and `vercel.json`** alongside the old prefix, so
+  tours work for products saved under either name.
+
+`data-tex="wooden"`, `.tile--wooden` and `assets/gallery/wooden/` keep the old word — they are
+style hooks and file paths, not labels. Same display-name-≠-slug rule as the earlier renames.
+
+## The merge had reverted the brand rename
+
+`index.html` was back to `<title>Asiatic Surfaces</title>`, the old meta description and the
+old hero eyebrow, and `home.html`, `products.html` and `tour.html` — pages that arrived with
+the other project — had never been covered. All now read **Full Sheet View**. Zero occurrences
+of "asiatic" remain in any shipped file.
+
+## Adversarial review
+
+A three-dimension review workflow (JS correctness, CSS/responsive, HTML/a11y) produced 17
+findings; each was verified by a second agent told to refute it, and 10 survived. Fixed:
+
+| finding | fix |
+|---|---|
+| Search query concatenated into `innerHTML` (**mine**) | title set via `textContent`; `<img onerror>` probe now renders as text |
+| Card fields interpolated unescaped into `innerHTML` | `esc()` on every interpolation — admin-fed names reach the DOM as data |
+| Three unsynchronised `renderGallery()` runs corrupt the shared arrays | generation token checked after the IndexedDB await |
+| Open lightbox left stale when the catalogue re-renders under it | `reconcileLightbox()` re-points by product code, or closes |
+| Closed lightbox stayed hit-testable for 350ms | `pointer-events` on `.lb` / `.lb.is-open` |
+| 360 link failed WCAG 2.5.3 (**mine**) | `aria-label` now starts with the visible text |
+| Filtering announced nothing to screen readers (**mine**) | visually-hidden `role="status"` reports the match count |
+| Search field had no focus ring in forced-colors (**mine**) | transparent `outline` for high-contrast to paint |
+| Keyboard focus scrolled under the sticky bar | `scroll-padding-top` |
+| Dead rules (`.gallery-empty__cta`, `.gfoot a:hover`) | deleted |
+
+Refuted and left alone: the touch fallback (already added — `@media (hover:none)` docks the
+pill permanently), pill overflow at 320px, the `.ghead-row` axis flip, reduced-motion coverage,
+and "no route home" (that was the instruction).
+
+Two bugs I found while testing, before the review: the stacked `.ghead-row` turned a
+`flex-basis:340px` meant for width into a 340px **height**, opening a gap under the sub-line;
+and clearing the search box on an empty category printed `No sheet matches ""` over the
+category's own message.
+
+## Verified
+
+Synchro page: title, heading and `data-category` all Synchro, five legacy-category products
+rendering, 3 of 5 with a 360 button, `href` routing, `target="_blank"`, aria-label ordering.
+Search: "ash" → 2 matches with the live region announcing it; an XSS probe escaped; clearing
+restores all five. `wooden.html` → `/synchro.html`. Home page: chips, tiles, marquee and
+footer all say Synchro; title and eyebrow say Full Sheet View. No uncaught console errors; the
+only 404 is `/api/products`, which `server.js` does not serve locally.
+
+**Not pushed** — held at the user's instruction.
+
+---
+
+# Home footer credit — 2026-09-12
+
+The home page's own footer still ended in `© 2026`. Its right slot now reads **Designed by The
+Pure Studio**, matching the eight gallery pages. The family list keeps the middle slot; only
+the copyright was replaced. `main.js` already guarded `#yr` with `if (yr)`, so removing the
+element changes nothing else.
+
+Measured at 1440px: one line, wordmark at the left edge, family list centred, credit 64px from
+the right. Below ~700px the row wraps, as it did before.
+
+Not pushed.
+
+---
+
+# Hero rewritten as product features — 2026-09-12
+
+From the annotated mockup. Four copy changes, one structural change, nine new images.
+
+| where | now reads |
+|---|---|
+| hero eyebrow | See the Surface. Feel the Design. |
+| hero sub-line | Explore full-sheet views and immersive 360° interiors to visualise designs in their complete environment. |
+| note under the hero | From the visual appeal to the performance behind every surface, every detail is engineered to deliver lasting quality, functionality and style. |
+| home footer | family list deleted; `Full Sheet View` left, `Designed by The Pure Studio` right |
+
+## The plate now shows features, not categories
+
+The eight category chips became **nine feature cards** — Full Sheet View, Immersive 360°,
+Premium Grade, Trending Designs, Anti Scratch, Strong & Durable, Anti Termite, Water
+Resistant, Anti Yellow — each with a photograph, a drawn line icon and one line of copy.
+
+They are `<div>`, not `<a>`: **nothing on the plate navigates**, as asked. `cursor:default`
+and no hover lift, so they do not pretend to. The eight bento tiles below still carry every
+link into the family galleries, which is now the only route in — confirmed as intended.
+
+`main.js` reads the strip through `.chip`, not `a.chip`, so the prev/next scroller kept
+working across the element change.
+
+## Images
+
+Both image providers configured in the MCP server were dead — OpenAI `429 no credits`,
+Gemini `429 free_tier_requests limit: 0`. The user supplied a **fal.ai** key instead, so the
+nine images were generated through `fal-ai/flux/dev` at 768×1024 and converted to
+`assets/features/<slug>-420.webp`. **57 KB for all nine**, 3–12 KB each.
+
+The key was passed through an environment variable and never written to a file; the
+generation scripts live outside the repo. It should still be rotated — it passed through a
+chat transcript.
+
+Prompts followed the rule already recorded in `PROMPTS.md`: a literal photographable scene
+first, one style anchor, no trade jargon. Anti Termite took three attempts — a panel leaning
+on a wall said nothing about termites, and a second try lost the panel entirely; the version
+that shipped is a macro of a board's dense, unbroken cut edge, which is the actual claim.
+
+Card images are keyed by `[data-feat="..."]` rules **in style.css**, never inline — the same
+relative-`url()`-inside-a-custom-property trap that cost a day earlier in this project.
+
+## Verified
+
+Nine cards, zero links in the plate, all nine backgrounds resolving (the silent-failure case
+that has bitten this file twice), all eight tiles still linking, footer list gone, all four
+copy strings in place, no console errors.
+
+Not pushed.
+
+---
+
 ## 2026-09-12 — Hostinger Git deployment brought online and verified
 
 **Objective:** make local changes reflect on the live site, globally, for all visitors.
@@ -910,3 +1102,84 @@ Steps left with the user: redeploy, `/health.php?cleanup=1`, `/repair.php?apply=
 gallery question is unresolved: `renderGallery()` clears the grid and rebuilds from the catalogue
 alone, so the curated static sheets baked into the category pages are erased on load; merge,
 replace or fall back was put to the user and not yet answered.
+
+---
+
+# Multiple families, and the feature plate drives itself — 2026-09-12
+
+**Heading**: "Eight families. One *material* language." → "**Multiple** families…". The word
+is one of the `.word` spans the GSAP entrance masks, so it was swapped in place rather than
+rewriting the line.
+
+**The plate now auto-scrolls**, continuously, at **85 px/s**.
+
+How, and why this way:
+
+- **`scrollLeft`, not a transform.** The plate already had prev/next buttons, scroll snapping
+  and touch dragging; a translated track would have broken all three. Driving the real scroll
+  position keeps them working.
+- **The cards are cloned** until the track is at least two viewports wide, and the wrap
+  distance is measured as `firstClone.offsetLeft - firstOriginal.offsetLeft`. Not
+  `scrollWidth / 2` — with 18 children and 17 gaps that is half a gap short, and the error
+  shows up as a jolt on every lap.
+- **`.is-auto` turns off `scroll-behavior:smooth` and `scroll-snap-type`** while it runs. Left
+  on, the first queues an animation per frame and the second drags the strip back to a card
+  edge. The buttons pass `behavior:'smooth'` explicitly, so they are unaffected.
+- **It stops when it should**: on hover and on focus (you cannot read a card that is moving
+  away), for 2.2s after any manual scroll or button press, while the tab is hidden, and
+  entirely under `prefers-reduced-motion`.
+- Clones are `aria-hidden` and the frame delta is clamped at 100ms, so a stalled tab resumes
+  instead of leaping.
+
+## Bug caught in the first attempt
+
+`cloneUntilWide()` only cloned *while* the track was narrower than two viewports — which on a
+wide screen is never true, since nine cards already overflow. So no clone existed, the wrap
+distance stayed 0, and `play()` silently refused to start. It now always appends one group
+before testing the width.
+
+## Verified
+
+18 children from 9 originals, wrap distance 1350px measured; seeded at `wrap - 30` it crossed
+and continued from 78px with no backwards jump; hover pauses it dead (0px moved in 2s) and
+leaving resumes it; the next button still steps 308px and the loop picks up again after the
+idle window; nothing moves while the tab is hidden. Heading reads "Multiple families."
+
+Not pushed.
+
+---
+
+# The studio credit links out — 2026-09-12
+
+`Designed by The Pure Studio` now links to `https://thepurestudio.in/` on all nine footers
+that carry it — the eight category galleries and the home page. The whole phrase is the link,
+not just the studio name, so the hit target is the text the eye lands on.
+
+`target="_blank" rel="noopener"`, matching the 360 tour links: it leaves the site, so it
+should not take the page with it.
+
+The site's global `a{ color:inherit; text-decoration:none }` makes a bare link invisible, so
+the credit gets an underline that fades in from transparent on hover along with a shift from
+`--ink-mute` to `--ink`. Without that there was no way to tell it was clickable.
+
+`wooden.html` has no footer — it is the redirect stub — so it is correctly untouched.
+
+Verified: all nine pages return the same href, target and rel, and the footer still reads
+`Full Sheet View` left, the credit right.
+
+---
+
+# Category tiles open in a new tab — 2026-09-12
+
+All eight bento tiles on the home page now carry `target="_blank" rel="noopener"`, so a
+category gallery opens beside the home page instead of replacing it.
+
+The tiles are the only category entry points left: the hero plate became feature cards that
+do not link, and the gallery pages' own category lists were removed earlier. So this single
+change covers every way in.
+
+Two links deliberately left alone, both on redirect pages: `category.html`'s "click here if
+not redirected" fallback and `wooden.html`'s "continue to Synchro sheets". Opening those in a
+new tab would strand the visitor on a blank redirect page in the old one.
+
+Verified: 8 of 8 tiles, correct href, target and rel; zero links remain in the hero plate.
