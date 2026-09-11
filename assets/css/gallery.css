@@ -10,10 +10,13 @@
   --r-sheet: 14px;
 }
 
-/* ---------- top bar ---------------------------------------------------- */
+/* ---------- top bar -----------------------------------------------------
+   One item: a back link carrying the name of the category being viewed.
+   The pill row of the other categories, and the same list in the footer,
+   were both removed on request — nothing links sideways any more.      */
 .gnav{
   position:sticky; top:0; z-index:60;
-  display:flex; align-items:center; justify-content:space-between; gap:18px;
+  display:flex; align-items:center; gap:18px;
   padding:14px var(--gpad);
   background:rgba(245,240,232,.82);
   backdrop-filter:saturate(1.4) blur(14px);
@@ -27,21 +30,6 @@
 }
 .gnav__home svg{ width:15px; height:15px; display:block; transition:transform .45s var(--e-out); }
 .gnav__home:hover svg{ transform:translateX(-4px); }
-
-.gnav__cats{
-  display:flex; align-items:center; gap:4px;
-  overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
-  margin:-6px -4px; padding:6px 4px;
-}
-.gnav__cats::-webkit-scrollbar{ display:none; }
-.gnav__cats a{
-  flex:none; padding:7px 14px; border-radius:99px; white-space:nowrap;
-  font-size:.76rem; font-weight:400; letter-spacing:.03em; color:var(--ink-mute);
-  border:1px solid transparent;
-  transition:color .35s, background .35s, border-color .35s;
-}
-.gnav__cats a:hover{ color:var(--ink); border-color:var(--line); }
-.gnav__cats a.is-current{ color:var(--ink); background:var(--ivory-lift); border-color:var(--line); }
 
 /* ---------- page head -------------------------------------------------- */
 .gpage{ padding:clamp(34px,6vw,86px) var(--gpad) clamp(50px,7vw,96px); }
@@ -186,12 +174,10 @@ body.lb-open{ overflow:hidden; }
   font-size:.76rem; color:var(--ink-mute);
 }
 .gfoot a:hover{ color:var(--ink); }
-.gfoot__mid{ display:flex; gap:16px; flex-wrap:wrap; }
 
 /* ---------- narrow ------------------------------------------------------ */
 @media (max-width:680px){
-  .gnav{ flex-direction:column; align-items:stretch; gap:10px; padding:12px var(--gpad); }
-  .gnav__cats{ margin:0 calc(-1 * var(--gpad)); padding:0 var(--gpad) 2px; }
+  .gnav{ padding:12px var(--gpad); }
   .sheet__cap b{ font-size:.7rem; }
   .sheet__cap span{ font-size:.72rem; }
   .lb__stage{ padding:0 6px; }

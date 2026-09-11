@@ -43,18 +43,7 @@
 
   var activeCategory = detectCategory();
 
-  // Highlight current category link in top nav
-  var navLinks = document.querySelectorAll('.gnav__cats a');
-  navLinks.forEach(function (link) {
-    var linkCat = link.textContent.trim().toLowerCase();
-    if (linkCat === activeCategory.toLowerCase()) {
-      link.classList.add('is-current');
-      link.setAttribute('aria-current', 'page');
-    } else {
-      link.classList.remove('is-current');
-      link.removeAttribute('aria-current');
-    }
-  });
+  // (The top-nav category pill row was removed; nothing to highlight.)
 
   // Fallback textures if a product has no image
   var CAT_TEXTURE_MAP = {

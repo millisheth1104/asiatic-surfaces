@@ -834,3 +834,44 @@ project records, not shipped pages, and the repository itself is named for it.
 
 Verified across all five pages: 0 occurrences of "asiatic", 0 of "instagram", 0 external
 links, no console output, titles correct.
+
+---
+
+# Gallery chrome stripped to the open category — 2026-09-11
+
+The top bar read `← FULL SHEET VIEW` with a pill row of all eight families on the right, and
+the footer repeated that list. Both lists are gone. The bar now reads `← STONE` — whichever
+page is open — and the footer carries only the name and the year.
+
+Applied to all **eight** category pages, plus the dead CSS (`.gnav__cats`, `.gfoot__mid`,
+the `justify-content` and the ≤680px stacking rule that existed only for the pill row) and
+the dead JS (the `.gnav__cats a` highlight loop in `assets/js/gallery.js`).
+
+**The label is still a link home.** The back arrow needs a destination, and with both lists
+gone it is now the only route off a category page.
+
+## The repo had moved 32 commits under us
+
+Worth recording, because it nearly cost someone else's work. The first attempt at this change
+was made against a local tree that was **32 commits behind `origin/main`** — the push was
+rejected, which is the only reason it was caught. In the meantime the repository had gained a
+whole product-catalog app (`products.html`, `category.html`, `tour.html`, `api/`, `server.js`,
+Upstash/Blob sync) merged in from another line of work, and with it:
+
+- **eight** category pages instead of four, hand-written rather than generated;
+- **zero** `<figure class="sheet">` in any of them — `assets/js/gallery.js` now builds the
+  masonry at runtime from `products-data.js`, keyed on `data-category`.
+
+The stale commit regenerated four pages from `scripts/gen_pages.py`. Had it landed it would
+have replaced four dynamic pages with static markup and left the other four inconsistent. It
+was parked on branch `stale-navbar-edit` and the change was redone against the real tree.
+
+**`scripts/gen_pages.py` now refuses to run**, with a banner saying why and what reviving it
+would take. It is the trap that was one force-push away from firing.
+
+## Verified
+
+All eight pages: the bar shows that page's own name, exactly one link in it pointing at
+`index.html`, zero `.gnav__cats` nodes, zero footer links, footer text `Full Sheet View ©
+2026`. No console errors beyond the pre-existing `/api/products` 404, which is the static
+preview server having no API — unrelated to this change.

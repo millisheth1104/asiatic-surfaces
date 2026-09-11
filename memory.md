@@ -83,8 +83,10 @@ assets/textures/
   <family>-420.webp    ×8        hero plate cards, loaded up front (5–24 KB)
   <family>.svg         ×8        the original procedural SVGs — unreferenced, kept as record
   PROMPTS.md                    the prompts that produced the photographs
-45-degree.html digital.html    the four category galleries — GENERATED, never hand-edited
-stone.html wooden.html
+45-degree.html digital.html    the eight category galleries — hand-maintained; sheets are
+stone.html wooden.html          injected at runtime, see the note below
+laminates.html louvers.html
+edge-bands.html texture.html
 assets/css/gallery.css          category pages: sticky nav, masonry, lightbox
 assets/js/gallery.js            column masonry, reveal, lightbox
 assets/gallery/
@@ -97,10 +99,23 @@ README.md · BUILD_LOG.md · memory.md
 .claude/launch.json             preview server
 ```
 
-**The four category pages are build output.** Edit `scripts/gen_pages.py` for layout or copy
-and `scripts/build_gallery.py` for the images, then re-run both — in that order, because the
-generator reads the catalogue the converter writes. A hand-edit to `digital.html` is lost the
-next time anyone adds a sheet.
+**This stopped being true on 2026-09-11 and the reversal matters.** The repository now also
+holds a much larger product-catalog app (`products.html`, `category.html`, `tour.html`,
+`api/`, `server.js`, `vercel.json`, Upstash/Blob sync), merged in from another line of work.
+Under it:
+
+- There are **eight** category pages, not four, and they are **hand-maintained HTML**.
+- They contain no `<figure class="sheet">` at all. `assets/js/gallery.js` builds the masonry
+  at runtime from `products-data.js`, keyed on each page's `data-category` attribute.
+- **`scripts/gen_pages.py` is superseded and now refuses to run.** It would overwrite four
+  pages with stale static markup and leave the other four inconsistent. The guard is at the
+  top of the file; the banner says what it would take to revive it.
+- `scripts/build_gallery.py` still converts source folders into `assets/gallery/**`, which is
+  still where the four original families' images live.
+
+Check `git log` before assuming anything in this file describes the current tree — the
+history diverged by 32 commits once already, and a local branch that looks clean can be far
+behind `origin/main`.
 
 ---
 
@@ -363,6 +378,13 @@ tile caption 7.62:1; no horizontal overflow and no squeezed copy at 320/375/430/
   removed — the hero CTA and the thank-you pill now point at `#collection`, so the site has
   no external links at all. The repo docs still use the old name; they are records, not pages.
   A new page must not reintroduce either.
+
+---
+
+- **The gallery chrome carries no navigation.** Asked for on 2026-09-11: the top bar shows
+  only the open category's name (still linking home, because the back arrow needs a
+  destination), and the eight-family list was removed from the footer as well. Nothing links
+  sideways between categories any more. That is deliberate — don't restore either list.
 
 ---
 
