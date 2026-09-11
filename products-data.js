@@ -132,6 +132,8 @@ window.ProductCatalog = (function () {
 
     function isDeleted(id) {
         return Object.prototype.hasOwnProperty.call(getTombstones(), id);
+    }
+
     function normalizeProduct(product) {
         if (!product) return product;
         const p = { ...product };
