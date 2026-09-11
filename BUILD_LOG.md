@@ -875,3 +875,87 @@ All eight pages: the bar shows that page's own name, exactly one link in it poin
 `index.html`, zero `.gnav__cats` nodes, zero footer links, footer text `Full Sheet View ©
 2026`. No console errors beyond the pre-existing `/api/products` 404, which is the static
 preview server having no API — unrelated to this change.
+
+---
+
+# 360 hover button, search, sticky wordmark, and Wooden → Synchro — 2026-09-12
+
+## What was asked
+
+| ask | done |
+|---|---|
+| hover shows a 360 button, not the magnifier | `.sheet__360` pill, centred, one per card |
+| only ONE 360 button per card | the caption's `360° Tour ↗` link removed |
+| the tour opens in a new tab | `target="_blank" rel="noopener"`, on the card and in the lightbox |
+| add a search bar (code or name) | `#sheetSearch`, live-filters the dealt cards |
+| no back link, no category name in the bar | sticky bar is one centred `Full Sheet View` wordmark |
+| bottom left / bottom right | footer: `Full Sheet View` ← → `Designed by The Pure Studio` |
+| Wooden → Synchro throughout | see below |
+
+The card is now `.sheet__frame` wrapping the button and the anchor as **siblings** — an `<a>`
+inside a `<button>` is invalid HTML, so the frame is what positions both and what lifts on
+hover. The magnifier is gone; only products that actually have a tour get a button.
+
+**The © year was dropped from the footer** — the ask named both corners and there is no third
+slot. Say the word and it goes back beside the wordmark.
+
+## Wooden → Synchro
+
+Renamed everywhere a visitor reads it: the page, the home chip and tile, the marquee, the
+footer list, the admin category dropdown. Three things make it safe rather than destructive:
+
+- **`synchro.html` is canonical; `wooden.html` is now a redirect.** Old links, bookmarks and
+  any saved `/wooden/CODE` tour route keep working.
+- **Products already saved as `Wooden` still appear.** The catalogue is live data this repo
+  cannot migrate, so `CATEGORY_ALIASES` folds `wooden → synchro` on both sides of the filter.
+  Verified: five products stored as `Wooden` render on the Synchro page.
+- **`/synchro/:code*` added to `server.js` and `vercel.json`** alongside the old prefix, so
+  tours work for products saved under either name.
+
+`data-tex="wooden"`, `.tile--wooden` and `assets/gallery/wooden/` keep the old word — they are
+style hooks and file paths, not labels. Same display-name-≠-slug rule as the earlier renames.
+
+## The merge had reverted the brand rename
+
+`index.html` was back to `<title>Asiatic Surfaces</title>`, the old meta description and the
+old hero eyebrow, and `home.html`, `products.html` and `tour.html` — pages that arrived with
+the other project — had never been covered. All now read **Full Sheet View**. Zero occurrences
+of "asiatic" remain in any shipped file.
+
+## Adversarial review
+
+A three-dimension review workflow (JS correctness, CSS/responsive, HTML/a11y) produced 17
+findings; each was verified by a second agent told to refute it, and 10 survived. Fixed:
+
+| finding | fix |
+|---|---|
+| Search query concatenated into `innerHTML` (**mine**) | title set via `textContent`; `<img onerror>` probe now renders as text |
+| Card fields interpolated unescaped into `innerHTML` | `esc()` on every interpolation — admin-fed names reach the DOM as data |
+| Three unsynchronised `renderGallery()` runs corrupt the shared arrays | generation token checked after the IndexedDB await |
+| Open lightbox left stale when the catalogue re-renders under it | `reconcileLightbox()` re-points by product code, or closes |
+| Closed lightbox stayed hit-testable for 350ms | `pointer-events` on `.lb` / `.lb.is-open` |
+| 360 link failed WCAG 2.5.3 (**mine**) | `aria-label` now starts with the visible text |
+| Filtering announced nothing to screen readers (**mine**) | visually-hidden `role="status"` reports the match count |
+| Search field had no focus ring in forced-colors (**mine**) | transparent `outline` for high-contrast to paint |
+| Keyboard focus scrolled under the sticky bar | `scroll-padding-top` |
+| Dead rules (`.gallery-empty__cta`, `.gfoot a:hover`) | deleted |
+
+Refuted and left alone: the touch fallback (already added — `@media (hover:none)` docks the
+pill permanently), pill overflow at 320px, the `.ghead-row` axis flip, reduced-motion coverage,
+and "no route home" (that was the instruction).
+
+Two bugs I found while testing, before the review: the stacked `.ghead-row` turned a
+`flex-basis:340px` meant for width into a 340px **height**, opening a gap under the sub-line;
+and clearing the search box on an empty category printed `No sheet matches ""` over the
+category's own message.
+
+## Verified
+
+Synchro page: title, heading and `data-category` all Synchro, five legacy-category products
+rendering, 3 of 5 with a 360 button, `href` routing, `target="_blank"`, aria-label ordering.
+Search: "ash" → 2 matches with the live region announcing it; an XSS probe escaped; clearing
+restores all five. `wooden.html` → `/synchro.html`. Home page: chips, tiles, marquee and
+footer all say Synchro; title and eyebrow say Full Sheet View. No uncaught console errors; the
+only 404 is `/api/products`, which `server.js` does not serve locally.
+
+**Not pushed** — held at the user's instruction.

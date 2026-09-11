@@ -16,19 +16,24 @@
 <div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
 
 <header class="gnav">
-  <a class="gnav__home" href="index.html">
-    <svg viewBox="0 0 20 20" fill="none"><path d="M16 10H4M9 4.5 3.5 10 9 15.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Louvers</span>
-  </a>
+  <span class="gnav__brand">Full Sheet View</span>
 </header>
 
 <main class="gpage" data-category="Louvers">
 
-  <header class="ghead">
-    <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
-    <h1 class="ghead__title">Louvers <span class="italic">sheets</span></h1>
-    <p class="ghead__sub">Slatted profiles that give a wall rhythm and a room its shadow line.</p>
-  </header>
+  <div class="ghead-row">
+    <header class="ghead">
+      <p class="eyebrow"><span class="eyebrow__rule"></span>The Collection</p>
+      <h1 class="ghead__title">Louvers <span class="italic">sheets</span></h1>
+      <p class="ghead__sub">Slatted profiles that give a wall rhythm and a room its shadow line.</p>
+    </header>
+
+  <form class="gsearch" role="search">
+    <svg class="gsearch__ico" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="5.4" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 3.6 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <input class="gsearch__in" id="sheetSearch" type="search" placeholder="Search by code or name"
+           aria-label="Search sheets by code or name" autocomplete="off" spellcheck="false">
+  </form>
+  </div>
 
   <!-- Masonry Gallery - dynamically populated from Product Catalog -->
   <div class="masonry" id="masonry"></div>
@@ -50,8 +55,8 @@
 </div>
 
 <footer class="gfoot">
-  <span>Full Sheet View</span>
-  <span>© <span id="yr">2026</span></span>
+  <span class="gfoot__brand">Full Sheet View</span>
+  <span class="gfoot__credit">Designed by The Pure Studio</span>
 </footer>
 
 <!-- Shared Product Data Engine & Dynamic Masonry Gallery -->

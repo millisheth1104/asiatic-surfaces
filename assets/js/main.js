@@ -1,5 +1,5 @@
 /* =========================================================
-   ASIATIC SURFACES — interactions
+   FULL SHEET VIEW — interactions
 
    1. hero headline fitted to the sheet width, on one line
    2. the eight-family plate: a snap-scrolling strip with arrows
