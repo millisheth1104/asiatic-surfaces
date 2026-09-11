@@ -12,6 +12,30 @@ $uploads   = storage_uploads_dir();
 $dataFile  = storage_products_file();
 $products  = ($dataFile && is_file($dataFile)) ? json_decode(file_get_contents($dataFile), true) : [];
 
+// ?files=1 lists what is actually on disk; ?cleanup=1 removes the zz-* probe files
+// left behind while diagnosing the deploy wipe.
+if (isset($_GET['cleanup']) && $_GET['cleanup'] === '1' && $uploads !== false) {
+    $removed = [];
+    foreach (glob($uploads . '/zz-*') ?: [] as $f) {
+        if (is_file($f) && @unlink($f)) {
+            $removed[] = basename($f);
+        }
+    }
+    echo json_encode(['removed' => $removed], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+if (isset($_GET['files']) && $_GET['files'] === '1' && $uploads !== false) {
+    $list = [];
+    foreach (glob($uploads . '/*') ?: [] as $f) {
+        if (is_file($f)) {
+            $list[] = ['name' => basename($f), 'bytes' => filesize($f)];
+        }
+    }
+    echo json_encode(['count' => count($list), 'files' => $list], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 echo json_encode([
     'storage_dir'        => $dir === false ? null : $dir,
     'deploy_safe'        => storage_is_persistent(),
