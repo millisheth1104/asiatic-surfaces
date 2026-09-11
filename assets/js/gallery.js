@@ -72,7 +72,23 @@
 
   var activeCategory = detectCategory();
 
-  // (The top-nav category pill row was removed; nothing to highlight.)
+  // Highlight active category in top navigation
+  var navLinks = document.querySelectorAll('.gnav__cats a');
+  var activeNorm = canonCategory(activeCategory);
+  navLinks.forEach(function (link) {
+    var href = (link.getAttribute('href') || '').toLowerCase();
+    var isMatch = href.includes(activeNorm);
+    if (!isMatch && activeNorm === 'synchro' && (href.includes('wooden') || href.includes('synchro'))) {
+      isMatch = true;
+    }
+    if (isMatch) {
+      link.classList.add('is-current');
+      link.setAttribute('aria-current', 'page');
+    } else {
+      link.classList.remove('is-current');
+      link.removeAttribute('aria-current');
+    }
+  });
 
   // Fallback textures if a product has no image
   var CAT_TEXTURE_MAP = {
