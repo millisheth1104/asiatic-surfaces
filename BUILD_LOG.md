@@ -1131,3 +1131,20 @@ the credit gets an underline that fades in from transparent on hover along with 
 
 Verified: all nine pages return the same href, target and rel, and the footer still reads
 `Full Sheet View` left, the credit right.
+
+---
+
+# Category tiles open in a new tab — 2026-09-12
+
+All eight bento tiles on the home page now carry `target="_blank" rel="noopener"`, so a
+category gallery opens beside the home page instead of replacing it.
+
+The tiles are the only category entry points left: the hero plate became feature cards that
+do not link, and the gallery pages' own category lists were removed earlier. So this single
+change covers every way in.
+
+Two links deliberately left alone, both on redirect pages: `category.html`'s "click here if
+not redirected" fallback and `wooden.html`'s "continue to Synchro sheets". Opening those in a
+new tab would strand the visitor on a blank redirect page in the old one.
+
+Verified: 8 of 8 tiles, correct href, target and rel; zero links remain in the hero plate.
