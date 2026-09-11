@@ -433,3 +433,39 @@ rewrite.
 version strings, so returning visitors keep stale assets after a deploy. `Ctrl+Shift+R` to check
 your own work. The permanent fix is `?v=<date>` on the `<script>` and `<link>` tags — offered,
 not yet applied.
+
+---
+
+## 13. The deploy wipe and the storage layout (2026-09-12)
+
+**Hostinger's Git deploy clean-syncs `public_html`: anything not in the repository is
+deleted.** This is the single most expensive fact about this project's hosting. It cost every
+uploaded full-sheet image. `products.json` and `uploads/` lived in the web root, so a deploy
+reset the catalogue to its one seed product and destroyed all 22 uploaded sheets. They were
+unrecoverable: `processSyncQueue` calls `deleteAsset` on the browser's IndexedDB copy as soon
+as an upload succeeds, so the server held the only copy of each image.
+
+**Layout since `e751773`** - `storage.php` resolves a data directory *above* the web root
+(`<home>/domains/<site>/asiatic-data`), holding `products.json` and `uploads/`. Git cannot
+reach it. Product records still store plain `/uploads/<file>` URLs; `.htaccess` rewrites those
+to `uploads.php`, which streams from persistent storage with ETag/304 and a one-month immutable
+cache. Nothing in the catalogue had to be rewritten when storage moved.
+
+**`/health.php` is the post-deploy check.** `deploy_safe: true` means storage really landed
+outside the web root; if it ever reads `false` the host has blocked writing above the root and
+the fallback inside `public_html` is in use, which is *not* deploy-safe. `?files=1` lists
+storage, `?cleanup=1` removes probe files.
+
+**`/repair.php` reconciles catalogue against disk.** Upload filenames encode field and product
+slug (`<ts>-fullsheet-<slug>.jpg`), so the mapping can be rebuilt from the directory when the
+two drift. Dry run by default; `?apply=1` writes after backing up. It tolerates the `prod-`
+prefix and the dropped-leading-zero variants the uploader emits (`nsy-064` vs `nsy-64`).
+
+**Diagnostic lesson worth keeping:** when the API returned 50 products I sampled the first 12,
+saw every `fullsheetUrl` null, and concluded uploads were failing entirely. 22 further down had
+URLs. Sample the whole set or count it - never the head. The real fault was one layer on:
+the URLs existed but pointed at files a deploy had destroyed.
+
+**`unzip.php` is deleted and must not come back.** It was publicly reachable with no
+authentication and wrote PHP into the web root, including a `products-api.php` that used the
+old in-web-root data path - it would silently undo the storage fix.

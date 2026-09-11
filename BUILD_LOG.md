@@ -875,3 +875,38 @@ production. Code changes go live with `git push origin main` followed by Redeplo
 **Left undone, deliberately.** Auto-deployment webhook not configured (still a manual Redeploy
 click) and the asset cache-busting `?v=` strings were offered but not applied — see the rough
 edge noted in `memory.md` §12. No code was changed in this session beyond the tracking commit.
+
+---
+
+## 2026-09-12 — Deploy-safe storage, and the loss of the uploaded sheets
+
+**What went wrong.** Hostinger's Git deploy clean-syncs `public_html`. `products.json` and
+`uploads/` lived there, so deploying wiped the catalogue and every uploaded full-sheet image.
+The browser could not help: `processSyncQueue` deletes its IndexedDB copy the moment an upload
+succeeds, so the server held the only copy. All 22 uploaded sheets are gone and must be
+re-uploaded from originals.
+
+**Fix shipped.**
+- `e751773` — `storage.php` puts `products.json` and `uploads/` above the web root; `uploads.php`
+  serves images from there through an `.htaccess` rewrite so existing `/uploads/<file>` URLs keep
+  working; `health.php` reports whether storage is genuinely deploy-safe. Removed `unzip.php`, an
+  unauthenticated public endpoint that wrote PHP into the web root and would have reverted the
+  data path.
+- `fa1f258` — CSS/JS/HTML revalidate instead of caching for a week; `no-store` on the JSON APIs.
+  Later narrowed so it does not suppress image caching through `uploads.php`.
+- `cc94f44` — `repair.php`, rebuilding catalogue links from upload filenames; `health.php?files=1`
+  and `?cleanup=1`.
+- `c250b6f` — cleanup widened to the console test files.
+
+**Verified live.** `deploy_safe: true`, storage at `<home>/domains/<site>/asiatic-data`,
+50 products persisted across deploys, `POST /api/upload` accepted a 26 MB payload, uploaded files
+served back at 200 with correct MIME and cache headers, `.htaccess` rewrites intact, PHP 8.3.33.
+
+**State at end of session.** Storage held 223 files, all test artefacts — no real imagery.
+Steps left with the user: redeploy, `/health.php?cleanup=1`, `/repair.php?apply=1` to clear the
+22 dead links, then re-upload one sheet for end-to-end confirmation before redoing the rest.
+
+**Not done.** Auto-deploy webhook still unconfigured — deploys are a manual Redeploy click. The
+gallery question is unresolved: `renderGallery()` clears the grid and rebuilds from the catalogue
+alone, so the curated static sheets baked into the category pages are erased on load; merge,
+replace or fall back was put to the user and not yet answered.
