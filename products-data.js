@@ -10,6 +10,9 @@ window.ProductCatalog = (function () {
 
     const STORAGE_KEY = 'realtime_360_product_catalog_v2';
     const SYNC_QUEUE_KEY = 'realtime_360_sync_queue_v1';
+    // Ids of deleted products, kept so a stale copy in another tab cannot resurrect them.
+    const DELETED_KEY = 'realtime_360_deleted_ids_v1';
+    const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
     const DB_NAME = 'ProductAssetsDB_v3';
     const STORE_NAME = 'assets';
 
@@ -104,6 +107,33 @@ window.ProductCatalog = (function () {
     }
 
     // ---- Clean Product for LocalStorage (Strip Heavy Base64) ----
+    function getTombstones() {
+        try {
+            const raw = JSON.parse(localStorage.getItem(DELETED_KEY) || '{}');
+            const cutoff = Date.now() - TOMBSTONE_TTL_MS;
+            let pruned = false;
+            for (const id of Object.keys(raw)) {
+                if (!(raw[id] > cutoff)) { delete raw[id]; pruned = true; }
+            }
+            if (pruned) localStorage.setItem(DELETED_KEY, JSON.stringify(raw));
+            return raw;
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function tombstone(id) {
+        try {
+            const all = getTombstones();
+            all[id] = Date.now();
+            localStorage.setItem(DELETED_KEY, JSON.stringify(all));
+        } catch (e) {}
+    }
+
+    function isDeleted(id) {
+        return Object.prototype.hasOwnProperty.call(getTombstones(), id);
+    }
+
     function sanitizeForStorage(product) {
         const p = { ...product };
         // If fullsheetUrl contains large base64, offload to IndexedDB asynchronously
@@ -126,7 +156,13 @@ window.ProductCatalog = (function () {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
-                const parsed = JSON.parse(stored);
+                let parsed = JSON.parse(stored);
+                // A deleted product must not come back on the first render either, before
+                // syncFromCloud has had a chance to reconcile.
+                if (Array.isArray(parsed)) {
+                    const graves = getTombstones();
+                    parsed = parsed.filter(p => !Object.prototype.hasOwnProperty.call(graves, p.id));
+                }
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     // Check if any legacy product still has bloated data: URLs and sanitize
                     let hasBloat = false;
@@ -183,12 +219,23 @@ window.ProductCatalog = (function () {
                         return cloudProd;
                     });
 
-                    // Also preserve any newly created local products not yet on cloud
+                    // Preserve products created locally that the cloud has not seen yet -
+                    // but never a product that was deleted. Without the tombstone check a
+                    // stale copy in any other tab silently restores it and pushes it back.
                     localProducts.forEach(lp => {
-                        if (!merged.some(mp => mp.id === lp.id)) {
+                        if (!isDeleted(lp.id) && !merged.some(mp => mp.id === lp.id)) {
                             merged.unshift(lp);
                         }
                     });
+
+                    // A deletion made while another device was offline still has to land.
+                    const before = merged.length;
+                    const kept = merged.filter(mp => !isDeleted(mp.id));
+                    if (kept.length !== before) {
+                        syncToCloud(kept);
+                    }
+                    merged.length = 0;
+                    Array.prototype.push.apply(merged, kept);
 
                     try {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
@@ -253,6 +300,7 @@ window.ProductCatalog = (function () {
     }
 
     function deleteProduct(id) {
+        tombstone(id);
         let productsList = getProducts();
         productsList = productsList.filter(p => p.id !== id);
         saveProducts(productsList);
