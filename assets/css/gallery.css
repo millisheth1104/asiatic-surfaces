@@ -222,6 +222,10 @@ html:has(.page-gallery){ scroll-padding-top:76px; }
 body.lb-open{ overflow:hidden; }
 
 /* ---------- foot -------------------------------------------------------- */
+.gfoot__credit a{ text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;
+  transition:color .3s, text-decoration-color .3s; }
+.gfoot__credit a:hover{ color:var(--ink); text-decoration-color:currentColor; }
+
 .gfoot{
   border-top:1px solid var(--line-soft);
   padding:clamp(26px,4vw,44px) var(--gpad);

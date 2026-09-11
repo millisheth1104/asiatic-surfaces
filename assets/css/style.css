@@ -560,6 +560,9 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   color:var(--ink-mute);
 }
 .foot__mid{ text-transform:none; letter-spacing:.04em; opacity:.7; font-weight:300; }
+.foot__credit a{ text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;
+  transition:color .3s, text-decoration-color .3s; }
+.foot__credit a:hover{ color:var(--ink); text-decoration-color:currentColor; }
 
 /* =========================================================
    GSAP TAKEOVER

@@ -1111,3 +1111,23 @@ leaving resumes it; the next button still steps 308px and the loop picks up agai
 idle window; nothing moves while the tab is hidden. Heading reads "Multiple families."
 
 Not pushed.
+
+---
+
+# The studio credit links out — 2026-09-12
+
+`Designed by The Pure Studio` now links to `https://thepurestudio.in/` on all nine footers
+that carry it — the eight category galleries and the home page. The whole phrase is the link,
+not just the studio name, so the hit target is the text the eye lands on.
+
+`target="_blank" rel="noopener"`, matching the 360 tour links: it leaves the site, so it
+should not take the page with it.
+
+The site's global `a{ color:inherit; text-decoration:none }` makes a bare link invisible, so
+the credit gets an underline that fades in from transparent on hover along with a shift from
+`--ink-mute` to `--ink`. Without that there was no way to tell it was clickable.
+
+`wooden.html` has no footer — it is the redirect stub — so it is correctly untouched.
+
+Verified: all nine pages return the same href, target and rel, and the footer still reads
+`Full Sheet View` left, the credit right.
