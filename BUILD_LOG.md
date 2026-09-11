@@ -959,3 +959,17 @@ footer all say Synchro; title and eyebrow say Full Sheet View. No uncaught conso
 only 404 is `/api/products`, which `server.js` does not serve locally.
 
 **Not pushed** — held at the user's instruction.
+
+---
+
+# Home footer credit — 2026-09-12
+
+The home page's own footer still ended in `© 2026`. Its right slot now reads **Designed by The
+Pure Studio**, matching the eight gallery pages. The family list keeps the middle slot; only
+the copyright was replaced. `main.js` already guarded `#yr` with `if (yr)`, so removing the
+element changes nothing else.
+
+Measured at 1440px: one line, wordmark at the left edge, family list centred, credit 64px from
+the right. Below ~700px the row wraps, as it did before.
+
+Not pushed.
