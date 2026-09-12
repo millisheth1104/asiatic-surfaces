@@ -723,24 +723,26 @@
     }
 
     /**
-     * Prepares an image for upload, re-encoding it only when it has to.
+     * Prepares an image for upload. The default is to not touch it at all.
      *
-     * Every upload used to be redrawn through a canvas at quality 0.82 regardless of
-     * size, so even a modest image lost detail on the way in, and a 360 panorama was
-     * squashed to 2880px wide - about 800 source pixels across a 100 degree view, which
-     * is why tours looked soft, most visibly on a high-density phone screen.
+     * The original file is uploaded byte for byte, so a panorama arrives at the viewer
+     * exactly as it left the camera or the render - full resolution, no re-encoding,
+     * nothing for the tour to have lost. Earlier versions redrew every upload through a
+     * canvas at quality 0.82 and forced panoramas down to 2880px wide, which is what
+     * made tours look soft.
      *
-     * A file already within the limits is now passed through byte for byte, so there is
-     * no generational loss at all. Only genuinely oversized images are resampled, and at
-     * a higher quality than before.
+     * Resampling now happens in one case only: a file too large to survive the upload
+     * request itself. That is a hard transport limit, not a quality preference, and the
+     * caller is told when it happens.
      */
-    function prepareImageFile(file, opts = {}) {
-        const maxWidth = opts.maxWidth || 3000;
-        const quality = opts.quality || 0.9;
-        const maxBytes = opts.maxBytes || 12 * 1024 * 1024;
-        // Canvas area is capped by the device, most tightly on older iOS. Staying under
-        // ~16 megapixels keeps the resample from failing silently and returning blank.
-        const maxPixels = 16 * 1024 * 1024;
+    async function prepareImageFile(file, opts = {}) {
+        if (!file) return null;
+
+        // Base64 inflates the payload by about a third on the way to the server, so a
+        // 20 MB file arrives as roughly 27 MB. A 26 MB payload was measured going through
+        // this host intact, so 20 MB is the largest file proven to survive the request.
+        const hardLimitBytes = opts.hardLimitBytes || 20 * 1024 * 1024;
+        const onResample = typeof opts.onResample === 'function' ? opts.onResample : () => {};
 
         const readOriginal = () => new Promise((resolve) => {
             const reader = new FileReader();
@@ -749,14 +751,12 @@
             reader.readAsDataURL(file);
         });
 
+        if (file.size <= hardLimitBytes) {
+            return readOriginal();
+        }
+
+        // Too large to send. Shrink as little as necessary rather than to a fixed size.
         return new Promise((resolve) => {
-            if (!file) return resolve(null);
-
-            // Vector and animated formats must never go through a canvas.
-            if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
-                return readOriginal().then(resolve);
-            }
-
             const img = new Image();
             const url = URL.createObjectURL(file);
 
@@ -765,22 +765,12 @@
                 const w0 = img.naturalWidth || img.width;
                 const h0 = img.naturalHeight || img.height;
 
-                const smallEnough = w0 <= maxWidth && file.size <= maxBytes;
-                // maxWidth is a hard ceiling for panoramas because of the GPU texture limit,
-                // so the pass-through above is only reached when the image already fits.
-                const reEncodable = file.type === 'image/jpeg' || file.type === 'image/webp' ||
-                                    file.type === 'image/png';
+                const scale = Math.sqrt(hardLimitBytes / file.size);
+                let w = Math.max(1, Math.round(w0 * scale));
+                let h = Math.max(1, Math.round(h0 * scale));
 
-                // Untouched is always better than re-encoded.
-                if (smallEnough && reEncodable) {
-                    return resolve(await readOriginal());
-                }
-
-                let w = w0, h = h0;
-                if (w > maxWidth) {
-                    h = Math.round((h * maxWidth) / w);
-                    w = maxWidth;
-                }
+                // Older iOS refuses a canvas much beyond 16 megapixels and returns blank.
+                const maxPixels = 16 * 1024 * 1024;
                 if (w * h > maxPixels) {
                     const k = Math.sqrt(maxPixels / (w * h));
                     w = Math.round(w * k);
@@ -795,9 +785,10 @@
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, w, h);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
+                    onResample(w0, h0, w, h);
+                    // 0.95: the aspect ratio is preserved, so the sphere still maps correctly.
+                    resolve(canvas.toDataURL('image/jpeg', 0.95));
                 } catch (err) {
-                    // A canvas the device refused: the original beats nothing.
                     resolve(await readOriginal());
                 }
             };
@@ -809,6 +800,31 @@
 
             img.src = url;
         });
+    }
+
+    /**
+     * A 360 panorama is an equirectangular projection and must be exactly twice as wide
+     * as it is tall. A 16:9 photo wrapped round a sphere renders stretched with a seam
+     * that does not meet, which reads as "the tour looks wrong" rather than as a problem
+     * with the file. Said once, at upload, where it can still be acted on.
+     */
+    function checkPanoramaShape(file) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const w = img.naturalWidth, h = img.naturalHeight;
+            const ratio = w / h;
+            if (Math.abs(ratio - 2) > 0.05) {
+                showToast(
+                    `This image is ${w}x${h} (${ratio.toFixed(2)}:1). A 360 panorama must be ` +
+                    `exactly 2:1 - try ${h * 2}x${h} or 4096x2048 - or the tour will look stretched.`,
+                    'info'
+                );
+            }
+        };
+        img.onerror = () => URL.revokeObjectURL(url);
+        img.src = url;
     }
 
     async function openEditProductModal(productId, startStep = 1) {
@@ -896,7 +912,7 @@
         inputFullsheet.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempFullsheetDataUrl = await prepareImageFile(file, { maxWidth: 3000, quality: 0.92, maxBytes: 12 * 1024 * 1024 });
+                tempFullsheetDataUrl = await prepareImageFile(file);
                 if (imgFullsheet && wrapFullsheet) {
                     imgFullsheet.src = tempFullsheetDataUrl;
                     wrapFullsheet.style.display = 'flex';
@@ -912,12 +928,13 @@
         inputThreeD.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                // A panorama is wrapped round a sphere, so it needs far more width than a flat
-                // sheet - but not unlimited. The viewer uploads it as a single WebGL texture,
-                // and mobile GPUs commonly cap textures at 4096px; wider than that and a phone
-                // may refuse to draw it at all. 4096 is the widest that is safe everywhere, and
-                // still well over the 2880 this used to force.
-                tempThreeDDataUrl = await prepareImageFile(file, { maxWidth: 4096, quality: 0.95, maxBytes: 20 * 1024 * 1024 });
+// Uploaded exactly as supplied: whatever resolution the panorama has is what
+                // the tour gets. Only the shape is checked, and only to warn.
+                checkPanoramaShape(file);
+                tempThreeDDataUrl = await prepareImageFile(file, {
+                    onResample: (w0, h0, w, h) =>
+                        showToast(`Panorama was ${w0}x${h0}, too large to upload; sent at ${w}x${h}.`, 'info')
+                });
                 if (imgThreeD && wrapThreeD) {
                     imgThreeD.src = tempThreeDDataUrl;
                     wrapThreeD.style.display = 'flex';
