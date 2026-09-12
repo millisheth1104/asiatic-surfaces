@@ -560,28 +560,39 @@
             return;
         }
 
-        if (!FS_EL()) {
+        // Being in the CSS fallback counts as being fullscreen, or pressing the button
+        // again would try to enter a second time instead of leaving.
+        const inPseudo = elem.classList.contains('is-pseudo-fullscreen');
+
+        if (!FS_EL() && !inPseudo) {
             const req = elem.requestFullscreen || elem.webkitRequestFullscreen ||
                         elem.msRequestFullscreen;
-            try {
-                const r = req.call(elem);
-                // Safari's prefixed form returns undefined rather than a promise.
-                if (r && typeof r.catch === 'function') {
-                    r.catch(() => {
-                        elem.classList.add('is-pseudo-fullscreen');
-                        document.body.classList.add('pseudo-fullscreen-open');
-                        updateFullscreenIcon();
-                    });
-                }
-            } catch (e) {
+            const usePseudo = () => {
                 elem.classList.add('is-pseudo-fullscreen');
                 document.body.classList.add('pseudo-fullscreen-open');
                 updateFullscreenIcon();
+            };
+
+            try {
+                const r = req.call(elem);
+                // Safari's prefixed form returns undefined rather than a promise.
+                if (r && typeof r.catch === 'function') r.catch(usePseudo);
+            } catch (e) {
+                usePseudo();
             }
+
+            // Some mobile browsers accept the request and then do nothing. Rather than
+            // trust the call, check whether the page actually went fullscreen.
+            setTimeout(() => {
+                if (!FS_EL() && !elem.classList.contains('is-pseudo-fullscreen')) usePseudo();
+            }, 300);
         } else {
             const exit = document.exitFullscreen || document.webkitExitFullscreen ||
                          document.msExitFullscreen;
             try { exit.call(document); } catch (e) { }
+            elem.classList.remove('is-pseudo-fullscreen');
+            document.body.classList.remove('pseudo-fullscreen-open');
+            updateFullscreenIcon();
         }
         onFirstInteraction();
     }
@@ -610,23 +621,62 @@
         return 'DeviceOrientationEvent' in window;
     }
 
+    /**
+     * Turns on tilt-to-look, and confirms the sensor is really running.
+     *
+     * startOrientation() was called and success assumed in the same breath. On Android
+     * the sensor frequently delivers nothing on the first attempt - the listener is
+     * registered before the platform starts producing events - so the button lit up while
+     * nothing moved, and reloading appeared to fix it because by then the sensor was warm.
+     *
+     * The first deviceorientation event is now waited for. If none arrives the start is
+     * retried once, and only after that is the user told it is unavailable, rather than
+     * being left with a button that claims to be on.
+     */
     function enableGyro() {
         if (!viewer) return;
 
-        // Start native Pannellum device orientation control
-        viewer.startOrientation();
+        let settled = false;
 
-        isGyroActive = true;
-        btnGyro.classList.add('active', 'gyro-active');
-        showToast('📱 Gyroscope enabled — tilt to look around');
+        const onFirstReading = (e) => {
+            // A device with no sensor still fires the event, with null values.
+            if (e.alpha === null && e.beta === null && e.gamma === null) return;
+            if (settled) return;
+            settled = true;
+            window.removeEventListener('deviceorientation', onFirstReading);
+
+            isGyroActive = true;
+            btnGyro.classList.add('active', 'gyro-active');
+            showToast('📱 Gyroscope enabled — tilt to look around');
+
+            // Auto-rotate fights the sensor for control of the camera.
+            if (isAutoRotating) {
+                viewer.stopAutoRotate();
+                isAutoRotating = false;
+                btnAutoRotate.classList.remove('active');
+            }
+        };
+
+        window.addEventListener('deviceorientation', onFirstReading);
+
+        const start = () => { try { viewer.startOrientation(); } catch (e) { } };
+        start();
         onFirstInteraction();
 
-        // Disable auto-rotate when gyro is on (they conflict)
-        if (isAutoRotating) {
-            viewer.stopAutoRotate();
-            isAutoRotating = false;
-            btnAutoRotate.classList.remove('active');
-        }
+        // Retry once, then give an honest answer.
+        setTimeout(() => {
+            if (settled) return;
+            try { viewer.stopOrientation(); } catch (e) { }
+            start();
+            setTimeout(() => {
+                if (settled) return;
+                window.removeEventListener('deviceorientation', onFirstReading);
+                try { viewer.stopOrientation(); } catch (e) { }
+                isGyroActive = false;
+                btnGyro.classList.remove('active', 'gyro-active');
+                showToast('Motion sensor is not responding on this device');
+            }, 1500);
+        }, 1200);
     }
 
     function disableGyro() {
