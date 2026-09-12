@@ -250,16 +250,34 @@
             hidePreloader();
             const viewerEl = document.getElementById('panorama-viewer');
             if (viewerEl) {
+                // A deleted product and a product with no panorama are different answers.
+                // Both used to say "No 3D Image Available", so a tour URL for a product
+                // that no longer exists still looked like a real, merely empty, tour.
+                const gone = !matched && !!targetCode;
+                const title = gone ? 'Product not found' : 'No 3D Image Available';
+                const detail = gone
+                    ? 'This product is no longer in the catalogue. It may have been removed.'
+                    : 'No 360° panorama image has been uploaded for this product.';
+
                 viewerEl.innerHTML = `
                     <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0a09; color: #fff; text-align: center; padding: 24px; z-index: 1000;">
                         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom: 18px;">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
                         </svg>
-                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;">No 3D Image Available</h2>
-                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 320px; line-height: 1.45;">No 360° panorama image has been uploaded for this product.</p>
+                        <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; letter-spacing: -0.01em;"></h2>
+                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.45); max-width: 340px; line-height: 1.45;"></p>
+                        <a href="/" style="margin-top: 22px; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.25); padding-bottom: 3px;">Back to the collection</a>
                     </div>
                 `;
+                // textContent: the code in the message comes from the address bar.
+                viewerEl.querySelector('h2').textContent = title;
+                viewerEl.querySelector('p').textContent = detail;
+
+                const roomNameEl = document.getElementById('room-name');
+                if (gone && roomNameEl) roomNameEl.textContent = 'Not found';
+                const subEl = document.getElementById('header-subtitle');
+                if (gone && subEl) subEl.textContent = 'PRODUCT REMOVED';
             }
             return;
         }
