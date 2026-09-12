@@ -86,9 +86,10 @@ function storage_read_deleted()
     if (!is_array($data)) {
         return [];
     }
-    // Expire after 90 days so the file cannot grow without bound, and an id can be
-    // legitimately reused long after.
-    $cutoff = time() - (90 * 24 * 60 * 60);
+    // Expire after 30 days. The window only has to outlast any stale client still
+    // holding the product; the file itself is negligible either way, at roughly
+    // 40 bytes an entry.
+    $cutoff = time() - (30 * 24 * 60 * 60);
     $live = array_filter($data, function ($ts) use ($cutoff) {
         return is_numeric($ts) && $ts > $cutoff;
     });

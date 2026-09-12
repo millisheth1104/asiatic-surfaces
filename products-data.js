@@ -12,7 +12,7 @@ window.ProductCatalog = (function () {
     const SYNC_QUEUE_KEY = 'realtime_360_sync_queue_v1';
     // Ids of deleted products, kept so a stale copy in another tab cannot resurrect them.
     const DELETED_KEY = 'realtime_360_deleted_ids_v1';
-    const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+    const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000;   // matches the server record
     const DB_NAME = 'ProductAssetsDB_v3';
     const STORE_NAME = 'assets';
 
