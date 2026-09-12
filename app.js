@@ -302,6 +302,31 @@
         }
 
         try {
+            // A tour left open in a background tab keeps its graphics context, and a
+            // browser grants only a handful across every tab. Hand it back when the page
+            // is hidden or closed, so other tabs - and the admin's hotspot preview - can
+            // still get one. pageshow re-creates it if the tab is returned to.
+            window.addEventListener('pagehide', function () {
+                try {
+                    if (viewer && typeof viewer.destroy === 'function') viewer.destroy();
+                } catch (e) { }
+                const el = document.getElementById('panorama-viewer');
+                if (el) {
+                    el.querySelectorAll('canvas').forEach(function (c) {
+                        try {
+                            const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+                            const lose = gl && gl.getExtension('WEBGL_lose_context');
+                            if (lose) lose.loseContext();
+                        } catch (e) { }
+                    });
+                }
+            });
+
+            window.addEventListener('pageshow', function (e) {
+                // Restored from the back/forward cache with its context surrendered.
+                if (e.persisted) window.location.reload();
+            });
+
             viewer = pannellum.viewer('panorama-viewer', {
                 type: 'equirectangular',
                 panorama: panoramaSrc,
