@@ -107,6 +107,50 @@ window.ProductCatalog = (function () {
     }
 
     // ---- Clean Product for LocalStorage (Strip Heavy Base64) ----
+    /**
+     * Collapses records that describe the same sheet.
+     *
+     * The Wooden-to-Synchro rename plus the old resurrection bug left browsers holding
+     * several rows for one code - editing any of them tripped the duplicate-code guard
+     * against its own phantom twin. Identity is code + category, the same pair the guard
+     * uses. The survivor is the row carrying an image, then the one the server already
+     * knows, then the earliest id, so deduping is stable and never drops the only copy
+     * of an uploaded sheet.
+     */
+    function dedupe(list, cloudIds) {
+        if (!Array.isArray(list)) return [];
+        const known = cloudIds instanceof Set ? cloudIds : new Set();
+        const best = new Map();
+        const order = [];
+
+        const score = p => {
+            let s = 0;
+            const u = p && p.fullsheetUrl;
+            if (u && !String(u).startsWith('db:')) s += 4;
+            else if (u) s += 3;
+            if (p && p.threeDDataUrl) s += 1;
+            if (p && known.has(p.id)) s += 2;
+            return s;
+        };
+
+        for (const p of list) {
+            if (!p || !p.id) continue;
+            const code = String(p.code || '').toLowerCase().replace(/#/g, '').trim();
+            const cat = String(p.category || '').toLowerCase().trim();
+            if (!code) { order.push(p.id); best.set(p.id, p); continue; }
+            const key = code + '|' + cat;
+            const held = best.get(key);
+            if (!held) {
+                best.set(key, p);
+                order.push(key);
+            } else if (score(p) > score(held) ||
+                       (score(p) === score(held) && String(p.id) < String(held.id))) {
+                best.set(key, p);
+            }
+        }
+        return order.map(k => best.get(k)).filter(Boolean);
+    }
+
     function getTombstones() {
         try {
             const raw = JSON.parse(localStorage.getItem(DELETED_KEY) || '{}');
@@ -174,6 +218,10 @@ window.ProductCatalog = (function () {
                 if (Array.isArray(parsed)) {
                     const graves = getTombstones();
                     parsed = parsed.filter(p => !Object.prototype.hasOwnProperty.call(graves, p.id));
+                    // Collapse phantom twins here too, so the admin table and the
+                    // duplicate-code guard both see one row per sheet immediately,
+                    // without waiting for the next cloud sync.
+                    parsed = dedupe(parsed);
                 }
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     let needsUpdate = false;
@@ -244,7 +292,8 @@ window.ProductCatalog = (function () {
 
                     // A deletion made while another device was offline still has to land.
                     const before = merged.length;
-                    const kept = merged.filter(mp => !isDeleted(mp.id));
+                    const cloudIds = new Set(data.products.map(cp => cp.id));
+                    const kept = dedupe(merged.filter(mp => !isDeleted(mp.id)), cloudIds);
                     if (kept.length !== before) {
                         syncToCloud(kept);
                     }
