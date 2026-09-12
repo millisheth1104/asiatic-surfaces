@@ -33,6 +33,8 @@
     'wooden': 'Synchro',
     'synchro': 'Synchro',
     'syncro': 'Synchro',
+    'snycro': 'Synchro',
+    'synvro': 'Synchro',
     'digital': 'Digital',
     'laminates': 'Laminates',
     'stone': 'Stone',
@@ -43,8 +45,14 @@
   };
 
   // Wooden was renamed Synchro. Products saved before the rename still carry
-  // category 'Wooden', so both spellings have to fold to the same page.
-  var CATEGORY_ALIASES = { 'wooden': 'synchro', 'syncro': 'synchro' };
+  // category 'Wooden', so all spellings and aliases fold to the same page.
+  var CATEGORY_ALIASES = {
+    'wooden': 'synchro',
+    'syncro': 'synchro',
+    'snycro': 'synchro',
+    'synvro': 'synchro',
+    'synchro': 'synchro'
+  };
 
   function canonCategory(v) {
     var k = (v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -284,7 +292,7 @@
 
   function staticKey(cat) {
     var k = String(cat || '').toLowerCase().trim().replace(/\s+/g, '-');
-    if (k === 'synchro' || k === 'syncro') return 'wooden';
+    if (k === 'synchro' || k === 'syncro' || k === 'snycro' || k === 'synvro') return 'wooden';
     return k;
   }
 

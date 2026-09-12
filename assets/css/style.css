@@ -1,5 +1,5 @@
 /* =========================================================
-   ASIATIC SURFACES — Home
+   FULL SHEET VIEW — Home
    Palette : Soft Sage / Powder Blue / Light Blue / Warm Ivory
    Type    : Asar (headings) · Palanquin (body)
    ========================================================= */
@@ -285,6 +285,17 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
 [data-tex="louvers"]  { --tex:url("../textures/louvers-420.webp"); }
 [data-tex="charcoal"] { --tex:url("../textures/charcoal-420.webp"); }
 
+/* the hero plate's feature cards */
+[data-feat="full-sheet-view"]   { --tex:url("../features/full-sheet-view-420.webp"); }
+[data-feat="immersive-360"]     { --tex:url("../features/immersive-360-420.webp"); }
+[data-feat="premium-grade"]     { --tex:url("../features/premium-grade-420.webp"); }
+[data-feat="trending-designs"]  { --tex:url("../features/trending-designs-420.webp"); }
+[data-feat="anti-scratch"]      { --tex:url("../features/anti-scratch-420.webp"); }
+[data-feat="strong-durable"]    { --tex:url("../features/strong-durable-420.webp"); }
+[data-feat="anti-termite"]      { --tex:url("../features/anti-termite-420.webp"); }
+[data-feat="water-resistant"]   { --tex:url("../features/water-resistant-420.webp"); }
+[data-feat="anti-yellow"]       { --tex:url("../features/anti-yellow-420.webp"); }
+
 .shelf__strip{
   display:flex; gap:clamp(8px,.8vw,14px);
   overflow-x:auto; scroll-behavior:smooth; scroll-snap-type:x proximity;
@@ -294,6 +305,13 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   padding:2px;                    /* so the first card's ring is never clipped */
   margin:-2px;
 }
+
+/* While the plate drives itself, smooth-scrolling and snapping both fight the
+   per-frame scrollLeft writes: the first queues an animation for every frame,
+   the second tugs the strip back to a card edge. The prev/next buttons pass
+   behavior:'smooth' explicitly, so they are unaffected. */
+.shelf__strip.is-auto{ scroll-behavior:auto; scroll-snap-type:none; }
+
 .shelf__strip::-webkit-scrollbar{ display:none; }
 
 .chip{
@@ -335,6 +353,8 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
 .chip:hover{ transform:translateY(-8px); }
+.chip--feat{ cursor:default; }
+.chip--feat:hover{ transform:none; }
 .chip:hover .chip__media{ transform:scale(1.07); }
 .chip:hover .chip__badge{ background:var(--sage); transform:rotate(-8deg); }
 
@@ -540,6 +560,9 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
   color:var(--ink-mute);
 }
 .foot__mid{ text-transform:none; letter-spacing:.04em; opacity:.7; font-weight:300; }
+.foot__credit a{ text-decoration:underline; text-decoration-color:transparent; text-underline-offset:3px;
+  transition:color .3s, text-decoration-color .3s; }
+.foot__credit a:hover{ color:var(--ink); text-decoration-color:currentColor; }
 
 /* =========================================================
    GSAP TAKEOVER
