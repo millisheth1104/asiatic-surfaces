@@ -54,11 +54,6 @@
         return `/${cat}/${code}`;
     }
 
-    /** Only a product carrying a 360 panorama has a tour to open. */
-    function hasTour(product) {
-        return !!(product && (product.threeD || product.threeDDataUrl));
-    }
-
     function normalizeCategory(cat) {
         if (!cat) return '';
         const c = cat.trim().toLowerCase();
@@ -288,15 +283,10 @@
                         </div>
                     </td>
                     <td class="text-center">
-                        ${hasTour(product)
-                            ? `<a class="grid-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" title="Open the 360 tour for ${esc(product.code)}">
+                        <a class="grid-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" title="Open the 360 tour for ${esc(product.code)}">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
                             <span>360 View</span>
-                        </a>`
-                            : `<span class="grid-action-btn tour-link is-disabled" title="Upload a 360 image for this product to enable its tour">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                            <span>No tour</span>
-                        </span>`}
+                        </a>
                     </td>
                     <td class="text-right">
                         <div class="grid-action-cell" style="display: flex; gap: 6px; justify-content: flex-end;">
@@ -353,9 +343,7 @@
 
                     <div class="card-actions" style="margin-top: 14px; display: flex; gap: 8px; align-items: center;">
                         <button class="card-action-btn edit-product-btn" data-id="${esc(product.id)}" title="Edit Product" style="border-color: var(--stone); flex: 1;">Edit</button>
-                        ${hasTour(product)
-                            ? `<a class="card-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" style="padding: 8px 14px;">360 View</a>`
-                            : `<span class="card-action-btn tour-link is-disabled" style="padding: 8px 14px;" title="Upload a 360 image to enable this tour">No tour</span>`}
+                        <a class="card-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" style="padding: 8px 14px;">360 View</a>
                         <button class="card-action-btn card-action-btn--danger delete-product-btn" data-id="${esc(product.id)}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>

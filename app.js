@@ -81,7 +81,9 @@
             // Filter products that have 3D image enabled or uploaded
             return allProducts.filter(p => p.threeD || p.threeDDataUrl);
         }
-        return [{ code: '#4006', name: '#4006', pitch: 23, yaw: 0, fullsheet: true }];
+        // No catalogue engine, no products. This used to return a hardcoded #4006,
+        // which then appeared as a phantom hotspot on unrelated tours.
+        return [];
     }
 
     // Creates the floating product label DOM element for a hotspot
