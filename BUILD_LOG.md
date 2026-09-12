@@ -1183,3 +1183,34 @@ not redirected" fallback and `wooden.html`'s "continue to Synchro sheets". Openi
 new tab would strand the visitor on a blank redirect page in the old one.
 
 Verified: 8 of 8 tiles, correct href, target and rel; zero links remain in the hero plate.
+
+---
+
+## 2026-09-12 (later) — Synchro rename fallout, and the CDN that hid every fix
+
+**Shipped**
+- `219e728` — category pages show every product, image or not; the curated sheets stand in only
+  for a category with no products. (Reverted my earlier reading of "static when db has no image",
+  which had been hiding all 50 Synchro products.)
+- `f721e0f` — images upload on save via `persistAsset` instead of the IndexedDB-then-queue path
+  that silently discarded entries and deleted the browser's only copy on a false success.
+- `3188740` — deletion tombstones, so a stale copy in another tab cannot resurrect a deleted
+  product and push it back to the server.
+- `e1e77e0` — the three-step Add Product form no longer closes on a backdrop click.
+- `a4016ce` — search icon given `width`/`height` in markup; reproduced at 480px against the live
+  stylesheet and confirmed fixed by A/B render.
+- `7362be0` — duplicate records collapsed on code + category, which was blocking edits: the
+  browser held 56 rows against the server's 50, so editing #FSY 031 matched its own phantom twin.
+- `6cfd7be`, `1b959a0` — `/check.html` and `/diag.html`, browser-side diagnostics.
+
+**The hours lost.** Hostinger's CDN had cached `products.js` under the pre-fix one-week header and
+kept serving it (`Age: 33555`) across repeated redeploys. Fixes were live in the repo, deployed to
+origin, and absent from the served file - so every test of them failed for the wrong reason. See
+memory.md §14 for the two-header diagnosis.
+
+**Verified live after the edge expired:** all six fixes present in the served files.
+
+**Still open.** No Synchro product has an image, so every tile on `/synchro.html` renders the same
+`wooden.webp` fallback - the page looks like one photo repeated 50 times. That is the visible
+complaint and it resolves only when sheets are re-uploaded. The upload rewrite has still never run
+against a real image on a correctly-served page.

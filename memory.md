@@ -491,3 +491,50 @@ the URLs existed but pointed at files a deploy had destroyed.
 **`unzip.php` is deleted and must not come back.** It was publicly reachable with no
 authentication and wrote PHP into the web root, including a `products-api.php` that used the
 old in-web-root data path - it would silently undo the storage fix.
+
+---
+
+## 14. Hostinger's CDN caches independently of the deploy (2026-09-12)
+
+**A redeploy does not invalidate Hostinger's CDN.** `Server: hcdn` fronts the site, and it
+honours whatever `Cache-Control` was in force *when it first fetched a file*. The old
+`.htaccess` cached JS for a week, so the CDN stored `products.js` under
+`Cache-Control: public, max-age=604800` and kept serving that copy for hours afterwards -
+`Age: 33555` on a plain `curl` - while the origin already had the new file. Deploys landed and
+changed nothing visible. A browser hard-refresh could not help: the stale copy was on
+Hostinger's edge, not in the browser.
+
+**How to tell it apart from a failed deploy** - `curl -sI` the file and read two headers:
+`Age` greater than zero with a long `max-age` means the edge is serving a cached copy; the
+deploy is fine and the CDN is the problem. Compare against the origin content directly:
+```bash
+curl -sI https://<site>/products.js | grep -iE 'cache-control|age'
+curl -s -H 'Cache-Control: no-cache' https://<site>/products.js | grep -c '<new symbol>'
+```
+A `no-cache` request bypasses the edge, so a mismatch between that and a plain request is
+proof. Purge at hPanel → Advanced → Cache Manager. Since the headers are now
+`no-cache, must-revalidate` (see §12) this should not recur, but every "my change is not
+reflecting" report should check `Age` before anything else.
+
+**This masked real work for hours.** The upload-on-save rewrite, the backdrop-click fix and
+others were deployed and correct while the site served code that predated them - so testing
+them "failed" for reasons that had nothing to do with the code.
+
+---
+
+## 15. Rendering the site to see it, rather than reading the files
+
+Chrome is installed and headless captures work, which settles UI disputes that file-reading
+cannot:
+```bash
+"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --disable-gpu \
+  --hide-scrollbars --window-size=480,700 --screenshot=out.png \
+  --virtual-time-budget=15000 "https://<site>/synchro.html"
+```
+**Always check narrow widths.** The giant search magnifier reported on 2026-09-12 was invisible
+at 1400px and reproduced every time at 480px: the SVG carried only a `viewBox`, so whenever the
+`.gsearch__ico` rule was not yet in effect the browser stretched it to the container. Any inline
+SVG sized only by CSS has this failure mode - give it `width`/`height` attributes.
+
+I spent a long stretch insisting the code was correct because the files were correct. The page
+was rendering something else. Render it.
