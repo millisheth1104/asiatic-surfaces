@@ -604,7 +604,15 @@
                 if (categoryThumbWrap) categoryThumbWrap.style.display = 'none';
                 return;
             }
-            categoryThumbDataUrl = await prepareImageFile(file);
+            categoryThumbDataUrl = await prepareImageFile(file, {
+                onTooLarge: (size, limit) => showToast(
+                    'This thumbnail is ' + (size/1048576).toFixed(1) + ' MB, over the ' +
+                    (limit/1048576) + ' MB limit. It will be reduced to fit.',
+                    'error'),
+                onResample: (w0, h0, w, h) => showToast(
+                    'Thumbnail was ' + w0 + 'x' + h0 + ', too large to upload; sent at ' + w + 'x' + h + '.',
+                    'info')
+            });
             if (categoryThumbPreview && categoryThumbWrap) {
                 categoryThumbPreview.src = categoryThumbDataUrl;
                 categoryThumbWrap.style.display = 'block';
@@ -985,10 +993,12 @@
     async function prepareImageFile(file, opts = {}) {
         if (!file) return null;
 
-        // Base64 inflates the payload by about a third on the way to the server, so a
-        // 20 MB file arrives as roughly 27 MB. A 26 MB payload was measured going through
-        // this host intact, so 20 MB is the largest file proven to survive the request.
-        const hardLimitBytes = opts.hardLimitBytes || 20 * 1024 * 1024;
+        // Base64 inflates the payload by about a third, so a 25 MB file arrives as about
+        // 33 MB. A 40 MB body was measured passing through this host intact, so 25 MB has
+        // room to spare. The server enforces the same figure, since this check runs in the
+        // browser and an attacker simply would not run it.
+        const hardLimitBytes = opts.hardLimitBytes || 25 * 1024 * 1024;
+        const onTooLarge = typeof opts.onTooLarge === 'function' ? opts.onTooLarge : () => {};
         const onResample = typeof opts.onResample === 'function' ? opts.onResample : () => {};
 
         const readOriginal = () => new Promise((resolve) => {
@@ -1002,7 +1012,10 @@
             return readOriginal();
         }
 
-        // Too large to send. Shrink as little as necessary rather than to a fixed size.
+        // Over the limit. Say so plainly first - the image is about to lose detail and
+        // that should not happen quietly - then shrink by as little as will fit.
+        onTooLarge(file.size, hardLimitBytes);
+
         return new Promise((resolve) => {
             const img = new Image();
             const url = URL.createObjectURL(file);
@@ -1162,7 +1175,15 @@
         inputFullsheet.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempFullsheetDataUrl = await prepareImageFile(file);
+                tempFullsheetDataUrl = await prepareImageFile(file, {
+                    onTooLarge: (size, limit) => showToast(
+                        'This full sheet is ' + (size/1048576).toFixed(1) + ' MB, over the ' +
+                        (limit/1048576) + ' MB limit. It will be reduced to fit, which loses some detail.',
+                        'error'),
+                    onResample: (w0, h0, w, h) => showToast(
+                        'Full sheet was ' + w0 + 'x' + h0 + ', too large to upload; sent at ' + w + 'x' + h + '.',
+                        'info')
+                });
                 if (imgFullsheet && wrapFullsheet) {
                     imgFullsheet.src = tempFullsheetDataUrl;
                     wrapFullsheet.style.display = 'flex';
@@ -1182,6 +1203,10 @@
                 // the tour gets. Only the shape is checked, and only to warn.
                 checkPanoramaShape(file);
                 tempThreeDDataUrl = await prepareImageFile(file, {
+                    onTooLarge: (size, limit) => showToast(
+                        'This panorama is ' + (size/1048576).toFixed(1) + ' MB, over the ' +
+                        (limit/1048576) + ' MB limit. It will be reduced to fit, which loses some detail.',
+                        'error'),
                     onResample: (w0, h0, w, h) =>
                         showToast(`Panorama was ${w0}x${h0}, too large to upload; sent at ${w}x${h}.`, 'info')
                 });

@@ -56,6 +56,10 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST' || $method === 'PUT') {
+    // Categories are created rarely by nature, so this can be tight.
+    require_once __DIR__ . '/ratelimit.php';
+    rate_limit('categories-write', 20, 60);
+
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);

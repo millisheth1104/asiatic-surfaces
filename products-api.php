@@ -42,6 +42,11 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST' || $method === 'PUT') {
+    // Saving a product is a handful of requests; a script rewriting the catalogue in a
+    // loop is not. Applied after the GET branch so reading the catalogue is untouched.
+    require_once __DIR__ . '/ratelimit.php';
+    rate_limit('products-write', 60, 60);
+
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);

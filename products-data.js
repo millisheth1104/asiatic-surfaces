@@ -502,6 +502,13 @@ window.ProductCatalog = (function () {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename, base64Data })
             });
+            // The server refuses an oversized image or too many in a minute. Those are
+            // answers, not network failures, and saying which one it was beats a silent
+            // fall back to the offline queue.
+            if (res.status === 413 || res.status === 429) {
+                const info = await res.json().catch(() => ({}));
+                throw new Error(info.error || 'Upload refused by the server');
+            }
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.url) {
