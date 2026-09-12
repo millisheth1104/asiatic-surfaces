@@ -7,6 +7,10 @@
 
     // ---- State ----
     let viewer = null;
+    // The product this tour is showing. The Fullsheet button needs it, and it was only
+    // ever available inside the initialiser, which is why that button showed a
+    // placeholder instead of the sheet uploaded with the panorama.
+    let currentProduct = null;
     let isAutoRotating = false;
     let hasInteracted = false;
     let isGyroActive = false;
@@ -193,6 +197,7 @@
             }
 
             if (matched) {
+                currentProduct = matched;
                 const subEl = document.getElementById('header-subtitle');
                 if (subEl && matched.name) subEl.textContent = (matched.name || 'Room Interior').toUpperCase();
 
@@ -753,7 +758,39 @@
     let fsScrollStartY = 0;
     let fsZoomIndicatorTimer = null;
 
-    function openFullsheet() {
+    /** Resolves a product's sheet, whether it is a URL or a local IndexedDB key. */
+    async function resolveFullsheetSrc(product) {
+        const raw = product && product.fullsheetUrl ? String(product.fullsheetUrl) : '';
+        if (!raw) return null;
+        if (raw.startsWith('db:')) {
+            const key = raw.replace('db:', '');
+            if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
+                return await window.ProductCatalog.getAsset(key);
+            }
+            return null;
+        }
+        return raw;
+    }
+
+    async function openFullsheet() {
+        // Load this tour's sheet. Previously only a hotspot click set the image, so the
+        // toolbar button opened whatever was last shown - by default the placeholder.
+        const src = await resolveFullsheetSrc(currentProduct);
+        const titleArea = document.querySelector('.fullsheet-title-area span');
+
+        if (src) {
+            fullsheetImage.src = src;
+            fullsheetImage.style.display = '';
+            if (titleArea && currentProduct) {
+                titleArea.textContent = [currentProduct.code, currentProduct.name]
+                    .filter(Boolean).join(' - ') + ' Fullsheet';
+            }
+        } else {
+            fullsheetImage.removeAttribute('src');
+            fullsheetImage.style.display = 'none';
+            if (titleArea) titleArea.textContent = 'No full sheet uploaded for this product';
+        }
+
         fullsheetScale = 1;
         fullsheetOverlay.style.display = 'flex';
         fullsheetOverlay.classList.remove('closing');

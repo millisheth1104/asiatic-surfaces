@@ -468,3 +468,19 @@ body.lb-open{ overflow:hidden; }
   background: rgba(247,244,236,.25);
   border-color: rgba(247,244,236,.5);
 }
+
+/* ---- Sheets are not clickable -------------------------------------------
+   Clicking a sheet used to open it full size. Browsing the range is what a
+   category page is for; the 360 tour, reached by its own link on the card, is
+   where a sheet gets examined. The image still lifts on hover because the card
+   as a whole is still a live thing - the tour link sits on top of it - but the
+   sheet itself must not look or behave like a button. */
+.sheet__hit[disabled]{
+  cursor:default;
+  /* A disabled button swallows pointer events, which would block the 360 link
+     layered above it from receiving hover. */
+  pointer-events:none;
+  opacity:1;
+}
+
+.sheet__hit[disabled]:focus-visible{ outline:none; }

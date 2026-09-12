@@ -439,12 +439,15 @@
       );
 
       var hitBtn = figure.querySelector('.sheet__hit');
-      // Look the index up at click time: search filters `hits`, so a position
-      // captured at build time would open the wrong sheet once anything is
-      // filtered out.
-      hitBtn.addEventListener('click', function () {
-        openLightbox(hits.indexOf(this));
-      });
+      // Deliberately not clickable. Clicking a sheet used to open it full size in a
+      // lightbox; a category page is for browsing the range, and the 360 tour - reached
+      // by its own link on the card - is where a sheet is examined. The element stays a
+      // button so the existing markup and styles are unchanged, but it does nothing and
+      // is taken out of the tab order rather than offering focus that leads nowhere.
+      hitBtn.disabled = true;
+      hitBtn.tabIndex = -1;
+      hitBtn.style.cursor = 'default';
+      hitBtn.removeAttribute('aria-label');
 
       cards.push(figure);
       hits.push(hitBtn);

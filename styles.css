@@ -650,13 +650,18 @@ html, body {
 
 .fullsheet-image-container {
     flex: 1;
-    overflow: hidden;
+    /* A sheet is typically twice as tall as it is wide. Fitting one inside the viewport
+       shrank it until the grain was unreadable, which is the opposite of the point.
+       It is sized to the width now and scrolls, so the whole sheet is legible. */
+    overflow: auto;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding: 18px;
     background: var(--charcoal);
     cursor: grab;
     position: relative;
+    overscroll-behavior: contain;
 }
 
 .fullsheet-image-container:active {
@@ -664,8 +669,12 @@ html, body {
 }
 
 .fullsheet-image-container img {
-    max-width: 90%;
-    max-height: 90%;
+    /* No max-height: a tall sheet is allowed to run past the viewport and be scrolled
+       rather than squeezed into it. */
+    max-width: min(100%, 820px);
+    width: auto;
+    height: auto;
+    flex: none;
     object-fit: contain;
     transform-origin: center center;
     transition: transform 0.1s ease-out;
