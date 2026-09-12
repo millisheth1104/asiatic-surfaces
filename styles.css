@@ -1169,3 +1169,25 @@ body.dashboard-active {
     text-transform: uppercase;
     color: rgba(247, 244, 236, 0.55);
 }
+
+/* ---- Pseudo-fullscreen ---------------------------------------------------
+   iPhones do not support the Fullscreen API on ordinary elements, only on
+   <video>, so the tour fills the viewport with CSS instead. dvh follows the
+   browser bars as they hide and show; vh is the fallback where it is unknown. */
+#app-container.is-pseudo-fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 99999;
+    margin: 0;
+    border-radius: 0;
+    background: #0c0a09;
+}
+
+body.pseudo-fullscreen-open {
+    overflow: hidden;
+    /* Stops the page behind scrolling under the viewer on touch. */
+    overscroll-behavior: none;
+}

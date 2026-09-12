@@ -337,13 +337,15 @@ window.ProductCatalog = (function () {
             console.error('localStorage quota exceeded during saveProducts:', e);
         }
         window.dispatchEvent(new CustomEvent('catalogUpdated', { detail: sanitized }));
-        syncToCloud(sanitized);
+        // Returned so a caller that needs to know the catalogue reached the server can
+        // await this one request, instead of issuing a second identical POST after it.
+        return syncToCloud(sanitized);
     }
 
     function addProduct(productData) {
         const productsList = getProducts();
         productsList.unshift(normalizeProduct(productData));
-        saveProducts(productsList);
+        productsList.saved = saveProducts(productsList);
         return productsList;
     }
 
@@ -352,7 +354,7 @@ window.ProductCatalog = (function () {
         const index = productsList.findIndex(p => p.id === id);
         if (index !== -1) {
             productsList[index] = normalizeProduct({ ...productsList[index], ...updatedFields });
-            saveProducts(productsList);
+            productsList.saved = saveProducts(productsList);
         }
         return productsList;
     }

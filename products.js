@@ -1458,38 +1458,38 @@
         }
 
         try {
+            let saved = null;
+
             // Retain current ID if in Edit mode, otherwise generate a new unique ID
             const productId = editingProductId || `prod-${Date.now()}`;
 
-            // Check if fullsheet / 3D data are base64 strings and store in IndexedDB
-            let finalFullsheetUrl = null;
-            let finalThreeDDataUrl = null;
+            // Both images upload at once. They were awaited one after the other, so a
+            // product with a sheet and a panorama waited for the sum of two uploads when
+            // they have no dependency on each other.
+            const existing = editingProductId
+                ? getRealTimeProducts().find(p => p.id === editingProductId)
+                : null;
 
-            if (tempFullsheetDataUrl) {
-                if (tempFullsheetDataUrl.startsWith('data:')) {
-                    finalFullsheetUrl = await persistAsset(
-                        productId, 'fullsheet', tempFullsheetDataUrl, `fullsheet-${slug}.jpg`
-                    );
-                } else {
-                    finalFullsheetUrl = tempFullsheetDataUrl;
+            const fullsheetTask = (async () => {
+                if (tempFullsheetDataUrl) {
+                    return tempFullsheetDataUrl.startsWith('data:')
+                        ? persistAsset(productId, 'fullsheet', tempFullsheetDataUrl, `fullsheet-${slug}.jpg`)
+                        : tempFullsheetDataUrl;
                 }
-            } else if (editingProductId) {
-                const existing = getRealTimeProducts().find(p => p.id === editingProductId);
-                if (existing) finalFullsheetUrl = existing.fullsheetUrl;
-            }
+                return existing ? existing.fullsheetUrl : null;
+            })();
 
-            if (tempThreeDDataUrl) {
-                if (tempThreeDDataUrl.startsWith('data:')) {
-                    finalThreeDDataUrl = await persistAsset(
-                        productId, 'threeD', tempThreeDDataUrl, `panorama-3d-${slug}.jpg`
-                    );
-                } else {
-                    finalThreeDDataUrl = tempThreeDDataUrl;
+            const threeDTask = (async () => {
+                if (tempThreeDDataUrl) {
+                    return tempThreeDDataUrl.startsWith('data:')
+                        ? persistAsset(productId, 'threeD', tempThreeDDataUrl, `panorama-3d-${slug}.jpg`)
+                        : tempThreeDDataUrl;
                 }
-            } else if (editingProductId) {
-                const existing = getRealTimeProducts().find(p => p.id === editingProductId);
-                if (existing) finalThreeDDataUrl = existing.threeDDataUrl;
-            }
+                return existing ? existing.threeDDataUrl : null;
+            })();
+
+            const [finalFullsheetUrl, finalThreeDDataUrl] =
+                await Promise.all([fullsheetTask, threeDTask]);
 
             const newProduct = {
                 id: productId,
@@ -1510,11 +1510,10 @@
 
             // 1. Instant optimistic save & UI update (Safe: No Base64 in LocalStorage)
             if (window.ProductCatalog && typeof window.ProductCatalog.addProduct === 'function') {
-                if (editingProductId) {
-                    window.ProductCatalog.updateProduct(editingProductId, newProduct);
-                } else {
-                    window.ProductCatalog.addProduct(newProduct);
-                }
+                const list = editingProductId
+                    ? window.ProductCatalog.updateProduct(editingProductId, newProduct)
+                    : window.ProductCatalog.addProduct(newProduct);
+                saved = list && list.saved;
             } else {
                 const list = getRealTimeProducts();
                 if (editingProductId) {
@@ -1528,14 +1527,12 @@
 
             editingProductId = null;
 
-            // saveProducts fires its cloud POST without awaiting it, so a save could be cut
-            // short by the re-render that follows. Push once more and wait for it.
-            if (window.ProductCatalog && typeof window.ProductCatalog.syncToCloud === 'function') {
-                try {
-                    await window.ProductCatalog.syncToCloud(window.ProductCatalog.getProducts());
-                } catch (err) {
-                    console.warn('Catalogue sync deferred:', err);
-                }
+            // saveProducts already posted the catalogue; wait for that request rather
+            // than sending the whole list a second time.
+            try {
+                if (saved && typeof saved.then === 'function') await saved;
+            } catch (err) {
+                console.warn('Catalogue sync deferred:', err);
             }
 
             renderCatalog();

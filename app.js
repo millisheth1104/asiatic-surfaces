@@ -526,35 +526,73 @@
         onFirstInteraction();
     }
 
+    /**
+     * Fullscreen, including on phones.
+     *
+     * Two things broke it on mobile. Safari exposes the Fullscreen API only under a
+     * webkit prefix, so document.fullscreenElement was always undefined and the toggle
+     * only ever tried to enter; and on iPhone the API does not work on ordinary elements
+     * at all - only on <video> - so the request silently did nothing.
+     *
+     * Where the real API exists it is used, prefixes included. Where it does not, the
+     * viewer is pinned to the whole viewport with CSS instead, which is the only way to
+     * fill an iPhone screen and behaves the same from the visitor's side.
+     */
+    const FS_EL = () => document.fullscreenElement || document.webkitFullscreenElement ||
+                         document.msFullscreenElement || null;
+
+    function fullscreenSupported(elem) {
+        return !!(elem.requestFullscreen || elem.webkitRequestFullscreen ||
+                  elem.msRequestFullscreen);
+    }
+
     function handleFullscreen() {
         const elem = document.getElementById('app-container');
+        if (!elem) return;
 
-        if (!document.fullscreenElement) {
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
+        if (!fullscreenSupported(elem)) {
+            // iOS and anything else without the API: fill the viewport ourselves.
+            elem.classList.toggle('is-pseudo-fullscreen');
+            document.body.classList.toggle('pseudo-fullscreen-open');
+            updateFullscreenIcon();
+            setTimeout(() => { if (viewer && viewer.resize) { try { viewer.resize(); } catch (e) {} } }, 120);
+            onFirstInteraction();
+            return;
+        }
+
+        if (!FS_EL()) {
+            const req = elem.requestFullscreen || elem.webkitRequestFullscreen ||
+                        elem.msRequestFullscreen;
+            try {
+                const r = req.call(elem);
+                // Safari's prefixed form returns undefined rather than a promise.
+                if (r && typeof r.catch === 'function') {
+                    r.catch(() => {
+                        elem.classList.add('is-pseudo-fullscreen');
+                        document.body.classList.add('pseudo-fullscreen-open');
+                        updateFullscreenIcon();
+                    });
+                }
+            } catch (e) {
+                elem.classList.add('is-pseudo-fullscreen');
+                document.body.classList.add('pseudo-fullscreen-open');
+                updateFullscreenIcon();
             }
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            }
+            const exit = document.exitFullscreen || document.webkitExitFullscreen ||
+                         document.msExitFullscreen;
+            try { exit.call(document); } catch (e) { }
         }
         onFirstInteraction();
     }
 
     function updateFullscreenIcon() {
-        if (document.fullscreenElement) {
-            fullscreenIcon.style.display = 'none';
-            exitFullscreenIcon.style.display = 'block';
-        } else {
-            fullscreenIcon.style.display = 'block';
-            exitFullscreenIcon.style.display = 'none';
-        }
+        const elem = document.getElementById('app-container');
+        const on = !!FS_EL() || (elem && elem.classList.contains('is-pseudo-fullscreen'));
+        if (fullscreenIcon) fullscreenIcon.style.display = on ? 'none' : 'block';
+        if (exitFullscreenIcon) exitFullscreenIcon.style.display = on ? 'block' : 'none';
+        // The canvas must be told the viewport changed or it keeps the old dimensions.
+        setTimeout(() => { if (viewer && viewer.resize) { try { viewer.resize(); } catch (e) {} } }, 120);
     }
 
     // ---- Gyroscope ----
@@ -791,6 +829,19 @@
     btnFullscreen.addEventListener('click', handleFullscreen);
     btnGyro.addEventListener('click', handleGyroToggle);
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+
+    // Leaving pseudo-fullscreen with the phone's back gesture or the Escape key.
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const elem = document.getElementById('app-container');
+        if (elem && elem.classList.contains('is-pseudo-fullscreen')) {
+            elem.classList.remove('is-pseudo-fullscreen');
+            document.body.classList.remove('pseudo-fullscreen-open');
+            updateFullscreenIcon();
+        }
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
