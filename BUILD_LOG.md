@@ -1214,3 +1214,27 @@ memory.md §14 for the two-header diagnosis.
 `wooden.webp` fallback - the page looks like one photo repeated 50 times. That is the visible
 complaint and it resolves only when sheets are re-uploaded. The upload rewrite has still never run
 against a real image on a correctly-served page.
+
+---
+
+## 2026-09-12 (evening) — Domain live, search verified, security audit
+
+**Domain.** `fullsheetview.in` is live and serving. Let's Encrypt certificate auto-issued by
+Hostinger (valid to 2026-12-10), Force HTTPS already on, all endpoints 200. The temporary
+hostingersite.com address is now 403 - expected when a custom domain is connected.
+
+**Search** (`297a54d`). The curated-sheets path built cards without the `data-search` attribute
+the filter reads and never registered them, so a category falling back to curated sheets answered
+"No sheet matches" to everything. Fixed, and the lightbox index is now resolved at click time so
+a filtered grid opens the right sheet. Verified by driving a real browser rather than reading the
+code: dynamic path 51 cards, "RSY 162" -> 1, "fsy" -> 4, cleared -> 51; static path 4 cards,
+"2104" -> 1, "zzzz" -> the empty message, cleared -> 4.
+
+**Security audit.** Findings and the accepted risk are recorded in memory.md §16. Shipped in
+`ec76c34`: `esc()` applied to 16 innerHTML sites in `products.js`, and `cors.php` replacing the
+wildcard CORS on both JSON endpoints with an allowlist. The user was offered a full auth
+implementation and chose to defer it, so the admin page and write endpoints remain open by
+decision, not oversight.
+
+**Still open.** No Synchro product has an image, so every tile renders the same `wooden.webp`
+fallback. The upload-on-save rewrite has still never run against a real image.

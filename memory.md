@@ -538,3 +538,40 @@ SVG sized only by CSS has this failure mode - give it `width`/`height` attribute
 
 I spent a long stretch insisting the code was correct because the files were correct. The page
 was rendering something else. Render it.
+
+---
+
+## 16. Live domain, and the security posture that was accepted (2026-09-12)
+
+**Live at `https://fullsheetview.in`** (www also resolves). Let's Encrypt certificate issued
+automatically by Hostinger, valid to 2026-12-10, auto-renewing; Force HTTPS is on, so `http://`
+redirects. Connecting the domain **disabled the temporary `forestgreen-cormorant-187060.
+hostingersite.com` address** - it now answers 403, so any older note or QR code pointing at it is
+dead. The code is domain-agnostic (relative paths throughout, QR built from
+`window.location.origin`), so nothing needed changing for the switch.
+
+**Accepted risk, decided by the user on 2026-09-12: the admin panel and the write APIs have no
+authentication.** `https://fullsheetview.in/products.html` opens the full admin to anyone, and
+a single unauthenticated `POST /api/products` replaces the entire catalogue:
+```bash
+curl -X POST https://fullsheetview.in/api/products -H 'Content-Type: application/json' -d '{"products":[]}'
+```
+`repair.php?apply=1` and `health.php?cleanup=1` are likewise open and destructive. This was
+raised with a concrete fix offered (hashed password outside the web root, PHP session, writes
+rejected without it) and the answer was "leave it for now". Do not treat this as unknown or
+unreported - it is a standing decision. Revisit only if asked, or if the catalogue is damaged.
+
+**What was hardened instead** (`ec76c34`): product fields are escaped through `esc()` at 16
+innerHTML sites in `products.js` - they arrive from an API that accepts anyone's writes, so a
+product name was a script that ran in the admin's browser; and `cors.php` replaced
+`Access-Control-Allow-Origin: *` on both JSON endpoints with a reflected allowlist. Neither
+closes the hole above; both narrow it.
+
+**Verified not vulnerable:** directory listings are 403 across `/src/`, `/scripts/`, `/assets/`,
+`/api/` and the image folders; `uploads.php` blocks traversal via `basename` plus character and
+extension whitelists; uploaded PHP cannot execute because uploads live outside the web root and
+only serve through the image whitelist.
+
+**Hostinger's Directory Password Protection cannot protect `products.html`** - it works on
+directories, and the admin sits in the web root. Protecting it would need the admin moved into
+its own folder, and would still leave the APIs open to `curl`.
