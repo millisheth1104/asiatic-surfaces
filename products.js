@@ -722,50 +722,91 @@
         return `db:${key}`;
     }
 
-    function compressImageFile(file, maxWidth = 1920, quality = 0.85) {
+    /**
+     * Prepares an image for upload, re-encoding it only when it has to.
+     *
+     * Every upload used to be redrawn through a canvas at quality 0.82 regardless of
+     * size, so even a modest image lost detail on the way in, and a 360 panorama was
+     * squashed to 2880px wide - about 800 source pixels across a 100 degree view, which
+     * is why tours looked soft, most visibly on a high-density phone screen.
+     *
+     * A file already within the limits is now passed through byte for byte, so there is
+     * no generational loss at all. Only genuinely oversized images are resampled, and at
+     * a higher quality than before.
+     */
+    function prepareImageFile(file, opts = {}) {
+        const maxWidth = opts.maxWidth || 3000;
+        const quality = opts.quality || 0.9;
+        const maxBytes = opts.maxBytes || 12 * 1024 * 1024;
+        // Canvas area is capped by the device, most tightly on older iOS. Staying under
+        // ~16 megapixels keeps the resample from failing silently and returning blank.
+        const maxPixels = 16 * 1024 * 1024;
+
+        const readOriginal = () => new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+        });
+
         return new Promise((resolve) => {
-            if (!file) {
-                resolve(null);
-                return;
-            }
-            if (file.type === 'image/svg+xml') {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = () => resolve(null);
-                reader.readAsDataURL(file);
-                return;
+            if (!file) return resolve(null);
+
+            // Vector and animated formats must never go through a canvas.
+            if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
+                return readOriginal().then(resolve);
             }
 
             const img = new Image();
             const url = URL.createObjectURL(file);
-            img.onload = () => {
-                URL.revokeObjectURL(url);
-                let w = img.width;
-                let h = img.height;
 
+            img.onload = async () => {
+                URL.revokeObjectURL(url);
+                const w0 = img.naturalWidth || img.width;
+                const h0 = img.naturalHeight || img.height;
+
+                const smallEnough = w0 <= maxWidth && file.size <= maxBytes;
+                // maxWidth is a hard ceiling for panoramas because of the GPU texture limit,
+                // so the pass-through above is only reached when the image already fits.
+                const reEncodable = file.type === 'image/jpeg' || file.type === 'image/webp' ||
+                                    file.type === 'image/png';
+
+                // Untouched is always better than re-encoded.
+                if (smallEnough && reEncodable) {
+                    return resolve(await readOriginal());
+                }
+
+                let w = w0, h = h0;
                 if (w > maxWidth) {
                     h = Math.round((h * maxWidth) / w);
                     w = maxWidth;
                 }
+                if (w * h > maxPixels) {
+                    const k = Math.sqrt(maxPixels / (w * h));
+                    w = Math.round(w * k);
+                    h = Math.round(h * k);
+                }
 
-                const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d', { alpha: false });
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, w, h);
-
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                resolve(compressedDataUrl);
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d', { alpha: false });
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                } catch (err) {
+                    // A canvas the device refused: the original beats nothing.
+                    resolve(await readOriginal());
+                }
             };
+
             img.onerror = () => {
                 URL.revokeObjectURL(url);
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = () => resolve(null);
-                reader.readAsDataURL(file);
+                readOriginal().then(resolve);
             };
+
             img.src = url;
         });
     }
@@ -855,7 +896,7 @@
         inputFullsheet.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempFullsheetDataUrl = await compressImageFile(file, 1920, 0.82);
+                tempFullsheetDataUrl = await prepareImageFile(file, { maxWidth: 3000, quality: 0.92, maxBytes: 12 * 1024 * 1024 });
                 if (imgFullsheet && wrapFullsheet) {
                     imgFullsheet.src = tempFullsheetDataUrl;
                     wrapFullsheet.style.display = 'flex';
@@ -871,7 +912,12 @@
         inputThreeD.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                tempThreeDDataUrl = await compressImageFile(file, 2880, 0.82);
+                // A panorama is wrapped round a sphere, so it needs far more width than a flat
+                // sheet - but not unlimited. The viewer uploads it as a single WebGL texture,
+                // and mobile GPUs commonly cap textures at 4096px; wider than that and a phone
+                // may refuse to draw it at all. 4096 is the widest that is safe everywhere, and
+                // still well over the 2880 this used to force.
+                tempThreeDDataUrl = await prepareImageFile(file, { maxWidth: 4096, quality: 0.95, maxBytes: 20 * 1024 * 1024 });
                 if (imgThreeD && wrapThreeD) {
                     imgThreeD.src = tempThreeDDataUrl;
                     wrapThreeD.style.display = 'flex';
