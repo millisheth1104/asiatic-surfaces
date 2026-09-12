@@ -6,6 +6,20 @@
 (function () {
     'use strict';
 
+    /**
+     * Escapes a value before it is interpolated into innerHTML.
+     *
+     * Product codes and names arrive from the catalogue API, which accepts writes from
+     * anyone, so they are untrusted input. Rendered raw they execute in the admin's
+     * browser the moment the table is drawn. gallery.js has carried this helper all
+     * along; this file did not.
+     */
+    function esc(v) {
+        return String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     // ---- Load Real Products from Shared Catalog Engine ----
     function getRealTimeProducts() {
         if (window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function') {
@@ -115,7 +129,7 @@
             ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b9c8b3" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
             : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e5c8b9" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
 
-        toast.innerHTML = `${iconSvg} <span>${message}</span>`;
+        toast.innerHTML = `${iconSvg} <span>${esc(message)}</span>`;
         container.appendChild(toast);
 
         setTimeout(() => {
@@ -237,15 +251,15 @@
                    </span>`;
 
             return `
-                <tr data-id="${product.id}">
+                <tr data-id="${esc(product.id)}">
                     <td>
-                        <span class="grid-code-badge">${product.code}</span>
+                        <span class="grid-code-badge">${esc(product.code)}</span>
                     </td>
                     <td>
-                        <span class="grid-product-name">${product.name || ''}</span>
+                        <span class="grid-product-name">${esc(product.name || '')}</span>
                     </td>
                     <td>
-                        <span class="grid-cat-pill">${normalizeCategory(product.category)}</span>
+                        <span class="grid-cat-pill">${esc(normalizeCategory(product.category))}</span>
                     </td>
                     <td class="text-center">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -258,7 +272,7 @@
                         </div>
                     </td>
                     <td class="text-center">
-                        <button class="grid-action-btn open-qr-btn" data-id="${product.id}" title="View QR Code">
+                        <button class="grid-action-btn open-qr-btn" data-id="${esc(product.id)}" title="View QR Code">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="7" height="7"/>
                                 <rect x="14" y="3" width="7" height="7"/>
@@ -270,11 +284,11 @@
                     </td>
                     <td class="text-right">
                         <div class="grid-action-cell" style="display: flex; gap: 6px; justify-content: flex-end;">
-                            <button class="grid-action-btn edit-product-btn" data-id="${product.id}" title="Edit Product" style="border-color: var(--stone); display: flex; align-items: center; gap: 4px;">
+                            <button class="grid-action-btn edit-product-btn" data-id="${esc(product.id)}" title="Edit Product" style="border-color: var(--stone); display: flex; align-items: center; gap: 4px;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"/></svg>
                                 <span>Edit</span>
                             </button>
-                            <button class="grid-action-btn grid-action-btn--danger delete-product-btn" data-id="${product.id}" title="Delete Product">
+                            <button class="grid-action-btn grid-action-btn--danger delete-product-btn" data-id="${esc(product.id)}" title="Delete Product">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"/>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -296,13 +310,13 @@
             const is3DLocal = product.threeDDataUrl && product.threeDDataUrl.startsWith('db:');
 
             return `
-                <div class="product-card" data-id="${product.id}">
+                <div class="product-card" data-id="${esc(product.id)}">
                     <div class="card-header">
-                        <span class="card-code">${product.code}</span>
-                        <span class="card-category">${normalizeCategory(product.category)}</span>
+                        <span class="card-code">${esc(product.code)}</span>
+                        <span class="card-category">${esc(normalizeCategory(product.category))}</span>
                     </div>
 
-                    <div class="card-name">${product.name || ''}</div>
+                    <div class="card-name">${esc(product.name || '')}</div>
 
                     <div class="card-status-row">
                         <div class="status-chip ${product.fullsheet ? (isFsLocal ? 'status-chip--local' : 'status-chip--yes') : 'status-chip--no'}">
@@ -322,9 +336,9 @@
                     </div>
 
                     <div class="card-actions" style="margin-top: 14px; display: flex; gap: 8px; align-items: center;">
-                        <button class="card-action-btn edit-product-btn" data-id="${product.id}" title="Edit Product" style="border-color: var(--stone); flex: 1;">Edit</button>
-                        <button class="card-action-btn open-qr-btn" data-id="${product.id}" style="padding: 8px 14px;">QR</button>
-                        <button class="card-action-btn card-action-btn--danger delete-product-btn" data-id="${product.id}">
+                        <button class="card-action-btn edit-product-btn" data-id="${esc(product.id)}" title="Edit Product" style="border-color: var(--stone); flex: 1;">Edit</button>
+                        <button class="card-action-btn open-qr-btn" data-id="${esc(product.id)}" style="padding: 8px 14px;">QR</button>
+                        <button class="card-action-btn card-action-btn--danger delete-product-btn" data-id="${esc(product.id)}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                     </div>
