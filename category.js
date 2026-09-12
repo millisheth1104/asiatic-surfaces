@@ -128,20 +128,22 @@
             card.className = 'masonry-item';
             card.setAttribute('data-id', p.id);
 
-            const catKey = (p.category || 'laminates').toLowerCase().trim();
-            const fallbackTexture = CAT_TEXTURE_MAP[catKey] || 'assets/textures/laminates.webp';
-
             // Fetch fullsheet image
-            let imgUrl = fallbackTexture;
+            let imgUrl = null;
+            let hasFullsheet = false;
             if (p.fullsheetUrl) {
                 if (p.fullsheetUrl.startsWith('db:')) {
                     const dbKey = p.fullsheetUrl.replace('db:', '');
                     if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
                         const storedData = await window.ProductCatalog.getAsset(dbKey);
-                        if (storedData) imgUrl = storedData;
+                        if (storedData) {
+                            imgUrl = storedData;
+                            hasFullsheet = true;
+                        }
                     }
                 } else {
                     imgUrl = p.fullsheetUrl;
+                    hasFullsheet = true;
                 }
             }
 
@@ -160,8 +162,21 @@
 
             const hasName = Boolean(p.name && p.name.trim().length > 0);
             card.innerHTML = `
-                <a ${tourUrl ? `href="${tourUrl}"` : `role="button" tabindex="0"`} class="masonry-img-card" data-id="${p.id}" title="${has3D ? 'Click to view 3D virtual tour' : 'Click to view fullsheet image'}" style="cursor: pointer; text-decoration: none;">
-                    <img src="${imgUrl}" alt="${p.name || p.code || 'Product'}" loading="lazy" onerror="if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';this.src='${fallbackTexture}';}">
+                <a ${tourUrl ? `href="${tourUrl}"` : `role="button" tabindex="0"`} class="masonry-img-card" data-id="${p.id}" title="${has3D ? 'Click to view 3D virtual tour' : (hasFullsheet ? 'Click to view fullsheet image' : 'No Fullsheet N/A')}" style="cursor: pointer; text-decoration: none;">
+                    ${hasFullsheet ? `
+                        <img src="${imgUrl}" alt="${p.name || p.code || 'Product'}" loading="lazy">
+                    ` : `
+                        <div class="sheet__na" style="aspect-ratio: 0.65;">
+                            <div class="sheet__na-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="3"/>
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                            </div>
+                            <span class="sheet__na-badge">N/A</span>
+                            <span class="sheet__na-text">No Fullsheet</span>
+                        </div>
+                    `}
                 </a>
                 <div class="masonry-caption">
                     <span class="masonry-code">${p.code}</span>

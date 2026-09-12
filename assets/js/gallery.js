@@ -190,10 +190,46 @@
     var code = hit.getAttribute('data-code') || '';
     var name = hit.getAttribute('data-name') || '';
     var tourUrl = hit.getAttribute('data-tour') || '';
+    var hasFull = hit.getAttribute('data-has-full') === '1';
+    var fullUrl = hit.getAttribute('data-full') || '';
 
-    lbImg.classList.remove('is-ready');
-    lbImg.alt = code + (name ? ' - ' + name : '');
-    lbImg.src = hit.getAttribute('data-full');
+    var lbStage = lb.querySelector('.lb__stage');
+    var existingNa = lbStage ? lbStage.querySelector('.lb__na') : null;
+    if (existingNa) existingNa.remove();
+
+    if (hasFull && fullUrl) {
+      if (lbImg) {
+        lbImg.style.display = '';
+        lbImg.classList.remove('is-ready');
+        lbImg.alt = code + (name ? ' - ' + name : '');
+        lbImg.src = fullUrl;
+      }
+    } else {
+      if (lbImg) {
+        lbImg.style.display = 'none';
+        lbImg.removeAttribute('src');
+      }
+      if (lbStage) {
+        var naBox = document.createElement('div');
+        naBox.className = 'lb__na';
+        naBox.innerHTML = `
+          <div class="lb__na-box">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="3"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+            <span class="lb__na-badge">N/A</span>
+            <h3 class="lb__na-title">No Fullsheet Available</h3>
+            <p class="lb__na-sub">No full sheet image has been uploaded for this product.</p>
+            ${tourUrl ? `<a class="lb__na-tour" href="${esc(tourUrl)}" target="_blank" rel="noopener">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span>Open 360° Tour</span>
+            </a>` : ''}
+          </div>
+        `;
+        lbStage.appendChild(naBox);
+      }
+    }
 
     lbCode.innerHTML = '';
     var bold = document.createElement('b');
@@ -230,7 +266,10 @@
     // Preload neighbours
     [i - 1, i + 1].forEach(function (n) {
       var h = hits[(n + hits.length) % hits.length];
-      if (h) new Image().src = h.getAttribute('data-full');
+      if (h && h.getAttribute('data-has-full') === '1') {
+        var u = h.getAttribute('data-full');
+        if (u) new Image().src = u;
+      }
     });
   }
 
@@ -254,7 +293,14 @@
     lb.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('lb-open');
     setTimeout(function () {
-      if (!lb.classList.contains('is-open') && lbImg) lbImg.removeAttribute('src');
+      if (!lb.classList.contains('is-open')) {
+        if (lbImg) {
+          lbImg.removeAttribute('src');
+          lbImg.style.display = '';
+        }
+        var existingNa = lb.querySelector('.lb__na');
+        if (existingNa) existingNa.remove();
+      }
     }, 400);
     var back = hits[index] || lastFocus;
     if (back && back.focus) back.focus();
@@ -318,12 +364,10 @@
       return;
     }
 
-    // Resolve images and build figures
-    var fallback = CAT_TEXTURE_MAP[activeCategory.toLowerCase()] || 'assets/textures/laminates.webp';
-
     for (var i = 0; i < filtered.length; i++) {
       var prod = filtered[i];
-      var imgUrl = fallback;
+      var imgUrl = null;
+      var hasFullsheet = false;
 
       if (prod.fullsheetUrl) {
         if (prod.fullsheetUrl.startsWith('db:')) {
@@ -331,13 +375,15 @@
           if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
             var stored = await window.ProductCatalog.getAsset(dbKey);
             if (token !== renderToken) return;   // a newer render superseded this one
-            if (stored) imgUrl = stored;
+            if (stored) {
+              imgUrl = stored;
+              hasFullsheet = true;
+            }
           }
         } else {
           imgUrl = prod.fullsheetUrl;
+          hasFullsheet = true;
         }
-      } else if (prod.threeDDataUrl && !prod.threeDDataUrl.startsWith('db:')) {
-        imgUrl = prod.threeDDataUrl;
       }
 
       var cleanCat = (prod.category || activeCategory || 'laminates')
@@ -355,8 +401,21 @@
       // an anchor inside a button is invalid -- and the frame positions both.
       figure.innerHTML = `
         <div class="sheet__frame${tourUrl ? ' sheet__frame--tour' : ''}">
-          <button class="sheet__hit" type="button" data-full="${esc(imgUrl)}" data-code="${esc(prod.code)}" data-name="${esc(prod.name || '')}" data-tour="${esc(tourUrl || '')}" aria-label="View ${esc(prod.code)} at full size">
-            <img src="${esc(imgUrl)}" alt="${esc(prod.code)} — ${esc(prod.name || activeCategory)}" loading="lazy" decoding="async">
+          <button class="sheet__hit" type="button" data-has-full="${hasFullsheet ? '1' : '0'}" data-full="${esc(imgUrl || '')}" data-code="${esc(prod.code)}" data-name="${esc(prod.name || '')}" data-tour="${esc(tourUrl || '')}" aria-label="View ${esc(prod.code)} at full size">
+            ${hasFullsheet ? `
+              <img src="${esc(imgUrl)}" alt="${esc(prod.code)} — ${esc(prod.name || activeCategory)}" loading="lazy" decoding="async">
+            ` : `
+              <div class="sheet__na">
+                <div class="sheet__na-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                  </svg>
+                </div>
+                <span class="sheet__na-badge">N/A</span>
+                <span class="sheet__na-text">No Fullsheet</span>
+              </div>
+            `}
           </button>
           ${tourUrl ? `<a class="sheet__360" href="${esc(tourUrl)}" target="_blank" rel="noopener" aria-label="View in 360° — ${esc(prod.code)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><polyline points="20.6 4.2 20.6 9.1 15.7 9.1"/></svg>

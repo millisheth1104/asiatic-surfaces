@@ -1118,3 +1118,54 @@ body.dashboard-active {
     font-size: 0.8rem;
     color: var(--stone-light);
 }
+
+/* Placeholder when no fullsheet is uploaded */
+.sheet__na {
+    width: 100%;
+    aspect-ratio: 0.65;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #141311;
+    border-radius: 8px;
+    color: rgba(247, 244, 236, 0.55);
+    padding: 24px 16px;
+    text-align: center;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background 0.35s ease, color 0.35s ease;
+}
+.masonry-img-card:hover .sheet__na,
+.sheet__frame:hover .sheet__na {
+    background: #1d1b18;
+    color: rgba(247, 244, 236, 0.85);
+}
+.sheet__na-icon svg {
+    stroke: rgba(247, 244, 236, 0.35);
+    transition: stroke 0.35s ease, transform 0.35s ease;
+}
+.masonry-img-card:hover .sheet__na-icon svg,
+.sheet__frame:hover .sheet__na-icon svg {
+    stroke: rgba(247, 244, 236, 0.7);
+    transform: scale(1.08);
+}
+.sheet__na-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(247, 244, 236, 0.08);
+    color: #cfc8be;
+    border: 1px solid rgba(247, 244, 236, 0.15);
+}
+.sheet__na-text {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(247, 244, 236, 0.55);
+}
