@@ -446,6 +446,60 @@
     const btnExportExcel = document.getElementById('btn-export-excel');
     if (btnExportExcel) btnExportExcel.addEventListener('click', exportProducts);
 
+    // ---- Clearing a chosen image ------------------------------------------
+    /**
+     * Removing a picked image from the preview itself.
+     *
+     * Choosing the wrong file meant either picking another one or abandoning the form,
+     * and neither let you get back to having no image at all. The X on each preview
+     * clears the selection outright.
+     *
+     * On an edit this has to be recorded, not just forgotten: the save falls back to
+     * whatever the product already had whenever no new file is chosen, so clearing
+     * without a flag would silently restore the image that was just removed.
+     */
+    let fullsheetCleared = false;
+    let threeDCleared = false;
+
+    function clearFullsheetSelection() {
+        tempFullsheetDataUrl = null;
+        fullsheetCleared = true;
+        // Reset the input too, or re-picking the same file fires no change event.
+        if (inputFullsheet) inputFullsheet.value = '';
+        if (imgFullsheet) imgFullsheet.removeAttribute('src');
+        if (wrapFullsheet) wrapFullsheet.style.display = 'none';
+    }
+
+    function clearThreeDSelection() {
+        tempThreeDDataUrl = null;
+        threeDCleared = true;
+        if (inputThreeD) inputThreeD.value = '';
+        if (imgThreeD) imgThreeD.removeAttribute('src');
+        if (wrapThreeD) wrapThreeD.style.display = 'none';
+        // The hotspot step reads the panorama, so it has to be told there is none.
+        if (typeof initWizardViewer === 'function' && currentFormStep === 3) initWizardViewer();
+    }
+
+    const btnClearFullsheet = document.getElementById('btn-clear-fullsheet');
+    if (btnClearFullsheet) {
+        btnClearFullsheet.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            clearFullsheetSelection();
+            showToast('Full sheet image removed', 'info');
+        });
+    }
+
+    const btnClearThreeD = document.getElementById('btn-clear-threeD');
+    if (btnClearThreeD) {
+        btnClearThreeD.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            clearThreeDSelection();
+            showToast('3D panorama removed', 'info');
+        });
+    }
+
     // ---- Categories --------------------------------------------------------
     /**
      * Keeps every category dropdown in step with the list.
@@ -1026,6 +1080,9 @@
         if (!product) return;
 
         editingProductId = productId;
+        // Starting from what the product actually has, not from a previous edit.
+        fullsheetCleared = false;
+        threeDCleared = false;
 
         // Update modal title & description
         const headerTitle = document.querySelector('.form-modal-header h2');
@@ -1494,6 +1551,8 @@
 
     btnAddProduct.addEventListener('click', () => {
         editingProductId = null;
+        fullsheetCleared = false;
+        threeDCleared = false;
         addProductForm.reset();
         tempFullsheetDataUrl = null;
         tempThreeDDataUrl = null;
@@ -1508,6 +1567,8 @@
     function closeAddModal() {
         destroyWizardViewer();
         editingProductId = null;
+        fullsheetCleared = false;
+        threeDCleared = false;
         addProductForm.reset();
         tempFullsheetDataUrl = null;
         tempThreeDDataUrl = null;
@@ -1670,7 +1731,7 @@
                         ? persistAsset(productId, 'fullsheet', tempFullsheetDataUrl, `fullsheet-${slug}.jpg`)
                         : tempFullsheetDataUrl;
                 }
-                return existing ? existing.fullsheetUrl : null;
+                return (existing && !fullsheetCleared) ? existing.fullsheetUrl : null;
             })();
 
             const threeDTask = (async () => {
@@ -1679,7 +1740,7 @@
                         ? persistAsset(productId, 'threeD', tempThreeDDataUrl, `panorama-3d-${slug}.jpg`)
                         : tempThreeDDataUrl;
                 }
-                return existing ? existing.threeDDataUrl : null;
+                return (existing && !threeDCleared) ? existing.threeDDataUrl : null;
             })();
 
             const [finalFullsheetUrl, finalThreeDDataUrl] =

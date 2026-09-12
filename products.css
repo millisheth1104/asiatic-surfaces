@@ -1624,3 +1624,40 @@ body {
     color: var(--stone);
     margin-left: 8px;
 }
+
+/* ---- Remove a chosen image --------------------------------------------- */
+/* Sits on the corner of the preview rather than below it, so it is obviously
+   attached to that image and not to the other one beside it. */
+.preview-clear-btn {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    background: var(--ivory);
+    color: var(--charcoal);
+    cursor: pointer;
+    line-height: 0;
+    box-shadow: 0 1px 3px rgba(20, 17, 15, 0.18);
+    transition: background var(--dur-micro) var(--ease-soft),
+                color var(--dur-micro) var(--ease-soft),
+                transform var(--dur-micro) var(--ease-soft);
+}
+
+.preview-clear-btn:hover {
+    background: #9c2b1c;
+    border-color: #9c2b1c;
+    color: #fff;
+    transform: scale(1.08);
+}
+
+.preview-clear-btn:focus-visible {
+    outline: 2px solid var(--dusty-peach);
+    outline-offset: 2px;
+}

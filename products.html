@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
     <!-- Page Styles -->
-    <link rel="stylesheet" href="products.css?v=3.8">
+    <link rel="stylesheet" href="products.css?v=3.9">
 </head>
 <body class="products-page">
 
@@ -426,11 +426,11 @@
                         <div id="wizard-media-previews" style="display: flex; gap: 16px; justify-content: center; margin-top: 10px;">
                             <div id="fullsheet-preview-wrap" style="display: none; flex-direction: column; align-items: center; border: 1px solid var(--rule); border-radius: var(--radius); padding: 6px; background: rgba(20,17,15,0.02);">
                                 <span style="font-size: 0.65rem; color: var(--stone); margin-bottom: 4px; font-weight: 500;">Full Sheet Preview</span>
-                                <img id="img-preview-fullsheet" src="" style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule);"/>
+                                <span style="position:relative;display:inline-block;line-height:0;"><img id="img-preview-fullsheet" src="" style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule);"/><button type="button" id="btn-clear-fullsheet" class="preview-clear-btn" title="Remove this full sheet" aria-label="Remove this full sheet"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></span>
                             </div>
                             <div id="threeD-preview-wrap" style="display: none; flex-direction: column; align-items: center; border: 1px solid var(--rule); border-radius: var(--radius); padding: 6px; background: rgba(20,17,15,0.02);">
                                 <span style="font-size: 0.65rem; color: var(--stone); margin-bottom: 4px; font-weight: 500;">3D Panorama Preview</span>
-                                <img id="img-preview-threeD" src="" style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule);"/>
+                                <span style="position:relative;display:inline-block;line-height:0;"><img id="img-preview-threeD" src="" style="width: 100px; height: 75px; object-fit: cover; border-radius: 4px; border: 1px solid var(--rule);"/><button type="button" id="btn-clear-threeD" class="preview-clear-btn" title="Remove this 3D panorama" aria-label="Remove this 3D panorama"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></span>
                             </div>
                         </div>
                     </div>
@@ -551,8 +551,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
-    <script src="products-data.js?v=3.8"></script>
+    <script src="products-data.js?v=3.9"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=3.8"></script>
+    <script src="products.js?v=3.9"></script>
 </body>
 </html>
