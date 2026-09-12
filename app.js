@@ -550,49 +550,64 @@
         const elem = document.getElementById('app-container');
         if (!elem) return;
 
-        if (!fullscreenSupported(elem)) {
-            // iOS and anything else without the API: fill the viewport ourselves.
-            elem.classList.toggle('is-pseudo-fullscreen');
-            document.body.classList.toggle('pseudo-fullscreen-open');
-            updateFullscreenIcon();
-            setTimeout(() => { if (viewer && viewer.resize) { try { viewer.resize(); } catch (e) {} } }, 120);
-            onFirstInteraction();
-            return;
-        }
-
-        // Being in the CSS fallback counts as being fullscreen, or pressing the button
-        // again would try to enter a second time instead of leaving.
+        // Detect if already in any fullscreen mode (native or pseudo)
+        const inNative = !!FS_EL();
         const inPseudo = elem.classList.contains('is-pseudo-fullscreen');
+        const isCurrentlyFullscreen = inNative || inPseudo;
 
-        if (!FS_EL() && !inPseudo) {
-            const req = elem.requestFullscreen || elem.webkitRequestFullscreen ||
-                        elem.msRequestFullscreen;
-            const usePseudo = () => {
-                elem.classList.add('is-pseudo-fullscreen');
-                document.body.classList.add('pseudo-fullscreen-open');
-                updateFullscreenIcon();
-            };
-
-            try {
-                const r = req.call(elem);
-                // Safari's prefixed form returns undefined rather than a promise.
-                if (r && typeof r.catch === 'function') r.catch(usePseudo);
-            } catch (e) {
-                usePseudo();
+        if (isCurrentlyFullscreen) {
+            // EXIT FULLSCREEN
+            if (inNative) {
+                const exit = document.exitFullscreen || document.webkitExitFullscreen ||
+                             document.msExitFullscreen;
+                if (exit) {
+                    try { exit.call(document); } catch (e) { }
+                }
             }
-
-            // Some mobile browsers accept the request and then do nothing. Rather than
-            // trust the call, check whether the page actually went fullscreen.
-            setTimeout(() => {
-                if (!FS_EL() && !elem.classList.contains('is-pseudo-fullscreen')) usePseudo();
-            }, 300);
-        } else {
-            const exit = document.exitFullscreen || document.webkitExitFullscreen ||
-                         document.msExitFullscreen;
-            try { exit.call(document); } catch (e) { }
             elem.classList.remove('is-pseudo-fullscreen');
             document.body.classList.remove('pseudo-fullscreen-open');
             updateFullscreenIcon();
+            showToast('Exited fullscreen');
+        } else {
+            // ENTER FULLSCREEN
+            const enterPseudo = () => {
+                elem.classList.add('is-pseudo-fullscreen');
+                document.body.classList.add('pseudo-fullscreen-open');
+                updateFullscreenIcon();
+                showToast('⛶ Fullscreen view');
+            };
+
+            // Detect mobile Safari / iOS (which blocks Fullscreen API on divs)
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+            if (isIOS || !fullscreenSupported(elem)) {
+                enterPseudo();
+            } else {
+                const req = elem.requestFullscreen || elem.webkitRequestFullscreen ||
+                            elem.msRequestFullscreen;
+                try {
+                    const r = req.call(elem);
+                    if (r && typeof r.then === 'function') {
+                        r.then(() => {
+                            updateFullscreenIcon();
+                            showToast('⛶ Fullscreen view');
+                        }).catch(() => {
+                            enterPseudo();
+                        });
+                    } else {
+                        setTimeout(() => {
+                            if (!FS_EL()) {
+                                enterPseudo();
+                            } else {
+                                updateFullscreenIcon();
+                                showToast('⛶ Fullscreen view');
+                            }
+                        }, 150);
+                    }
+                } catch (e) {
+                    enterPseudo();
+                }
+            }
         }
         onFirstInteraction();
     }
@@ -602,8 +617,16 @@
         const on = !!FS_EL() || (elem && elem.classList.contains('is-pseudo-fullscreen'));
         if (fullscreenIcon) fullscreenIcon.style.display = on ? 'none' : 'block';
         if (exitFullscreenIcon) exitFullscreenIcon.style.display = on ? 'block' : 'none';
-        // The canvas must be told the viewport changed or it keeps the old dimensions.
-        setTimeout(() => { if (viewer && viewer.resize) { try { viewer.resize(); } catch (e) {} } }, 120);
+        
+        // Resize Pannellum canvas to fit the exact viewport dimensions smoothly
+        const triggerResize = () => {
+            if (viewer && typeof viewer.resize === 'function') {
+                try { viewer.resize(); } catch (e) {}
+            }
+        };
+        setTimeout(triggerResize, 60);
+        setTimeout(triggerResize, 160);
+        setTimeout(triggerResize, 350);
     }
 
     // ---- Gyroscope ----
@@ -621,81 +644,49 @@
         return 'DeviceOrientationEvent' in window;
     }
 
-    /**
-     * Turns on tilt-to-look, and confirms the sensor is really running.
-     *
-     * startOrientation() was called and success assumed in the same breath. On Android
-     * the sensor frequently delivers nothing on the first attempt - the listener is
-     * registered before the platform starts producing events - so the button lit up while
-     * nothing moved, and reloading appeared to fix it because by then the sensor was warm.
-     *
-     * The first deviceorientation event is now waited for. If none arrives the start is
-     * retried once, and only after that is the user told it is unavailable, rather than
-     * being left with a button that claims to be on.
-     */
     function enableGyro() {
         if (!viewer) return;
 
-        let settled = false;
+        try {
+            viewer.startOrientation();
+        } catch (e) {
+            console.warn('Error starting orientation:', e);
+        }
 
-        const onFirstReading = (e) => {
-            // A device with no sensor still fires the event, with null values.
-            if (e.alpha === null && e.beta === null && e.gamma === null) return;
-            if (settled) return;
-            settled = true;
-            window.removeEventListener('deviceorientation', onFirstReading);
-
-            isGyroActive = true;
-            btnGyro.classList.add('active', 'gyro-active');
-            showToast('📱 Gyroscope enabled — tilt to look around');
-
-            // Auto-rotate fights the sensor for control of the camera.
-            if (isAutoRotating) {
-                viewer.stopAutoRotate();
-                isAutoRotating = false;
-                btnAutoRotate.classList.remove('active');
-            }
-        };
-
-        window.addEventListener('deviceorientation', onFirstReading);
-
-        const start = () => { try { viewer.startOrientation(); } catch (e) { } };
-        start();
+        isGyroActive = true;
+        btnGyro.classList.add('active', 'gyro-active');
+        showToast('📱 Motion sensor enabled — tilt to look around');
         onFirstInteraction();
 
-        // Retry once, then give an honest answer.
-        setTimeout(() => {
-            if (settled) return;
-            try { viewer.stopOrientation(); } catch (e) { }
-            start();
-            setTimeout(() => {
-                if (settled) return;
-                window.removeEventListener('deviceorientation', onFirstReading);
-                try { viewer.stopOrientation(); } catch (e) { }
-                isGyroActive = false;
-                btnGyro.classList.remove('active', 'gyro-active');
-                showToast('Motion sensor is not responding on this device');
-            }, 1500);
-        }, 1200);
+        // Auto-rotate fights the sensor for control of the camera.
+        if (isAutoRotating) {
+            viewer.stopAutoRotate();
+            isAutoRotating = false;
+            btnAutoRotate.classList.remove('active');
+        }
     }
 
     function disableGyro() {
         if (!viewer) return;
 
         // Stop native Pannellum device orientation control
-        viewer.stopOrientation();
+        try {
+            viewer.stopOrientation();
+        } catch (e) {
+            console.warn('Error stopping orientation:', e);
+        }
 
         isGyroActive = false;
         btnGyro.classList.remove('active', 'gyro-active');
-        showToast('Gyroscope disabled');
+        showToast('Motion sensor disabled');
     }
 
     function showGyroModal() {
-        gyroModal.style.display = 'flex';
+        if (gyroModal) gyroModal.style.display = 'flex';
     }
 
     function hideGyroModal() {
-        gyroModal.style.display = 'none';
+        if (gyroModal) gyroModal.style.display = 'none';
     }
 
     async function requestGyroPermission() {
@@ -711,8 +702,8 @@
                     showToast('⚠️ Motion sensor permission denied');
                 }
             } catch (err) {
-                showToast('⚠️ Could not request motion permission');
-                console.warn('Gyro permission error:', err);
+                console.warn('Direct gyro permission error, showing modal fallback:', err);
+                showGyroModal();
             }
         } else {
             // Android / non-iOS — permission is automatic
@@ -721,7 +712,7 @@
         }
     }
 
-    function handleGyroToggle() {
+    async function handleGyroToggle() {
         if (!hasGyroscope()) {
             showToast('⚠️ Gyroscope not available on this device');
             return;
@@ -732,28 +723,24 @@
             return;
         }
 
-        // If permission already granted, just enable
+        // If permission already granted, just enable immediately
         if (gyroPermissionGranted) {
             enableGyro();
             return;
         }
 
-        // On iOS, we need a user gesture → show modal
-        if (typeof DeviceOrientationEvent !== 'undefined' &&
-            typeof DeviceOrientationEvent.requestPermission === 'function') {
-            showGyroModal();
-        } else {
-            // Android — just enable directly
-            requestGyroPermission();
-        }
+        // Directly request permission during user touch/click gesture (required by iOS 13+)
+        await requestGyroPermission();
     }
 
-    // Modal button handlers
-    gyroModalCancel.addEventListener('click', hideGyroModal);
-    gyroModalAllow.addEventListener('click', () => {
-        hideGyroModal();
-        requestGyroPermission();
-    });
+    // Modal button handlers (safety fallback)
+    if (gyroModalCancel) gyroModalCancel.addEventListener('click', hideGyroModal);
+    if (gyroModalAllow) {
+        gyroModalAllow.addEventListener('click', () => {
+            hideGyroModal();
+            requestGyroPermission();
+        });
+    }
 
     // ---- Fullsheet Viewer ----
     let fullsheetScale = 1;

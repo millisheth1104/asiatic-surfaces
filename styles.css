@@ -1170,24 +1170,45 @@ body.dashboard-active {
     color: rgba(247, 244, 236, 0.55);
 }
 
-/* ---- Pseudo-fullscreen ---------------------------------------------------
-   iPhones do not support the Fullscreen API on ordinary elements, only on
-   <video>, so the tour fills the viewport with CSS instead. dvh follows the
-   browser bars as they hide and show; vh is the fallback where it is unknown. */
+/* ---- Fullscreen Modes (Native & Mobile Pseudo-fullscreen) ---------------- */
 #app-container.is-pseudo-fullscreen {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    z-index: 99999;
-    margin: 0;
-    border-radius: 0;
-    background: #0c0a09;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 99999 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #0c0a09 !important;
 }
 
 body.pseudo-fullscreen-open {
-    overflow: hidden;
+    overflow: hidden !important;
     /* Stops the page behind scrolling under the viewer on touch. */
-    overscroll-behavior: none;
+    overscroll-behavior: none !important;
+}
+
+/* In fullscreen mode, slide the header bar out of view and adjust overlay padding
+   so the 360 panorama takes over 100% of the screen without obstructions */
+#header-bar {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease, padding 0.4s var(--ease-out-expo);
+}
+
+:fullscreen #header-bar,
+:-webkit-full-screen #header-bar,
+#app-container:fullscreen #header-bar,
+#app-container:-webkit-full-screen #header-bar,
+#app-container.is-pseudo-fullscreen #header-bar {
+    transform: translateY(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+:fullscreen #controls-overlay,
+:-webkit-full-screen #controls-overlay,
+#app-container:fullscreen #controls-overlay,
+#app-container:-webkit-full-screen #controls-overlay,
+#app-container.is-pseudo-fullscreen #controls-overlay {
+    padding-top: 16px !important;
 }
