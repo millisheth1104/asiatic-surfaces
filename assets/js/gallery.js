@@ -276,90 +276,6 @@
     else if (e.key === 'ArrowRight') showLightbox(index + 1);
   });
 
-  // Curated sheets shipped with the build. Used when the database has no imagery
-  // for this category, so a category never renders as a wall of flat swatches.
-  var staticCatalogue = null;
-  async function loadStaticSheets() {
-    if (staticCatalogue !== null) return staticCatalogue;
-    try {
-      var res = await fetch('assets/gallery/catalogue.json', { cache: 'no-store' });
-      staticCatalogue = res.ok ? await res.json() : {};
-    } catch (e) {
-      staticCatalogue = {};
-    }
-    return staticCatalogue;
-  }
-
-  function staticKey(cat) {
-    var k = String(cat || '').toLowerCase().trim().replace(/\s+/g, '-');
-    if (k === 'synchro' || k === 'syncro' || k === 'snycro' || k === 'synvro') return 'wooden';
-    return k;
-  }
-
-  function buildFigure(opts) {
-    var figure = document.createElement('figure');
-    figure.className = 'sheet is-in';
-    figure.style.setProperty('--ar', String(opts.ar || 0.65));
-    if (opts.id) figure.setAttribute('data-id', opts.id);
-    figure.innerHTML = `
-        <button class="sheet__hit" type="button" data-full="${opts.full}" data-code="${opts.code}" data-name="${opts.name || ''}" data-tour="${opts.tour || ''}" aria-label="View ${opts.code} at full size">
-          <img src="${opts.grid}" alt="${opts.code}${opts.name ? ' — ' + opts.name : ''}" loading="lazy" decoding="async">
-          <span class="sheet__zoom" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.4" stroke="currentColor" stroke-width="1.5"/><path d="M9 6.8v4.4M6.8 9h4.4M13 13l3.4 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </span>
-        </button>
-        <figcaption class="sheet__cap">
-          <b>${opts.code}</b>
-          ${opts.name ? `<span>${opts.name}</span>` : ''}
-          ${opts.tour ? `<a href="${opts.tour}" class="sheet__tour-link" title="Open 360° Virtual Tour">360° Tour ↗</a>` : ''}
-        </figcaption>
-      `;
-    return figure;
-  }
-
-  async function renderStaticSheets() {
-    var cat = (await loadStaticSheets())[staticKey(activeCategory)];
-    var items = (cat && Array.isArray(cat.items)) ? cat.items : [];
-    if (items.length === 0) return false;
-
-    grid.innerHTML = '';
-    cards = [];
-    hits = [];
-
-    items.forEach(function (it) {
-      var figure = buildFigure({
-        code: it.code,
-        name: it.name,
-        grid: it.grid,
-        full: it.full || it.grid,
-        ar: it.ar
-      });
-
-      // Search reads this attribute; without it the curated sheets are invisible
-      // to the field and typing anything returned "no sheet matches".
-      figure.setAttribute(
-        'data-search',
-        ((it.code || '') + ' ' + (it.name || '')).toLowerCase()
-      );
-
-      var hitBtn = figure.querySelector('.sheet__hit');
-      // Resolve the index at click time: filtering rebuilds `hits`, so a position
-      // captured now would open the wrong sheet once a search is active.
-      hitBtn.addEventListener('click', function () {
-        openLightbox(hits.indexOf(this));
-      });
-      cards.push(figure);
-      hits.push(hitBtn);
-    });
-
-    // Hand the same bookkeeping the dynamic path does, so the field filters these
-    // sheets and an in-flight query survives a re-render.
-    allCards = cards.slice();
-    allHits = hits.slice();
-    applyFilter(searchInput ? searchInput.value : '');
-    return true;
-  }
-
   // Render Category Products dynamically from Shared ProductCatalog
   async function renderGallery() {
     var token = ++renderToken;
@@ -379,13 +295,9 @@
     });
 
     // Every product added to a category appears on that category's page, whether or
-    // not it has an image yet - one without falls back to the category texture.
-    // The curated sheets shipped with the build only stand in for a category that
-    // has no products at all.
-    if (filtered.length === 0 && await renderStaticSheets()) {
-      return;
-    }
-
+    // not it has an image yet - one without falls back to the category texture. A
+    // category with no products shows the empty state below; the site's imagery comes
+    // from the admin now, so there are no shipped sheets to stand in.
     // A catalogue sync can land while the lightbox is open. Remember which
     // sheet that is, so it can be re-pointed at the rebuilt card rather than
     // left showing a stale image with a stale "n / N".
