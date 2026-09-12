@@ -10,6 +10,22 @@ RewriteRule ^api/upload/?$ /upload-api.php [L,QSA]
 # Product records still store plain /uploads/<file> URLs; this maps them to the reader.
 RewriteRule ^uploads/([A-Za-z0-9._-]+)$ /uploads.php?f=$1 [L,QSA]
 
+# 1c. Keep working files out of the web.
+# These sit in the repository and therefore deploy into public_html, but nothing on the
+# site requests them. memory.md and BUILD_LOG.md are the pressing case: they are project
+# notes describing the architecture, absolute server paths and the maintenance routes, so
+# serving them hands a stranger a map of the system.
+<FilesMatch "\.(md|markdown|json|lock|sh|py|yml|yaml|log|bak|sql|ini|env)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^(server\.js|package\.json|package-lock\.json|vercel\.json|check\.html|diag\.html)$">
+    Require all denied
+</FilesMatch>
+# The gallery fetches this one, so it must stay reachable despite the .json rule above.
+<Files "catalogue.json">
+    Require all granted
+</Files>
+
 # 2. Route category product slugs to tour.html
 # e.g., /wooden/4006, /laminates/4011, /digital/102 -> /tour.html
 RewriteRule ^(45-degree|wooden|synchro|syncro|digital|laminates|stone|louvers|edge-bands|edgebands|texture)/[a-zA-Z0-9_-]+/?$ /tour.html [L,QSA]

@@ -60,12 +60,26 @@
         });
     }
 
+    // ---- Code and Category Normalization Helpers ----
+    function normCode(s) {
+        if (!s) return '';
+        return s.toString().toLowerCase().replace(/^prod-/, '').replace(/[^a-z0-9]/g, '');
+    }
+
+    function normCat(s) {
+        if (!s) return '';
+        let c = s.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (c === 'wooden' || c === 'syncro' || c === 'synchro' || c === 'snycro' || c === 'synvro') return 'synchro';
+        if (c === '45degree' || c === '45deg') return '45degree';
+        return c;
+    }
+
     // ---- Real-Time Product Hotspots Sync ----
     function get3DProductHotspots() {
         if (window.ProductCatalog && typeof window.ProductCatalog.getProducts === 'function') {
             const allProducts = window.ProductCatalog.getProducts();
-            // Filter products that have 3D image enabled
-            return allProducts.filter(p => p.threeD);
+            // Filter products that have 3D image enabled or uploaded
+            return allProducts.filter(p => p.threeD || p.threeDDataUrl);
         }
         return [{ code: '#4006', name: '#4006', pitch: 23, yaw: 0, fullsheet: true }];
     }
@@ -151,28 +165,28 @@
         let matched = null;
 
         if (targetCode) {
-            const cleanParam = targetCode.toLowerCase().replace(/#/g, '').trim();
-            const cleanCatParam = targetCategory ? targetCategory.toLowerCase().replace(/\s+/g, '').replace(/-/g, '') : null;
+            const cleanParam = normCode(targetCode);
+            const cleanCatParam = targetCategory ? normCat(targetCategory) : null;
 
             // 1. Match both code and category if category provided
-            if (cleanCatParam) {
+            if (cleanCatParam && cleanParam) {
                 matched = products3D.find(p => {
-                    const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
-                    const cleanSlug = (p.slug || '').toLowerCase().trim();
-                    const cleanId = (p.id || '').toLowerCase().trim();
-                    const cleanProductCat = (p.category || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
-                    const codeMatches = cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
-                    return codeMatches && cleanProductCat === cleanCatParam;
+                    const cCode = normCode(p.code);
+                    const cSlug = normCode(p.slug);
+                    const cId = normCode(p.id);
+                    const cCat = normCat(p.category);
+                    const codeMatches = cleanParam === cCode || cleanParam === cSlug || cleanParam === cId;
+                    return codeMatches && (cCat === cleanCatParam || !cleanCatParam);
                 });
             }
 
             // 2. Fallback to matching code directly
-            if (!matched) {
+            if (!matched && cleanParam) {
                 matched = products3D.find(p => {
-                    const cleanProductCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
-                    const cleanSlug = (p.slug || '').toLowerCase().trim();
-                    const cleanId = (p.id || '').toLowerCase().trim();
-                    return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === cleanId;
+                    const cCode = normCode(p.code);
+                    const cSlug = normCode(p.slug);
+                    const cId = normCode(p.id);
+                    return cleanParam === cCode || cleanParam === cSlug || cleanParam === cId;
                 });
             }
 
@@ -184,14 +198,16 @@
                 if (roomNameEl) roomNameEl.textContent = `${matched.category || ''} ${matched.code || ''}`.trim() || 'Living Space';
 
                 let matchedPanoSrc = null;
-                if (matched.threeDDataUrl) {
-                    if (matched.threeDDataUrl.startsWith('db:')) {
-                        const dbKey = matched.threeDDataUrl.replace('db:', '');
+                const panoVal = (matched.threeDDataUrl || matched.panorama || matched.threeDImage || '').toString().trim();
+                if (panoVal) {
+                    if (panoVal.startsWith('db:')) {
+                        const dbKey = panoVal.replace('db:', '');
                         if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
                             matchedPanoSrc = await window.ProductCatalog.getAsset(dbKey);
                         }
-                    } else if (matched.threeDDataUrl.startsWith('data:') || matched.threeDDataUrl.startsWith('http://') || matched.threeDDataUrl.startsWith('https://') || matched.threeDDataUrl.startsWith('src/')) {
-                        matchedPanoSrc = matched.threeDDataUrl;
+                    } else {
+                        // Accept /uploads/..., absolute http/https URLs, data: URIs, or relative asset paths
+                        matchedPanoSrc = panoVal;
                     }
                 }
 
@@ -251,7 +267,8 @@
         let hotspots = [];
         if (matched && Array.isArray(matched.hotspots) && matched.hotspots.length > 0) {
             hotspots = matched.hotspots.map((hs, index) => {
-                const productMeta = products3D.find(p => p.code.toLowerCase().replace(/#/g, '') === hs.code.toLowerCase().replace(/#/g, '')) || { code: hs.code, name: hs.code };
+                const hsNorm = normCode(hs.code);
+                const productMeta = products3D.find(p => normCode(p.code) === hsNorm) || { code: hs.code, name: hs.code };
                 return {
                     id: `product-hotspot-${hs.code}-${index}`,
                     pitch: hs.pitch,
@@ -360,11 +377,12 @@
             }, 300);
         } else if (targetCode) {
             const products3D = get3DProductHotspots();
+            const targetNorm = normCode(targetCode);
             const matched = products3D.find(p => {
-                const cleanParam = targetCode.toLowerCase().replace(/#/g, '');
-                const cleanProductCode = p.code.toLowerCase().replace(/#/g, '');
-                const cleanSlug = (p.slug || '').toLowerCase();
-                return cleanParam === cleanProductCode || cleanParam === cleanSlug || cleanParam === p.id.toLowerCase();
+                const cCode = normCode(p.code);
+                const cSlug = normCode(p.slug);
+                const cId = normCode(p.id);
+                return targetNorm === cCode || targetNorm === cSlug || targetNorm === cId;
             });
             if (matched && typeof matched.pitch === 'number' && typeof matched.yaw === 'number') {
                 setTimeout(() => {
