@@ -107,7 +107,7 @@
             if (productData.fullsheet) {
                 // Set the dynamic fullsheet texture image source
                 if (fullsheetImage) {
-                    let fsSrc = 'src/Fullsheet/Fullsheet1.jpeg';
+                    let fsSrc = 'assets/textures/laminates.webp';
                     if (productData.fullsheetUrl) {
                         if (productData.fullsheetUrl.startsWith('db:')) {
                             const dbKey = productData.fullsheetUrl.replace('db:', '');

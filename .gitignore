@@ -29,3 +29,13 @@ desktop.ini
 src/*_backup*
 src/*_8k*
 
+
+# Original sheet photographs. build_gallery.py converts these into assets/gallery/**,
+# which is what the site actually serves; its own header says the sources stay out of
+# git. They were committed by mistake and put 273 MB into every deploy. Keep them on
+# the machine that runs the script - they are the only originals.
+/45 Degree/
+/DIGITAL-20260905T130641Z-1-001/
+/Stone/
+/WOODEN1/
+/src/

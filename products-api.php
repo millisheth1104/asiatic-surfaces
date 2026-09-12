@@ -11,25 +11,12 @@ if ($dataFile === false) {
     exit;
 }
 
-// Initialize default products if products.json doesn't exist
+// An absent catalogue means an empty catalogue. It used to be seeded with a demo
+// product (#4006), which reappeared every time the file was missing - and looked
+// exactly like a deleted product coming back. Every product is created through the
+// admin now, so there is nothing to seed.
 if (!file_exists($dataFile)) {
-    $defaultProducts = [
-        [
-            "id" => "prod-4006",
-            "code" => "#4006",
-            "slug" => "4006",
-            "name" => "Bedroom Interior Laminate #4006",
-            "category" => "Laminates",
-            "pitch" => 23,
-            "yaw" => 0,
-            "fullsheet" => true,
-            "fullsheetUrl" => "src/Fullsheet/Fullsheet1.jpeg",
-            "threeD" => false,
-            "threeDUrl" => null,
-            "description" => "Featured premium laminate finish in the 360° virtual bedroom tour."
-        ]
-    ];
-    file_put_contents($dataFile, json_encode($defaultProducts, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    file_put_contents($dataFile, json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     @chmod($dataFile, 0666);
 }
 

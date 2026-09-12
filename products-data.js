@@ -16,22 +16,11 @@ window.ProductCatalog = (function () {
     const DB_NAME = 'ProductAssetsDB_v3';
     const STORE_NAME = 'assets';
 
-    const REAL_WORKSPACE_PRODUCTS = [
-        {
-            id: 'prod-4006',
-            code: '#4006',
-            slug: '4006',
-            name: 'Bedroom Interior Laminate #4006',
-            category: 'Laminates',
-            pitch: 23,
-            yaw: 0,
-            fullsheet: true,
-            fullsheetUrl: 'src/Fullsheet/Fullsheet1.jpeg',
-            threeD: false,
-            threeDUrl: null,
-            description: 'Featured premium laminate finish in the 360° virtual bedroom tour.'
-        }
-    ];
+    // No built-in products. This used to hold a demo laminate (#4006) that was
+    // restored whenever local storage was empty, so it kept returning after a deploy
+    // and read as a deleted product resurrecting itself. The catalogue starts empty
+    // and is filled through the admin.
+    const REAL_WORKSPACE_PRODUCTS = [];
 
     // ---- IndexedDB Helper for Large Binary Assets ----
     function getDB() {

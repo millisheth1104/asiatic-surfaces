@@ -228,7 +228,7 @@
 
         if (fsModalTitle) fsModalTitle.textContent = `${product.code} - ${product.name}`;
 
-        let fsSrc = 'src/Fullsheet/Fullsheet1.jpeg';
+        let fsSrc = 'assets/textures/laminates.webp';
         if (product.fullsheetUrl) {
             if (product.fullsheetUrl.startsWith('db:')) {
                 const dbKey = product.fullsheetUrl.replace('db:', '');
