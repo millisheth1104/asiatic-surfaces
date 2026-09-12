@@ -281,6 +281,12 @@ window.ProductCatalog = (function () {
                         return normCloud;
                     });
 
+                    // The server's deletion record is authoritative: adopt it locally so a
+                    // product deleted on another device disappears here too.
+                    if (Array.isArray(data.deleted)) {
+                        data.deleted.forEach(id => { if (!isDeleted(id)) tombstone(id); });
+                    }
+
                     // Preserve products created locally that the cloud has not seen yet -
                     // but never a product that was deleted. Without the tombstone check a
                     // stale copy in any other tab silently restores it and pushes it back.
@@ -362,8 +368,26 @@ window.ProductCatalog = (function () {
         return productsList;
     }
 
+    async function deleteFromCloud(id) {
+        try {
+            await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete', id })
+            });
+        } catch (err) {
+            // Offline: the local tombstone still applies, and syncFromCloud pushes the
+            // deletion through the next time the server is reachable.
+            console.warn('Delete not yet confirmed by server:', err.message);
+        }
+    }
+
     function deleteProduct(id) {
         tombstone(id);
+        // Say "delete this id", not "here is my whole list". A full-list save races every
+        // other open copy; an explicit delete is recorded server-side and cannot be undone
+        // by a stale client pushing the product back.
+        deleteFromCloud(id);
         let productsList = getProducts();
         productsList = productsList.filter(p => p.id !== id);
         saveProducts(productsList);
@@ -533,6 +557,7 @@ window.ProductCatalog = (function () {
         addProduct,
         updateProduct,
         deleteProduct,
+        deleteFromCloud,
         resetToRealDefaults,
         uploadAssetToBlob,
         storeAsset,

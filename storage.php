@@ -63,6 +63,63 @@ function storage_products_file()
 }
 
 /**
+ * Deletions have to be recorded where every client can see them.
+ *
+ * Client-side tombstones only bind the browser that made the deletion; any other copy
+ * still holds the product and pushes it back on its next full-list save. The server is
+ * the one place all clients agree on, so the record lives here and the API refuses to
+ * re-create anything listed in it.
+ */
+function storage_deleted_file()
+{
+    $base = storage_dir();
+    return $base === false ? false : $base . '/deleted.json';
+}
+
+function storage_read_deleted()
+{
+    $f = storage_deleted_file();
+    if ($f === false || !is_file($f)) {
+        return [];
+    }
+    $data = json_decode(file_get_contents($f), true);
+    if (!is_array($data)) {
+        return [];
+    }
+    // Expire after 90 days so the file cannot grow without bound, and an id can be
+    // legitimately reused long after.
+    $cutoff = time() - (90 * 24 * 60 * 60);
+    $live = array_filter($data, function ($ts) use ($cutoff) {
+        return is_numeric($ts) && $ts > $cutoff;
+    });
+    if (count($live) !== count($data)) {
+        storage_write_deleted($live);
+    }
+    return $live;
+}
+
+function storage_write_deleted(array $map)
+{
+    $f = storage_deleted_file();
+    if ($f === false) {
+        return false;
+    }
+    return file_put_contents($f, json_encode($map, JSON_PRETTY_PRINT)) !== false;
+}
+
+function storage_tombstone(array $ids)
+{
+    $map = storage_read_deleted();
+    $now = time();
+    foreach ($ids as $id) {
+        if (is_string($id) && $id !== '') {
+            $map[$id] = $now;
+        }
+    }
+    return storage_write_deleted($map);
+}
+
+/**
  * One-time rescue: if a previous layout left products.json or uploads/ inside
  * public_html, pull them into persistent storage before the next deploy wipes them.
  */

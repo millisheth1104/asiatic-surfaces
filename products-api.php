@@ -38,7 +38,19 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $content = file_get_contents($dataFile);
     $products = json_decode($content, true) ?: [];
-    echo json_encode(['success' => true, 'products' => $products]);
+    $deleted = storage_read_deleted();
+
+    // Defensive: never hand back something already deleted, even if an older write
+    // slipped it into the file.
+    $products = array_values(array_filter($products, function ($p) use ($deleted) {
+        return !isset($p['id']) || !isset($deleted[$p['id']]);
+    }));
+
+    echo json_encode([
+        'success'  => true,
+        'products' => $products,
+        'deleted'  => array_keys($deleted),
+    ]);
     exit;
 }
 
@@ -53,10 +65,21 @@ if ($method === 'POST' || $method === 'PUT') {
     $content = file_get_contents($dataFile);
     $current = json_decode($content, true) ?: [];
 
+    $deleted = storage_read_deleted();
+
     if (isset($input['products']) && is_array($input['products'])) {
-        $current = $input['products'];
+        // A full-list save from a client that still holds deleted rows would otherwise
+        // resurrect them: the list replaces the file wholesale and the last writer wins.
+        // Strip anything the deletion record covers before it is stored.
+        $current = array_values(array_filter($input['products'], function ($p) use ($deleted) {
+            return !isset($p['id']) || !isset($deleted[$p['id']]);
+        }));
     } elseif (isset($input['product']) && isset($input['product']['id'])) {
         $p = $input['product'];
+        if (isset($deleted[$p['id']])) {
+            echo json_encode(['success' => true, 'products' => $current, 'skipped' => 'deleted']);
+            exit;
+        }
         $found = false;
         foreach ($current as $k => $item) {
             if ($item['id'] === $p['id']) {
@@ -69,8 +92,10 @@ if ($method === 'POST' || $method === 'PUT') {
             array_unshift($current, $p);
         }
     } elseif (isset($input['action']) && $input['action'] === 'delete' && isset($input['id'])) {
-        $current = array_values(array_filter($current, function($item) use ($input) {
-            return $item['id'] !== $input['id'];
+        $ids = is_array($input['id']) ? $input['id'] : [$input['id']];
+        storage_tombstone($ids);
+        $current = array_values(array_filter($current, function ($item) use ($ids) {
+            return !isset($item['id']) || !in_array($item['id'], $ids, true);
         }));
     }
 
