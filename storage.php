@@ -8,8 +8,10 @@
  * above the web root, where Git never reaches.
  *
  * Falls back to a directory inside public_html only if the host forbids writing
- * above the web root (open_basedir). That fallback is NOT deploy-safe, which is why
- * storage_is_persistent() exists - health.php reports it.
+ * above the web root (open_basedir). That fallback is NOT deploy-safe: a deploy would
+ * clear it, taking the catalogue and every uploaded image with it. storage_is_persistent()
+ * reports which of the two is in use, so that condition can be checked if the data ever
+ * goes missing again.
  */
 
 function storage_dir()
