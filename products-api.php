@@ -59,6 +59,14 @@ if ($method === 'POST' || $method === 'PUT') {
 
     $deleted = storage_read_deleted();
 
+    // A catalogue is a few hundred products at most. Without a ceiling, one request can
+    // write a file of any size, which is a slower route to the same full disk.
+    if (isset($input['products']) && is_array($input['products']) && count($input['products']) > 5000) {
+        http_response_code(413);
+        echo json_encode(['error' => 'Too many products in one request']);
+        exit;
+    }
+
     if (isset($input['products']) && is_array($input['products'])) {
         // A full-list save from a client that still holds deleted rows would otherwise
         // resurrect them: the list replaces the file wholesale and the last writer wins.

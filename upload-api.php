@@ -50,10 +50,46 @@ try {
         exit;
     }
 
+    // What arrived has to actually be an image. Nothing here checked, so any bytes at
+    // all could be stored under a .jpg name; getimagesize reads the header and fails on
+    // anything that is not a real raster image - including an SVG, which is a document
+    // that can carry script.
+    $info = @getimagesizefromstring($decoded);
+    $allowed = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP, IMAGETYPE_GIF];
+    if ($info === false || !in_array($info[2], $allowed, true)) {
+        http_response_code(415);
+        echo json_encode(['error' => 'That file is not a JPEG, PNG, WebP or GIF image']);
+        exit;
+    }
+
+    // The extension is what uploads.php uses to decide the Content-Type, so it is taken
+    // from the verified image type rather than from the name the caller supplied.
+    $extByType = [
+        IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png',
+        IMAGETYPE_WEBP => 'webp', IMAGETYPE_GIF => 'gif',
+    ];
+    $filename = preg_replace('/\.[A-Za-z0-9]+$/', '', $filename) . '.' . $extByType[$info[2]];
+
     $uploadDir = storage_uploads_dir();
     if ($uploadDir === false) {
         http_response_code(500);
         echo json_encode(['error' => 'Storage unavailable: uploads directory not writable']);
+        exit;
+    }
+
+    // A rate limit alone does not stop the disk filling: 20 uploads a minute at 25 MB is
+    // roughly 29 GB an hour. Past a ceiling, new uploads are refused rather than taking
+    // the site down with a full disk. Current real usage is about 12 MB.
+    $storeMax = 2 * 1024 * 1024 * 1024;   // 2 GB
+    $used = 0;
+    foreach (glob($uploadDir . '/*') ?: [] as $f) {
+        if (is_file($f)) {
+            $used += filesize($f);
+        }
+    }
+    if ($used + strlen($decoded) > $storeMax) {
+        http_response_code(507);
+        echo json_encode(['error' => 'Image storage is full. Remove some images before uploading more.']);
         exit;
     }
 
