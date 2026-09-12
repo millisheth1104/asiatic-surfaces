@@ -900,11 +900,51 @@
         hotspotDiv.appendChild(wrapper);
     }
 
-    function initWizardViewer() {
+    /**
+     * Whether this browser can still give us a 3D drawing surface.
+     *
+     * Panoramas render through WebGL, and a browser allows only a limited number of
+     * WebGL contexts at once - around sixteen in Chrome, across every open tab. Once
+     * they are used up the viewer fails with "your browser does not have the necessary
+     * WebGL support", which sounds permanent and is not: it usually means too many tabs,
+     * or hardware acceleration turned off.
+     */
+    function webglAvailable() {
+        try {
+            const c = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext &&
+                      (c.getContext('webgl') || c.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function wizardViewerMessage(title, detail) {
+        const container = document.getElementById('wizard-3d-viewer');
+        if (!container) return;
+        container.innerHTML = `
+            <div style="width:100%;height:100%;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0c0a09;color:#fff;text-align:center;padding:24px;box-sizing:border-box;border-radius:12px;user-select:none;">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" style="margin-bottom:12px;">
+                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+                <div style="font-size:1rem;font-weight:600;color:#fff;margin-bottom:6px;letter-spacing:-0.01em;"></div>
+                <div style="font-size:0.72rem;color:rgba(255,255,255,0.45);max-width:280px;line-height:1.45;"></div>
+            </div>
+        `;
+        // textContent, so a product code in the message can never become markup.
+        container.querySelectorAll('div div')[0].textContent = title;
+        container.querySelectorAll('div div')[1].textContent = detail;
+    }
+
+    function destroyWizardViewer() {
         if (wizardViewerInstance && typeof wizardViewerInstance.destroy === 'function') {
             try { wizardViewerInstance.destroy(); } catch (e) { }
-            wizardViewerInstance = null;
         }
+        wizardViewerInstance = null;
+    }
+
+    function initWizardViewer() {
+        destroyWizardViewer();
 
         const container = document.getElementById('wizard-3d-viewer');
         if (!container) return;
@@ -923,6 +963,16 @@
                     </div>
                 </div>
             `;
+            return;
+        }
+
+        if (!webglAvailable()) {
+            wizardViewerMessage(
+                '3D preview unavailable in this browser',
+                'The panorama is uploaded and saved - only this preview cannot draw it. ' +
+                'Close some browser tabs and reopen this window, or turn on hardware ' +
+                'acceleration in your browser settings.'
+            );
             return;
         }
 
@@ -1135,6 +1185,11 @@
         const activePage = document.getElementById(`form-page-${stepNum}`);
         if (activePage) activePage.style.display = 'block';
 
+        // Step 3 is the only step that holds a WebGL context. Leaving it while the modal
+        // stays open used to keep that context alive, and they are a limited resource
+        // shared across every open tab.
+        if (stepNum !== 3) destroyWizardViewer();
+
         // Dynamically resize modal card width for split column Step 3
         const modalContainer = document.querySelector('.form-modal-card');
         if (modalContainer) {
@@ -1189,10 +1244,7 @@
     });
 
     function closeAddModal() {
-        if (wizardViewerInstance && typeof wizardViewerInstance.destroy === 'function') {
-            try { wizardViewerInstance.destroy(); } catch (e) { }
-            wizardViewerInstance = null;
-        }
+        destroyWizardViewer();
         editingProductId = null;
         addProductForm.reset();
         tempFullsheetDataUrl = null;
