@@ -326,7 +326,7 @@
     cards = [];
     hits = [];
 
-    items.forEach(function (it, i) {
+    items.forEach(function (it) {
       var figure = buildFigure({
         code: it.code,
         name: it.name,
@@ -334,15 +334,29 @@
         full: it.full || it.grid,
         ar: it.ar
       });
+
+      // Search reads this attribute; without it the curated sheets are invisible
+      // to the field and typing anything returned "no sheet matches".
+      figure.setAttribute(
+        'data-search',
+        ((it.code || '') + ' ' + (it.name || '')).toLowerCase()
+      );
+
       var hitBtn = figure.querySelector('.sheet__hit');
-      (function (hitIndex) {
-        hitBtn.addEventListener('click', function () { openLightbox(hitIndex); });
-      })(i);
+      // Resolve the index at click time: filtering rebuilds `hits`, so a position
+      // captured now would open the wrong sheet once a search is active.
+      hitBtn.addEventListener('click', function () {
+        openLightbox(hits.indexOf(this));
+      });
       cards.push(figure);
       hits.push(hitBtn);
     });
 
-    deal();
+    // Hand the same bookkeeping the dynamic path does, so the field filters these
+    // sheets and an in-flight query survives a re-render.
+    allCards = cards.slice();
+    allHits = hits.slice();
+    applyFilter(searchInput ? searchInput.value : '');
     return true;
   }
 
