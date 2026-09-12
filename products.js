@@ -987,6 +987,61 @@
         wizardViewerInstance = null;
     }
 
+    /**
+     * Places hotspots on a flat equirectangular image, with no WebGL at all.
+     *
+     * The spherical preview needs a WebGL context, and a browser hands out only a few
+     * across all its tabs. When there is none left, hotspot placement used to be simply
+     * unavailable - the panorama was uploaded and saved, but the work could not be done.
+     *
+     * An equirectangular image maps to angles by straight proportion, so the flat picture
+     * is enough: x across the full width is 360 degrees of yaw, y down the full height is
+     * 180 degrees of pitch. Clicking the image therefore yields exactly the same
+     * coordinates the sphere would, and the tour renders identically.
+     */
+    function initFlatHotspotEditor(container, panoramaSrc, reason) {
+        container.innerHTML = `
+            <div class="flat-pano" style="position:relative;width:100%;height:100%;min-height:320px;overflow:auto;background:#0c0a09;border-radius:12px;">
+                <div class="flat-pano__note" style="position:sticky;top:0;z-index:3;padding:8px 12px;background:rgba(12,10,9,.92);color:rgba(255,255,255,.72);font-size:.7rem;line-height:1.4;"></div>
+                <div class="flat-pano__stage" style="position:relative;display:inline-block;min-width:100%;">
+                    <img class="flat-pano__img" src="" alt="Panorama - click to place a hotspot" style="display:block;width:100%;height:auto;cursor:crosshair;user-select:none;-webkit-user-drag:none;">
+                </div>
+            </div>
+        `;
+        container.querySelector('.flat-pano__note').textContent = reason;
+        const img = container.querySelector('.flat-pano__img');
+        const stage = container.querySelector('.flat-pano__stage');
+        img.src = panoramaSrc;
+
+        function drawMarkers() {
+            stage.querySelectorAll('.flat-pano__pin').forEach(n => n.remove());
+            tempHotspotsList.forEach((hs, i) => {
+                const pin = document.createElement('span');
+                pin.className = 'flat-pano__pin';
+                // Inverse of the click mapping below.
+                const left = ((hs.yaw + 180) / 360) * 100;
+                const top = ((90 - hs.pitch) / 180) * 100;
+                pin.style.cssText = `position:absolute;left:${left}%;top:${top}%;transform:translate(-50%,-50%);` +
+                    'background:#e5c8b9;color:#14110f;font-size:.62rem;font-weight:700;padding:3px 7px;' +
+                    'border-radius:99px;white-space:nowrap;pointer-events:none;box-shadow:0 0 0 2px rgba(12,10,9,.55);';
+                pin.textContent = (i + 1) + '. ' + (hs.code || '');
+                stage.appendChild(pin);
+            });
+        }
+
+        img.addEventListener('load', drawMarkers);
+        container._redrawFlatMarkers = drawMarkers;
+
+        img.addEventListener('click', (e) => {
+            const r = img.getBoundingClientRect();
+            const fx = (e.clientX - r.left) / r.width;    // 0..1 across
+            const fy = (e.clientY - r.top) / r.height;    // 0..1 down
+            const yaw = parseFloat((fx * 360 - 180).toFixed(1));
+            const pitch = parseFloat((90 - fy * 180).toFixed(1));
+            openAddHotspotModal(pitch, yaw);
+        });
+    }
+
     function initWizardViewer() {
         destroyWizardViewer();
 
@@ -1032,15 +1087,18 @@
                     // beforehand was worse than useless: the probe held a context of its
                     // own, and a false negative refused a render that would have worked.
                     error: function (msg) {
-                        const outOfContexts = /webgl/i.test(String(msg || ''));
-                        wizardViewerMessage(
-                            outOfContexts ? '3D preview could not start' : 'Panorama could not be loaded',
-                            outOfContexts
-                                ? 'The panorama is uploaded and saved - only this preview failed to draw. ' +
-                                  'Close some browser tabs and reopen this window, or enable graphics ' +
-                                  'acceleration in your browser settings.'
-                                : String(msg || 'The panorama image could not be read.')
-                        );
+                        // No spherical preview available. Fall back to placing hotspots on
+                        // the flat image rather than blocking the work entirely.
+                        destroyWizardViewer();
+                        if (/webgl/i.test(String(msg || ''))) {
+                            initFlatHotspotEditor(container, panoramaSrc,
+                                'Flat view - the 3D preview could not start in this browser ' +
+                                '(no graphics context available). Clicking still places hotspots ' +
+                                'at exactly the same positions, and the tour itself is unaffected.');
+                        } else {
+                            wizardViewerMessage('Panorama could not be loaded',
+                                String(msg || 'The panorama image could not be read.'));
+                        }
                     },
                     pitch: tempHotspotsList.length > 0 ? tempHotspotsList[tempHotspotsList.length - 1].pitch : 0,
                     yaw: tempHotspotsList.length > 0 ? tempHotspotsList[tempHotspotsList.length - 1].yaw : 0,
@@ -1056,6 +1114,10 @@
                 }, 120);
             } catch (err) {
                 console.error('Failed to init wizard viewer:', err);
+                destroyWizardViewer();
+                initFlatHotspotEditor(container, panoramaSrc,
+                    'Flat view - the 3D preview could not start. Clicking still places ' +
+                    'hotspots at exactly the same positions.');
             }
 
             // Capture clicks to create a new hotspot point
@@ -1073,7 +1135,8 @@
                 const dy = Math.abs(e.clientY - mousedownY);
 
                 // Click (not a drag-to-look action)
-                if (dx < 5 && dy < 5 && wizardViewerInstance) {
+                if (dx < 5 && dy < 5 && wizardViewerInstance &&
+                    typeof wizardViewerInstance.mouseEventToCoords === 'function') {
                     const coords = wizardViewerInstance.mouseEventToCoords(e);
                     if (coords) {
                         const pitch = parseFloat(coords[0].toFixed(1));
@@ -1091,6 +1154,13 @@
         const listContainer = document.getElementById('wizard-hotspots-list');
 
         if (countBadge) countBadge.textContent = tempHotspotsList.length;
+
+        // The flat editor draws its own pins, so they follow the list the same way the
+        // spherical viewer's hotspots do.
+        const viewerEl = document.getElementById('wizard-3d-viewer');
+        if (viewerEl && typeof viewerEl._redrawFlatMarkers === 'function') {
+            viewerEl._redrawFlatMarkers();
+        }
 
         if (listContainer) {
             listContainer.innerHTML = '';
