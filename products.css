@@ -1563,3 +1563,42 @@ body {
 /* Every product links to its tour, whether or not a panorama has been uploaded.
    The tour page itself reports "No 3D Image Available" when there is nothing to
    show, which is a clearer answer than a link that refuses to be clicked. */
+
+/* ---- Export button ----------------------------------------------------- */
+.results-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-pill);
+    background: var(--ivory-lift);
+    color: var(--charcoal);
+    font-family: var(--font);
+    font-size: var(--fs-meta);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color var(--dur-micro) var(--ease-soft),
+                background var(--dur-micro) var(--ease-soft);
+}
+
+.export-btn:hover {
+    border-color: var(--dusty-peach);
+    background: var(--ivory-deep);
+}
+
+.export-btn svg { flex: none; }
+
+@media (max-width: 640px) {
+    /* The label is the first thing worth dropping when the bar runs out of room. */
+    .export-btn span { display: none; }
+    .export-btn { padding: 9px 12px; }
+}

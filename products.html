@@ -136,6 +136,14 @@
                 Showing <strong>0</strong> products
             </div>
             <div class="results-right">
+                <button class="export-btn" id="btn-export-excel" title="Download the listed products as an Excel file">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Export Excel</span>
+                </button>
                 <div class="view-switch">
                     <button class="view-switch-btn active" id="view-mode-table" title="Table View (Grid Lines)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -481,6 +489,9 @@
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Writes a real .xlsx for the export button; the export falls back to CSV if it fails to load -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
     <script src="products-data.js?v=2.3"></script>

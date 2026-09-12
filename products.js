@@ -353,6 +353,83 @@
         }).join('');
     }
 
+    // ---- Export ----------------------------------------------------------
+    /**
+     * Exports the products currently listed - the same filter, search and sort the
+     * table is showing, so what you see is what you get - as a real .xlsx.
+     *
+     * Columns mirror the table except Actions, which holds buttons rather than data.
+     * The 360 View column exports the full absolute URL instead of the link's label,
+     * since a path is useless once the row is in a spreadsheet.
+     */
+    function buildExportRows() {
+        return getFilteredProducts().map(p => ({
+            'Code Number': p.code || '',
+            'Product Name': p.name || '',
+            'Product Category': normalizeCategory(p.category) || '',
+            'Full Sheet': p.fullsheet ? 'Uploaded' : 'No',
+            '3D Image': p.threeD ? 'Uploaded' : 'No',
+            '360 View': window.location.origin + tourUrlFor(p)
+        }));
+    }
+
+    function exportFilename(ext) {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `products-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.${ext}`;
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /** Used when the spreadsheet library did not load. Excel opens this natively. */
+    function exportAsCsv(rows) {
+        const headers = Object.keys(rows[0]);
+        const cell = v => {
+            const t = String(v == null ? '' : v);
+            return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+        };
+        const csv = [headers.join(',')]
+            .concat(rows.map(r => headers.map(h => cell(r[h])).join(',')))
+            .join('\r\n');
+        // The BOM is what makes Excel read it as UTF-8 rather than mangling accents.
+        downloadBlob(new Blob([String.fromCharCode(0xFEFF) + csv], { type: 'text/csv;charset=utf-8;' }),
+                     exportFilename('csv'));
+    }
+
+    function exportProducts() {
+        const rows = buildExportRows();
+        if (rows.length === 0) {
+            showToast('Nothing to export - no products match the current filters.', 'info');
+            return;
+        }
+
+        if (typeof XLSX === 'undefined') {
+            exportAsCsv(rows);
+            showToast(`Exported ${rows.length} products as CSV.`, 'success');
+            return;
+        }
+
+        const sheet = XLSX.utils.json_to_sheet(rows);
+        // Without explicit widths every column collapses to its header.
+        sheet['!cols'] = [{ wch: 14 }, { wch: 26 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 46 }];
+        const book = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(book, sheet, 'Products');
+        XLSX.writeFile(book, exportFilename('xlsx'));
+        showToast(`Exported ${rows.length} products.`, 'success');
+    }
+
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    if (btnExportExcel) btnExportExcel.addEventListener('click', exportProducts);
+
     // ---- Event Listeners for Table & Card Actions ----
     function attachActionEventListeners() {
         document.querySelectorAll('.edit-product-btn').forEach(btn => {
