@@ -1602,3 +1602,25 @@ body {
     .export-btn span { display: none; }
     .export-btn { padding: 9px 12px; }
 }
+
+/* ---- Factory code ------------------------------------------------------ */
+/* The customer-facing code is the badge; this is the works' own reference, so
+   it reads as secondary rather than competing with it. */
+.grid-factory-code {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: var(--fs-meta);
+    color: var(--stone);
+    letter-spacing: 0.02em;
+}
+
+.grid-factory-code:empty::before {
+    content: "—";
+    color: var(--stone-light);
+}
+
+.card-factory-code {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: var(--fs-meta);
+    color: var(--stone);
+    margin-left: 8px;
+}

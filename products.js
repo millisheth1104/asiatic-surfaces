@@ -170,7 +170,11 @@
         return products.filter(item => {
             const codeClean = (item.code || '').toLowerCase().replace(/^#/, '');
             const nameLower = (item.name || '').toLowerCase();
-            const matchesQuery = !query || codeClean.includes(query) || nameLower.includes(query);
+            // The factory code is how the floor refers to a sheet, so it has to be
+            // searchable alongside the catalogue code.
+            const factoryLower = (item.factoryCode || '').toLowerCase();
+            const matchesQuery = !query || codeClean.includes(query) ||
+                nameLower.includes(query) || factoryLower.includes(query);
             const cleanFilterCat = normalizeCategory(currentFilter.category);
             const matchesCategory = currentFilter.category === 'ALL' ||
                 normalizeCategory(item.category) === cleanFilterCat;
@@ -272,6 +276,9 @@
                     <td>
                         <span class="grid-cat-pill">${esc(normalizeCategory(product.category))}</span>
                     </td>
+                    <td>
+                        <span class="grid-factory-code">${esc(product.factoryCode || '')}</span>
+                    </td>
                     <td class="text-center">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                             ${fullsheetCell}
@@ -320,6 +327,7 @@
                     <div class="card-header">
                         <span class="card-code">${esc(product.code)}</span>
                         <span class="card-category">${esc(normalizeCategory(product.category))}</span>
+                        ${product.factoryCode ? `<span class="card-factory-code">${esc(product.factoryCode)}</span>` : ''}
                     </div>
 
                     <div class="card-name">${esc(product.name || '')}</div>
@@ -367,6 +375,7 @@
             'Code Number': p.code || '',
             'Product Name': p.name || '',
             'Product Category': normalizeCategory(p.category) || '',
+            'Factory Code': p.factoryCode || '',
             'Full Sheet': p.fullsheet ? 'Uploaded' : 'No',
             '3D Image': p.threeD ? 'Uploaded' : 'No',
             '360 View': window.location.origin + tourUrlFor(p)
@@ -420,7 +429,7 @@
 
         const sheet = XLSX.utils.json_to_sheet(rows);
         // Without explicit widths every column collapses to its header.
-        sheet['!cols'] = [{ wch: 14 }, { wch: 26 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 46 }];
+        sheet['!cols'] = [{ wch: 14 }, { wch: 26 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 46 }];
         const book = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(book, sheet, 'Products');
         XLSX.writeFile(book, exportFilename('xlsx'));
@@ -663,6 +672,17 @@
 
     // Auto-generate slug from Code input
     const formCodeInput = document.getElementById('form-code');
+    const formFactoryCodeInput = document.getElementById('form-factory-code');
+
+    // The slug is derived from the code rather than typed. It used to live in a read-only
+    // box beside the name, which only ever showed what the code already implied; that box
+    // is the factory code now.
+    function slugFromCode(code) {
+        const clean = String(code || '').toLowerCase().replace(/#/g, '').trim()
+            .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return clean ? `prod-${clean}` : `prod-${Date.now()}`;
+    }
+
     const formSlugInput = document.getElementById('form-slug');
     if (formCodeInput && formSlugInput) {
         formCodeInput.addEventListener('input', () => {
@@ -844,7 +864,7 @@
         document.getElementById('form-code').value = product.code;
         document.getElementById('form-category').value = normalizeCategory(product.category);
         document.getElementById('form-name').value = product.name || '';
-        document.getElementById('form-slug').value = product.slug || '';
+        document.getElementById('form-factory-code').value = product.factoryCode || '';
 
         // Reset previous preview images
         if (wrapFullsheet) wrapFullsheet.style.display = 'none';
@@ -1307,7 +1327,7 @@
         tempHotspotsList = [];
         if (wrapFullsheet) wrapFullsheet.style.display = 'none';
         if (wrapThreeD) wrapThreeD.style.display = 'none';
-        if (formSlugInput) formSlugInput.value = '';
+        if (formFactoryCodeInput) formFactoryCodeInput.value = '';
         showFormStep(1);
         addProductModal.style.display = 'flex';
     });
@@ -1417,7 +1437,8 @@
         let rawCode = document.getElementById('form-code').value.trim();
         const category = normalizeCategory(document.getElementById('form-category').value);
         const name = document.getElementById('form-name').value.trim();
-        const slug = document.getElementById('form-slug').value || `prod-${Date.now()}`;
+        const slug = slugFromCode(document.getElementById('form-code').value);
+        const factoryCode = (document.getElementById('form-factory-code').value || '').trim();
 
         // Validate required Step 1 fields (Code and Category are required, Name is optional)
         if (!rawCode || !category) {
@@ -1497,6 +1518,7 @@
                 name: name || '',
                 category: category,
                 slug: slug,
+                factoryCode: factoryCode,
                 pitch: tempHotspotsList.length > 0 ? tempHotspotsList[0].pitch : 23,
                 yaw: tempHotspotsList.length > 0 ? tempHotspotsList[0].yaw : 0,
                 fullsheet: !!finalFullsheetUrl,

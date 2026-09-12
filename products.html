@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
     <!-- Page Styles -->
-    <link rel="stylesheet" href="products.css?v=3.6">
+    <link rel="stylesheet" href="products.css?v=3.7">
 </head>
 <body class="products-page">
 
@@ -192,6 +192,12 @@
                                     <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
                                 </div>
                             </th>
+                            <th class="sortable grid-cell-head" data-sort="factoryCode">
+                                <div class="th-content">
+                                    <span>Factory Code</span>
+                                    <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                                </div>
+                            </th>
                             <th class="sortable grid-cell-head text-center" data-sort="fullsheet">
                                 <div class="th-content center">
                                     <span>Full Sheet</span>
@@ -340,8 +346,8 @@
                             <input type="text" id="form-name" placeholder="e.g. Natural Grain Oak (optional)">
                         </div>
                         <div class="form-group">
-                            <label for="form-slug">Product Slug (Auto-generated)</label>
-                            <input type="text" id="form-slug" readonly placeholder="Will be created automatically" style="background: rgba(20, 17, 15, 0.05); color: var(--stone); cursor: not-allowed;">
+                            <label for="form-factory-code">Factory Code</label>
+                            <input type="text" id="form-factory-code" placeholder="e.g. FC-2201 (optional)" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-actions" style="justify-content: flex-end;">
@@ -494,8 +500,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
-    <script src="products-data.js?v=3.6"></script>
+    <script src="products-data.js?v=3.7"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=3.6"></script>
+    <script src="products.js?v=3.7"></script>
 </body>
 </html>
