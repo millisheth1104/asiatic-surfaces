@@ -900,25 +900,6 @@
         hotspotDiv.appendChild(wrapper);
     }
 
-    /**
-     * Whether this browser can still give us a 3D drawing surface.
-     *
-     * Panoramas render through WebGL, and a browser allows only a limited number of
-     * WebGL contexts at once - around sixteen in Chrome, across every open tab. Once
-     * they are used up the viewer fails with "your browser does not have the necessary
-     * WebGL support", which sounds permanent and is not: it usually means too many tabs,
-     * or hardware acceleration turned off.
-     */
-    function webglAvailable() {
-        try {
-            const c = document.createElement('canvas');
-            return !!(window.WebGLRenderingContext &&
-                      (c.getContext('webgl') || c.getContext('experimental-webgl')));
-        } catch (e) {
-            return false;
-        }
-    }
-
     function wizardViewerMessage(title, detail) {
         const container = document.getElementById('wizard-3d-viewer');
         if (!container) return;
@@ -966,16 +947,6 @@
             return;
         }
 
-        if (!webglAvailable()) {
-            wizardViewerMessage(
-                '3D preview unavailable in this browser',
-                'The panorama is uploaded and saved - only this preview cannot draw it. ' +
-                'Close some browser tabs and reopen this window, or turn on hardware ' +
-                'acceleration in your browser settings.'
-            );
-            return;
-        }
-
         const panoramaSrc = tempThreeDDataUrl;
 
         // Map internal temp list to hotspots config
@@ -994,6 +965,20 @@
                     type: 'equirectangular',
                     panorama: panoramaSrc,
                     autoLoad: true,
+                    // Only speak up once the viewer has actually failed. Testing for WebGL
+                    // beforehand was worse than useless: the probe held a context of its
+                    // own, and a false negative refused a render that would have worked.
+                    error: function (msg) {
+                        const outOfContexts = /webgl/i.test(String(msg || ''));
+                        wizardViewerMessage(
+                            outOfContexts ? '3D preview could not start' : 'Panorama could not be loaded',
+                            outOfContexts
+                                ? 'The panorama is uploaded and saved - only this preview failed to draw. ' +
+                                  'Close some browser tabs and reopen this window, or enable graphics ' +
+                                  'acceleration in your browser settings.'
+                                : String(msg || 'The panorama image could not be read.')
+                        );
+                    },
                     pitch: tempHotspotsList.length > 0 ? tempHotspotsList[tempHotspotsList.length - 1].pitch : 0,
                     yaw: tempHotspotsList.length > 0 ? tempHotspotsList[tempHotspotsList.length - 1].yaw : 0,
                     compass: false,
