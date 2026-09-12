@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- QRCode JS Library CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <!-- Pannellum CSS & JS for 3D Panorama Modal -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
@@ -36,7 +35,7 @@
                 </div>
                 <div class="header-titles">
                     <h1>Product Catalog</h1>
-                    <p>Search by Code or Name &bull; Manage Assets & QR Codes</p>
+                    <p>Search by Code or Name &bull; Manage Assets &amp; 360 Tours</p>
                 </div>
             </div>
             <div class="header-actions">
@@ -197,7 +196,7 @@
                                     <svg class="sort-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
                                 </div>
                             </th>
-                            <th class="grid-cell-head text-center">QR Code</th>
+                            <th class="grid-cell-head text-center">360 View</th>
                             <th class="grid-cell-head text-right">Actions</th>
                         </tr>
                     </thead>
@@ -227,54 +226,6 @@
             <button class="nav-btn nav-btn--solid" id="empty-reset-btn">Reset Search & Filters</button>
         </div>
     </main>
-
-    <!-- QR Code Modal -->
-    <div id="qr-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card qr-modal-card">
-            <button class="modal-close-btn" id="qr-modal-close" title="Close Modal">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-            <div class="qr-modal-header">
-                <div class="qr-badge" id="qr-modal-code">#4006</div>
-                <h2 id="qr-modal-name">Bedroom Interior Suite</h2>
-                <span class="qr-modal-category" id="qr-modal-category">Laminates</span>
-            </div>
-            <div class="qr-code-box">
-                <div id="qr-code-canvas" class="qr-render-area"></div>
-                <p class="qr-hint">Scan with phone camera to view product details & 3D panorama</p>
-            </div>
-            <div class="qr-link-box">
-                <input type="text" id="qr-link-input" readonly value="">
-                <button class="copy-link-btn" id="btn-copy-qr-link">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                    <span>Copy Link</span>
-                </button>
-            </div>
-            <div class="qr-modal-actions">
-                <button class="modal-btn modal-btn--ghost" id="btn-download-qr">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    <span>Download QR</span>
-                </button>
-                <a id="qr-launch-360-btn" href="index.html" class="modal-btn modal-btn--solid">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polygon points="10 8 16 12 10 16 10 8"/>
-                    </svg>
-                    <span>Open 3D View</span>
-                </a>
-            </div>
-        </div>
-    </div>
 
     <!-- Fullsheet Viewer Modal -->
     <div id="fullsheet-modal" class="modal-overlay" style="display: none;">

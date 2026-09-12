@@ -1541,3 +1541,29 @@ body {
 .product-label:hover .product-label-text {
     color: var(--charcoal);
 }
+
+/* ---- 360 tour link (replaced the QR column) ---------------------------- */
+/* The enabled state is an <a>, the disabled state a <span>, so both need the
+   button's own layout rather than inheriting it from <button>. */
+.grid-action-btn.tour-link,
+.card-action-btn.tour-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.grid-action-btn.tour-link:not(.is-disabled):hover,
+.card-action-btn.tour-link:not(.is-disabled):hover {
+    border-color: var(--dusty-peach);
+    color: var(--charcoal);
+}
+
+/* A product with no 360 image has no tour to open. Shown, but plainly inert -
+   a link that silently goes nowhere is worse than one that says why. */
+.tour-link.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    user-select: none;
+}

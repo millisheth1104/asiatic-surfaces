@@ -34,6 +34,31 @@
         }
     }
 
+    /**
+     * The public 360 tour address for a product: /<category>/<code>.
+     *
+     * .htaccess rewrites that shape to tour.html and app.js resolves the product from the
+     * path, so the link must be slugged the way both expect - lowercase, '#' dropped, any
+     * run of non-alphanumerics collapsed to a single hyphen. Derived from the product's
+     * current category and code rather than stored, so renaming either moves the link with
+     * it and every product, old or new, gets a working address.
+     */
+    function tourUrlFor(product) {
+        const slug = v => String(v || '')
+            .toLowerCase().trim()
+            .replace(/#/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        const cat = slug(normalizeCategory(product.category) || 'laminates');
+        const code = slug(product.code || product.slug || product.id || 'product');
+        return `/${cat}/${code}`;
+    }
+
+    /** Only a product carrying a 360 panorama has a tour to open. */
+    function hasTour(product) {
+        return !!(product && (product.threeD || product.threeDDataUrl));
+    }
+
     function normalizeCategory(cat) {
         if (!cat) return '';
         const c = cat.trim().toLowerCase();
@@ -88,15 +113,6 @@
     const statCategories = document.getElementById('stat-categories-count');
 
     // QR Modal
-    const qrModal = document.getElementById('qr-modal');
-    const qrModalClose = document.getElementById('qr-modal-close');
-    const qrModalCode = document.getElementById('qr-modal-code');
-    const qrModalName = document.getElementById('qr-modal-name');
-    const qrModalCategory = document.getElementById('qr-modal-category');
-    const qrRenderArea = document.getElementById('qr-code-canvas');
-    const qrLinkInput = document.getElementById('qr-link-input');
-    const btnCopyQrLink = document.getElementById('btn-copy-qr-link');
-    const btnDownloadQr = document.getElementById('btn-download-qr');
     const qrLaunch360Btn = document.getElementById('qr-launch-360-btn');
 
     // Fullsheet Modal
@@ -272,15 +288,15 @@
                         </div>
                     </td>
                     <td class="text-center">
-                        <button class="grid-action-btn open-qr-btn" data-id="${esc(product.id)}" title="View QR Code">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="7" height="7"/>
-                                <rect x="14" y="3" width="7" height="7"/>
-                                <rect x="14" y="14" width="7" height="7"/>
-                                <rect x="3" y="14" width="7" height="7"/>
-                            </svg>
-                            <span>QR Code</span>
-                        </button>
+                        ${hasTour(product)
+                            ? `<a class="grid-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" title="Open the 360 tour for ${esc(product.code)}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                            <span>360 View</span>
+                        </a>`
+                            : `<span class="grid-action-btn tour-link is-disabled" title="Upload a 360 image for this product to enable its tour">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                            <span>No tour</span>
+                        </span>`}
                     </td>
                     <td class="text-right">
                         <div class="grid-action-cell" style="display: flex; gap: 6px; justify-content: flex-end;">
@@ -337,7 +353,9 @@
 
                     <div class="card-actions" style="margin-top: 14px; display: flex; gap: 8px; align-items: center;">
                         <button class="card-action-btn edit-product-btn" data-id="${esc(product.id)}" title="Edit Product" style="border-color: var(--stone); flex: 1;">Edit</button>
-                        <button class="card-action-btn open-qr-btn" data-id="${esc(product.id)}" style="padding: 8px 14px;">QR</button>
+                        ${hasTour(product)
+                            ? `<a class="card-action-btn tour-link" href="${esc(tourUrlFor(product))}" target="_blank" rel="noopener" style="padding: 8px 14px;">360 View</a>`
+                            : `<span class="card-action-btn tour-link is-disabled" style="padding: 8px 14px;" title="Upload a 360 image to enable this tour">No tour</span>`}
                         <button class="card-action-btn card-action-btn--danger delete-product-btn" data-id="${esc(product.id)}">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
@@ -352,12 +370,6 @@
         document.querySelectorAll('.edit-product-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 openEditProductModal(e.currentTarget.getAttribute('data-id'));
-            });
-        });
-
-        document.querySelectorAll('.open-qr-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                openQrModal(e.currentTarget.getAttribute('data-id'));
             });
         });
 
@@ -443,118 +455,6 @@
             renderCatalog();
         });
     });
-
-    // ---- QR Code SVG Fallback ----
-    function generateFallbackSVGQR(text) {
-        let hash = 0;
-        for (let i = 0; i < text.length; i++) {
-            hash = (hash << 5) - hash + text.charCodeAt(i);
-            hash |= 0;
-        }
-        const size = 21;
-        let rects = [];
-        function isFinder(r, c) {
-            if (r < 7 && c < 7) return true;
-            if (r < 7 && c >= size - 7) return true;
-            if (r >= size - 7 && c < 7) return true;
-            return false;
-        }
-        for (let r = 0; r < size; r++) {
-            for (let c = 0; c < size; c++) {
-                if (isFinder(r, c)) continue;
-                const seed = Math.sin(hash + r * size + c) * 10000;
-                if ((seed - Math.floor(seed)) > 0.45) {
-                    rects.push(`<rect x="${c * 8}" y="${r * 8}" width="8" height="8" fill="#14110f"/>`);
-                }
-            }
-        }
-        const finders = [{ x: 0, y: 0 }, { x: (size - 7) * 8, y: 0 }, { x: 0, y: (size - 7) * 8 }];
-        finders.forEach(f => {
-            rects.push(`<rect x="${f.x}" y="${f.y}" width="56" height="56" fill="#14110f"/>
-                <rect x="${f.x + 8}" y="${f.y + 8}" width="40" height="40" fill="#f5f0e8"/>
-                <rect x="${f.x + 16}" y="${f.y + 16}" width="24" height="24" fill="#14110f"/>`);
-        });
-        return `<svg viewBox="0 0 168 168" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="background:#f5f0e8; border-radius:8px; padding:8px;">${rects.join('')}</svg>`;
-    }
-
-    // ---- QR Modal ----
-    function openQrModal(productId) {
-        const list = getRealTimeProducts();
-        const product = list.find(p => p.id === productId);
-        if (!product) return;
-
-        qrModalCode.textContent = product.code;
-        qrModalName.textContent = product.name;
-        qrModalCategory.textContent = product.category;
-
-        const cleanCat = (product.category || 'laminates')
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-');
-        const cleanCode = (product.code || product.slug || product.id || 'product')
-            .toLowerCase()
-            .trim()
-            .replace(/#/g, '')
-            .replace(/\s+/g, '-');
-        const shareUrl = `${window.location.origin}/${cleanCat}/${cleanCode}`;
-        qrLinkInput.value = shareUrl;
-
-        qrRenderArea.innerHTML = '';
-        if (typeof QRCode !== 'undefined') {
-            new QRCode(qrRenderArea, {
-                text: shareUrl,
-                width: 180,
-                height: 180,
-                colorDark: '#14110f',
-                colorLight: '#f5f0e8',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        } else {
-            qrRenderArea.innerHTML = generateFallbackSVGQR(shareUrl);
-        }
-
-        qrLaunch360Btn.href = product.threeD
-            ? `${cleanCat}/${cleanCode}`
-            : '#';
-
-        if (!product.threeD) {
-            qrLaunch360Btn.style.opacity = '0.5';
-            qrLaunch360Btn.title = '3D image not uploaded yet';
-        } else {
-            qrLaunch360Btn.style.opacity = '1';
-            qrLaunch360Btn.title = 'Open 3D Virtual Tour';
-        }
-
-        qrModal.style.display = 'flex';
-    }
-
-    function closeQrModal() { qrModal.style.display = 'none'; }
-
-    btnCopyQrLink.addEventListener('click', () => {
-        qrLinkInput.select();
-        navigator.clipboard.writeText(qrLinkInput.value).then(() => {
-            showToast('Product link copied!', 'success');
-        }).catch(() => {
-            document.execCommand('copy');
-            showToast('Product link copied!', 'success');
-        });
-    });
-
-    btnDownloadQr.addEventListener('click', () => {
-        const img = qrRenderArea.querySelector('img') || qrRenderArea.querySelector('canvas');
-        if (img) {
-            const link = document.createElement('a');
-            link.download = `QR_${qrModalCode.textContent.replace('#', '')}.png`;
-            link.href = img.src || img.toDataURL('image/png');
-            link.click();
-            showToast('Downloaded QR Code!', 'success');
-        } else {
-            showToast('QR Code ready', 'info');
-        }
-    });
-
-    qrModalClose.addEventListener('click', closeQrModal);
-    qrModal.addEventListener('click', (e) => { if (e.target === qrModal) closeQrModal(); });
 
     // ---- Fullsheet Modal ----
     async function openFullsheetModal(productId) {
@@ -1497,6 +1397,15 @@
             e.currentTarget.classList.add('active');
             renderCatalog();
         });
+    });
+
+    // The catalogue engine renders from local storage first and fetches the server
+    // copy in the background, announcing the result with 'catalogUpdated'. Nothing here
+    // listened, so the table only ever showed whatever the browser already had: on a
+    // device that had not opened the admin before, that was nothing at all. It went
+    // unnoticed while a demo product was hardcoded as the empty-state fallback.
+    window.addEventListener('catalogUpdated', () => {
+        renderCatalog();
     });
 
     if (categorySelect) categorySelect.addEventListener('change', (e) => { currentFilter.category = e.target.value; renderCatalog(); });
