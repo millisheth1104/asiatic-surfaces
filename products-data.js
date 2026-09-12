@@ -22,6 +22,103 @@ window.ProductCatalog = (function () {
     // and is filled through the admin.
     const REAL_WORKSPACE_PRODUCTS = [];
 
+    // ---- Custom Categories ------------------------------------------------
+    // The eight original categories are written into the pages. These are the ones
+    // added through the admin; they are fetched once and cached, so every page can
+    // ask for the full list without each one hitting the network repeatedly.
+    const CATEGORY_KEY = 'realtime_360_categories_v1';
+
+    const BUILT_IN_CATEGORIES = [
+        { name: '45 Degree', slug: '45-degree', builtIn: true, page: '45-degree.html' },
+        { name: 'Synchro',   slug: 'synchro',   builtIn: true, page: 'synchro.html' },
+        { name: 'Digital',   slug: 'digital',   builtIn: true, page: 'digital.html' },
+        { name: 'Stone',     slug: 'stone',     builtIn: true, page: 'stone.html' },
+        { name: 'Laminates', slug: 'laminates', builtIn: true, page: 'laminates.html' },
+        { name: 'Louvers',   slug: 'louvers',   builtIn: true, page: 'louvers.html' },
+        { name: 'Edge Bands', slug: 'edge-bands', builtIn: true, page: 'edge-bands.html' },
+        { name: 'Texture',   slug: 'texture',   builtIn: true, page: 'texture.html' }
+    ];
+
+    function categorySlug(name) {
+        return String(name || '').toLowerCase().trim()
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function getCustomCategories() {
+        try {
+            const raw = localStorage.getItem(CATEGORY_KEY);
+            const list = raw ? JSON.parse(raw) : [];
+            return Array.isArray(list) ? list : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function setCustomCategories(list) {
+        try {
+            localStorage.setItem(CATEGORY_KEY, JSON.stringify(list));
+        } catch (e) {}
+        window.dispatchEvent(new CustomEvent('categoriesUpdated', { detail: list }));
+    }
+
+    /** Built-ins first, in their established order, then custom ones by creation. */
+    function getAllCategories() {
+        const custom = getCustomCategories().map(c => ({
+            ...c,
+            builtIn: false,
+            page: 'collection.html?cat=' + encodeURIComponent(c.slug)
+        }));
+        return BUILT_IN_CATEGORIES.concat(custom);
+    }
+
+    function findCategory(nameOrSlug) {
+        const key = categorySlug(nameOrSlug);
+        return getAllCategories().find(c => c.slug === key || categorySlug(c.name) === key) || null;
+    }
+
+    async function syncCategoriesFromCloud() {
+        try {
+            const res = await fetch('/api/categories?t=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) return getCustomCategories();
+            const data = await res.json();
+            if (data && data.success && Array.isArray(data.categories)) {
+                setCustomCategories(data.categories);
+                return data.categories;
+            }
+        } catch (err) {
+            // Offline: the cached list still renders.
+        }
+        return getCustomCategories();
+    }
+
+    async function saveCategory(category) {
+        const res = await fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Could not save the category');
+        }
+        setCustomCategories(data.categories || []);
+        return data.category;
+    }
+
+    async function deleteCategory(id) {
+        const res = await fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Could not delete the category');
+        }
+        setCustomCategories(data.categories || []);
+        return data.categories;
+    }
+
     // ---- IndexedDB Helper for Large Binary Assets ----
     function getDB() {
         return new Promise((resolve, reject) => {
@@ -519,6 +616,7 @@ window.ProductCatalog = (function () {
 
     // Auto-sync triggers
     syncFromCloud().then(() => processSyncQueue());
+    syncCategoriesFromCloud();
 
     if (typeof window !== 'undefined') {
         window.addEventListener('online', () => {
@@ -543,6 +641,13 @@ window.ProductCatalog = (function () {
     return {
         getProducts,
         syncFromCloud,
+        categorySlug,
+        getAllCategories,
+        getCustomCategories,
+        findCategory,
+        syncCategoriesFromCloud,
+        saveCategory,
+        deleteCategory,
         syncToCloud,
         saveProducts,
         addProduct,

@@ -390,7 +390,12 @@
         .toLowerCase().trim().replace(/\s+/g, '-');
       var cleanCode = (prod.code || prod.slug || prod.id || 'product')
         .toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-');
-      var tourUrl = (prod.threeD && prod.threeDDataUrl) ? `/${cleanCat}/${cleanCode}` : null;
+      // A category created through the admin is served under /c/<slug>/; only the
+      // built-in names have a route of their own.
+      var known = (window.ProductCatalog && window.ProductCatalog.findCategory)
+        ? window.ProductCatalog.findCategory(cleanCat) : null;
+      var tourBase = (known && known.builtIn === false) ? '/c/' + known.slug : '/' + cleanCat;
+      var tourUrl = (prod.threeD && prod.threeDDataUrl) ? tourBase + '/' + cleanCode : null;
 
       var figure = document.createElement('figure');
       figure.className = 'sheet is-in';

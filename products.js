@@ -51,6 +51,13 @@
             .replace(/^-+|-+$/g, '');
         const cat = slug(normalizeCategory(product.category) || 'laminates');
         const code = slug(product.code || product.slug || product.id || 'product');
+
+        // Only the eight built-in names have a route of their own. A category created
+        // through the admin is served under /c/<slug>/, so its products need that form
+        // or the rewrite would not match and the tour would 404.
+        const PC = window.ProductCatalog;
+        const known = PC && typeof PC.findCategory === 'function' ? PC.findCategory(cat) : null;
+        if (known && known.builtIn === false) return `/c/${known.slug}/${code}`;
         return `/${cat}/${code}`;
     }
 
@@ -438,6 +445,172 @@
 
     const btnExportExcel = document.getElementById('btn-export-excel');
     if (btnExportExcel) btnExportExcel.addEventListener('click', exportProducts);
+
+    // ---- Categories --------------------------------------------------------
+    /**
+     * Keeps every category dropdown in step with the list.
+     *
+     * The eight original categories were hardcoded as <option> tags in two places. A
+     * category added through the admin has to appear in both, so the options are rebuilt
+     * from the shared list instead, preserving whatever was selected.
+     */
+    function refreshCategoryOptions() {
+        const PC = window.ProductCatalog;
+        if (!PC || typeof PC.getAllCategories !== 'function') return;
+        const cats = PC.getAllCategories();
+        const opts = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>').join('');
+
+        const filter = document.getElementById('category-select');
+        if (filter) {
+            const keep = filter.value;
+            filter.innerHTML = '<option value="ALL">All Categories</option>' + opts;
+            filter.value = cats.some(c => c.name === keep) ? keep : 'ALL';
+        }
+
+        const formCat = document.getElementById('form-category');
+        if (formCat) {
+            const keep = formCat.value;
+            formCat.innerHTML = '<option value="">Select Category</option>' + opts;
+            if (cats.some(c => c.name === keep)) formCat.value = keep;
+        }
+    }
+
+    function renderExistingCategories() {
+        const box = document.getElementById('category-existing');
+        const PC = window.ProductCatalog;
+        if (!box || !PC) return;
+
+        const custom = PC.getCustomCategories();
+        if (custom.length === 0) {
+            box.innerHTML = '<p style="margin:0;color:var(--stone);font-size:var(--fs-meta);">' +
+                'No categories added yet. The eight built-in ones are always available.</p>';
+            return;
+        }
+
+        box.innerHTML =
+            '<p style="margin:0 0 10px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">Added categories</p>' +
+            custom.map(function (c) {
+                return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule);">' +
+                    '<span style="flex:1;font-size:var(--fs-body);">' + esc(c.name) + '</span>' +
+                    '<a href="collection.html?cat=' + encodeURIComponent(c.slug) + '" target="_blank" rel="noopener" style="font-size:var(--fs-meta);color:var(--stone);">view</a>' +
+                    '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>' +
+                    '</div>';
+            }).join('');
+
+        box.querySelectorAll('.cat-delete-btn').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                const id = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const used = getRealTimeProducts().filter(p => normalizeCategory(p.category) === name).length;
+                const warning = used > 0
+                    ? used + ' product(s) are in this category. They keep the name but its page stops working. Remove it anyway?'
+                    : 'Remove the category ' + name + '?';
+                if (!confirm(warning)) return;
+                try {
+                    await window.ProductCatalog.deleteCategory(id);
+                    renderExistingCategories();
+                    refreshCategoryOptions();
+                    showToast('Category removed', 'info');
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            });
+        });
+    }
+
+    const categoryModal = document.getElementById('category-modal');
+    const categoryNameInput = document.getElementById('category-name');
+    const categoryBlurbInput = document.getElementById('category-blurb');
+    const categoryThumbInput = document.getElementById('category-thumb');
+    const categoryThumbWrap = document.getElementById('category-thumb-wrap');
+    const categoryThumbPreview = document.getElementById('category-thumb-preview');
+    let categoryThumbDataUrl = null;
+
+    function openCategoryModal() {
+        if (!categoryModal) return;
+        categoryNameInput.value = '';
+        categoryBlurbInput.value = '';
+        categoryThumbInput.value = '';
+        categoryThumbDataUrl = null;
+        if (categoryThumbWrap) categoryThumbWrap.style.display = 'none';
+        renderExistingCategories();
+        categoryModal.style.display = 'flex';
+        categoryNameInput.focus();
+    }
+
+    function closeCategoryModal() {
+        if (categoryModal) categoryModal.style.display = 'none';
+    }
+
+    if (categoryThumbInput) {
+        categoryThumbInput.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) {
+                categoryThumbDataUrl = null;
+                if (categoryThumbWrap) categoryThumbWrap.style.display = 'none';
+                return;
+            }
+            categoryThumbDataUrl = await prepareImageFile(file);
+            if (categoryThumbPreview && categoryThumbWrap) {
+                categoryThumbPreview.src = categoryThumbDataUrl;
+                categoryThumbWrap.style.display = 'block';
+            }
+        });
+    }
+
+    const btnAddCategory = document.getElementById('btn-add-category');
+    if (btnAddCategory) btnAddCategory.addEventListener('click', openCategoryModal);
+    const categoryCloseBtn = document.getElementById('category-modal-close');
+    if (categoryCloseBtn) categoryCloseBtn.addEventListener('click', closeCategoryModal);
+    const categoryCancelBtn = document.getElementById('category-cancel');
+    if (categoryCancelBtn) categoryCancelBtn.addEventListener('click', closeCategoryModal);
+
+    const categorySaveBtn = document.getElementById('category-save');
+    if (categorySaveBtn) {
+        categorySaveBtn.addEventListener('click', async function () {
+            const name = categoryNameInput.value.trim();
+            if (!name) {
+                showToast('A category needs a name', 'error');
+                categoryNameInput.focus();
+                return;
+            }
+
+            categorySaveBtn.disabled = true;
+            categorySaveBtn.textContent = 'Creating...';
+            try {
+                // The thumbnail goes to the same store as product imagery, so it is served
+                // from outside the web root and survives a deploy.
+                let thumbnailUrl = null;
+                if (categoryThumbDataUrl) {
+                    const slug = window.ProductCatalog.categorySlug(name);
+                    thumbnailUrl = await window.ProductCatalog.uploadAssetToBlob(
+                        'category-' + slug + '.jpg', categoryThumbDataUrl);
+                }
+
+                await window.ProductCatalog.saveCategory({
+                    name: name,
+                    blurb: categoryBlurbInput.value.trim(),
+                    thumbnailUrl: thumbnailUrl
+                });
+                refreshCategoryOptions();
+                renderExistingCategories();
+                showToast('Category created', 'success');
+                closeCategoryModal();
+            } catch (err) {
+                showToast(err.message || 'Could not create the category', 'error');
+            } finally {
+                categorySaveBtn.disabled = false;
+                categorySaveBtn.textContent = 'Create';
+            }
+        });
+    }
+
+    window.addEventListener('categoriesUpdated', function () {
+        refreshCategoryOptions();
+        renderExistingCategories();
+    });
+
+    refreshCategoryOptions();
 
     // ---- Event Listeners for Table & Card Actions ----
     function attachActionEventListeners() {

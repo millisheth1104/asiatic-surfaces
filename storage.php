@@ -72,6 +72,12 @@ function storage_products_file()
  * the one place all clients agree on, so the record lives here and the API refuses to
  * re-create anything listed in it.
  */
+function storage_categories_file()
+{
+    $base = storage_dir();
+    return $base === false ? false : $base . '/categories.json';
+}
+
 function storage_deleted_file()
 {
     $base = storage_dir();

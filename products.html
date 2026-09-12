@@ -18,7 +18,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
     <!-- Page Styles -->
-    <link rel="stylesheet" href="products.css?v=3.7">
+    <link rel="stylesheet" href="products.css?v=3.8">
 </head>
 <body class="products-page">
 
@@ -47,6 +47,12 @@
                     </svg>
                     <span>View Site</span>
                 </a>
+                <button class="nav-btn" id="btn-add-category" title="Create a new category">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M12 12v5M9.5 14.5h5"/>
+                    </svg>
+                    <span>Add Category</span>
+                </button>
                 <button class="nav-btn nav-btn--solid" id="btn-add-product" title="Add New Product">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="12" y1="5" x2="12" y2="19"/>
@@ -240,6 +246,51 @@
             <button class="nav-btn nav-btn--solid" id="empty-reset-btn">Reset Search & Filters</button>
         </div>
     </main>
+
+
+    <!-- Add Category Modal -->
+    <div id="category-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 460px;">
+            <button class="modal-close-btn" id="category-modal-close" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+
+            <div class="form-modal-header">
+                <h2>New Category</h2>
+                <p>It appears on the home page and can hold products like any other.</p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="category-name">Category Name <span style="color: var(--dusty-peach)">*</span></label>
+                <input type="text" id="category-name" placeholder="e.g. Marble Series" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="category-blurb">Short Description</label>
+                <input type="text" id="category-blurb" placeholder="One line, shown on the tile (optional)" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label for="category-thumb">Thumbnail</label>
+                <input type="file" id="category-thumb" accept="image/*" style="font-size: var(--fs-meta); padding: 8px;">
+                <div id="category-thumb-wrap" style="display:none; margin-top:10px;">
+                    <img id="category-thumb-preview" src="" alt="" style="width:120px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--rule);">
+                </div>
+                <small style="display:block;margin-top:8px;color:var(--stone);font-size:var(--fs-meta);">
+                    Optional. Without one the tile shows the name on a black panel.
+                </small>
+            </div>
+
+            <div class="form-actions" style="justify-content: flex-end;">
+                <button type="button" class="modal-btn modal-btn--ghost" id="category-cancel" style="flex:none;width:120px;">Cancel</button>
+                <button type="button" class="modal-btn modal-btn--solid" id="category-save" style="flex:none;width:150px;">Create</button>
+            </div>
+
+            <div id="category-existing" style="margin-top:22px;border-top:1px solid var(--rule);padding-top:16px;"></div>
+        </div>
+    </div>
 
     <!-- Fullsheet Viewer Modal -->
     <div id="fullsheet-modal" class="modal-overlay" style="display: none;">
@@ -500,8 +551,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
-    <script src="products-data.js?v=3.7"></script>
+    <script src="products-data.js?v=3.8"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=3.7"></script>
+    <script src="products.js?v=3.8"></script>
 </body>
 </html>

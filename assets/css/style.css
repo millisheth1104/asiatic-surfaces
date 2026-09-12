@@ -704,3 +704,21 @@ html.gsap-on .tile__swatch{ transition:none; }
   .shelf{ transform:none !important; }
   .marquee__track{ animation:none !important; }
 }
+
+/* ---- Custom category tiles ---------------------------------------------
+   A category added through the admin uses the same tile markup as the eight
+   built-in collections, so it inherits the masonry sizing, the reveal and the
+   hover reveal of the description. Only the no-thumbnail case needs styling. */
+.tile__media--empty{
+  position:absolute; inset:0;
+  background:#0c0a09;
+  /* A faint grain so a black panel does not read as a failed image. */
+  background-image:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.05), transparent 55%),
+    radial-gradient(circle at 75% 80%, rgba(255,255,255,.035), transparent 50%);
+}
+
+/* Without an image there is no photo to sit above, so the name carries the tile. */
+.tile--noimage .tile__name{ color:var(--on-dark); }
+.tile--noimage .tile__desc{ color:var(--on-dark-mute); }
+.tile--noimage .tile__num{ color:rgba(255,255,255,.45); }
