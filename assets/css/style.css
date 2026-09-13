@@ -432,6 +432,13 @@ h1,h2,h3{ font-family:var(--f-display); font-weight:400; margin:0; letter-spacin
 .tile--edge     { grid-column:9/13;  grid-row:3/5; }
 .tile--texture  { grid-column:6/9;   grid-row:4/5; }
 
+/* Categories added through the admin. The eight above are hand-placed, filling rows 1
+   to 4 exactly; a tile with no rule of its own fell back to a single auto cell and
+   appeared as a thumbnail in the corner. Four columns of twelve gives three to a row,
+   and two rows matches the proportions of the tiles above. grid-row is left to flow, so
+   they land in row 5 onward rather than hunting for a gap in the fixed block. */
+.tile--custom   { grid-column:auto/span 4; grid-row:auto/span 2; }
+
 .tile{
   position:relative; overflow:hidden; isolation:isolate;
   border-radius:var(--r-md); background:var(--ivory-lift);
@@ -619,6 +626,8 @@ html.gsap-on .tile__swatch{ transition:none; }
   .tile--thermolam{ grid-column:7/13; grid-row:4/5; }
   .tile--edge     { grid-column:1/7;  grid-row:5/6; }
   .tile--texture  { grid-column:7/13; grid-row:5/6; }
+  /* Two to a row at this width; a third would be too narrow for the name to sit well. */
+  .tile--custom   { grid-column:auto/span 6; grid-row:auto/span 2; }
 }
 
 @media (max-width:680px){
