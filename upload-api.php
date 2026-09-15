@@ -9,6 +9,9 @@ require_once __DIR__ . '/ratelimit.php';
 // minute is far beyond normal use and far below what a script needs to be a nuisance.
 rate_limit('upload', 20, 60);
 
+require_once __DIR__ . '/auth.php';
+auth_require();
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method Not Allowed']);

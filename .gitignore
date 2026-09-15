@@ -39,3 +39,8 @@ src/*_8k*
 /Stone/
 /WOODEN1/
 /src/
+
+# Local testing & development
+router.php
+scripts/test_*.php
+scripts/test_cookies.txt

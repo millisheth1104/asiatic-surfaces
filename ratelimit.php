@@ -28,7 +28,21 @@ require_once __DIR__ . '/storage.php';
  */
 function rl_client_key()
 {
-    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP'] as $h) {
+    // Cloudflare edge securely sets CF-Connecting-IP
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $ip = trim($_SERVER['HTTP_CF_CONNECTING_IP']);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+
+    // Direct server connection
+    if (!empty($_SERVER['REMOTE_ADDR'])) {
+        return $_SERVER['REMOTE_ADDR'];
+    }
+
+    // Secondary proxy fallbacks
+    foreach (['HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR'] as $h) {
         if (!empty($_SERVER[$h])) {
             $parts = explode(',', $_SERVER[$h]);
             $ip = trim($parts[0]);
@@ -37,7 +51,8 @@ function rl_client_key()
             }
         }
     }
-    return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+
+    return 'unknown';
 }
 
 function rl_dir()
@@ -123,3 +138,91 @@ function rate_limit($bucket, $max, $window = 60)
         exit;
     }
 }
+
+/**
+ * Checks if an IP is currently locked out from login attempts.
+ * Returns the number of seconds remaining in the lockout, or 0 if not locked.
+ */
+function login_is_locked($ip)
+{
+    $dir = rl_dir();
+    if ($dir === false) {
+        return 0;
+    }
+    $file = $dir . '/jail-' . md5((string) $ip) . '.json';
+    if (!is_file($file)) {
+        return 0;
+    }
+    $data = json_decode(@file_get_contents($file), true);
+    if (!is_array($data) || empty($data['locked_until'])) {
+        return 0;
+    }
+    $now = time();
+    if ($now < $data['locked_until']) {
+        return (int) ($data['locked_until'] - $now);
+    }
+    // Expired lockout
+    @unlink($file);
+    return 0;
+}
+
+/**
+ * Records a failed login attempt for this IP.
+ * If consecutive failed attempts reach $maxFailures (default 10) within $window (default 1 hour),
+ * locks the IP out for $jailDuration (default 3600 seconds / 1 hour).
+ * Returns true if this attempt triggered a lockout, false otherwise.
+ */
+function login_record_failure($ip, $maxFailures = 10, $jailDuration = 3600, $window = 3600)
+{
+    $dir = rl_dir();
+    if ($dir === false) {
+        return false;
+    }
+    $file = $dir . '/fail-' . md5((string) $ip) . '.json';
+    $now = time();
+    $state = ['start' => $now, 'count' => 0];
+
+    if (is_file($file)) {
+        $parsed = json_decode(@file_get_contents($file), true);
+        if (is_array($parsed) && isset($parsed['start'], $parsed['count'])) {
+            $state = $parsed;
+        }
+    }
+
+    if ($now - $state['start'] >= $window) {
+        $state = ['start' => $now, 'count' => 0];
+    }
+
+    $state['count']++;
+    @file_put_contents($file, json_encode($state), LOCK_EX);
+
+    if ($state['count'] >= $maxFailures) {
+        $jailFile = $dir . '/jail-' . md5((string) $ip) . '.json';
+        $jailData = ['locked_until' => $now + $jailDuration, 'jailed_at' => $now];
+        @file_put_contents($jailFile, json_encode($jailData), LOCK_EX);
+        @unlink($file);
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Clears failed attempts and jail records on a successful login.
+ */
+function login_record_success($ip)
+{
+    $dir = rl_dir();
+    if ($dir === false) {
+        return;
+    }
+    $failFile = $dir . '/fail-' . md5((string) $ip) . '.json';
+    $jailFile = $dir . '/jail-' . md5((string) $ip) . '.json';
+    if (is_file($failFile)) {
+        @unlink($failFile);
+    }
+    if (is_file($jailFile)) {
+        @unlink($jailFile);
+    }
+}
+

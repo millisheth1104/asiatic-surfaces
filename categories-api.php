@@ -60,6 +60,9 @@ if ($method === 'POST' || $method === 'PUT') {
     require_once __DIR__ . '/ratelimit.php';
     rate_limit('categories-write', 20, 60);
 
+    require_once __DIR__ . '/auth.php';
+    auth_require();
+
     $input = json_decode(file_get_contents('php://input'), true);
     if (!$input) {
         http_response_code(400);

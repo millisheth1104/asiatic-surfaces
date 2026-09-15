@@ -25,6 +25,32 @@
 
 <body class="products-page">
 
+    <!-- Auth gate: hides the page until a valid session is confirmed. Removed the
+         instant an authenticated response comes back; redirects to login.html
+         otherwise, so the admin never renders for a signed-out visitor even briefly. -->
+    <div id="auth-gate" style="position:fixed;inset:0;z-index:999999;background:#f5f0e8;
+         display:flex;align-items:center;justify-content:center;font:0.85rem/1.4 Inter,system-ui,sans-serif;
+         color:#6b625a;">Checking access&hellip;</div>
+    <script>
+    (function () {
+      fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.loggedIn) {
+            var gate = document.getElementById('auth-gate');
+            if (gate) gate.remove();
+          } else {
+            var next = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.replace('login.html?next=' + next);
+          }
+        })
+        .catch(function () {
+          window.location.replace('login.html');
+        });
+    })();
+    </script>
+
+
     <!-- Header Navigation -->
     <header class="catalog-header">
         <div class="header-container">
@@ -66,6 +92,15 @@
                         <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                     <span>Add Product</span>
+                </button>
+                <button class="nav-btn nav-btn--ghost" id="btn-logout" title="Sign Out">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Sign Out</span>
                 </button>
             </div>
         </div>
@@ -677,6 +712,25 @@
     <script src="products-data.js?v=4.1"></script>
     <!-- Product Logic JS -->
     <script src="products.js?v=4.1"></script>
+    <script>
+    (function () {
+        var logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function () {
+                if (!confirm('Are you sure you want to sign out?')) return;
+                logoutBtn.disabled = true;
+                fetch('/api/auth', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'logout' })
+                }).finally(function () {
+                    window.location.replace('login.html');
+                });
+            });
+        }
+    })();
+    </script>
 </body>
 
 </html>

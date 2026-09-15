@@ -407,6 +407,18 @@ window.ProductCatalog = (function () {
         return getProducts();
     }
 
+    function handleAuthError(res) {
+        if (res && res.status === 401) {
+            console.warn('Authentication required / session expired');
+            if (typeof window !== 'undefined' && window.location.pathname.indexOf('products.html') !== -1) {
+                alert('Your session has expired. Please sign in again.');
+                window.location.replace('login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search));
+            }
+            return true;
+        }
+        return false;
+    }
+
     async function syncToCloud(productsList) {
         try {
             // Strip any internal local db: pointers before saving to cloud so cloud only has permanent URLs or null
@@ -416,11 +428,13 @@ window.ProductCatalog = (function () {
                 threeDDataUrl: p.threeDDataUrl && p.threeDDataUrl.startsWith('db:') ? null : p.threeDDataUrl
             }));
 
-            await fetch('/api/products', {
+            const res = await fetch('/api/products', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ products: cloudPayload })
             });
+            if (handleAuthError(res)) return;
         } catch (err) {
             console.warn('Cloud catalog sync deferred (server unreachable):', err.message);
         }
@@ -458,11 +472,13 @@ window.ProductCatalog = (function () {
 
     async function deleteFromCloud(id) {
         try {
-            await fetch('/api/products', {
+            const res = await fetch('/api/products', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'delete', id })
             });
+            if (handleAuthError(res)) return;
         } catch (err) {
             // Offline: the local tombstone still applies, and syncFromCloud pushes the
             // deletion through the next time the server is reachable.

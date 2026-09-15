@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign In — Full Sheet View</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --charcoal: #14110f;
+    --ivory: #f5f0e8;
+    --ivory-deep: #ede6da;
+    --dusty-peach: #e5c8b9;
+    --stone: #6b625a;
+    --stone-light: #b5ada4;
+    --rule: rgba(20, 17, 15, 0.16);
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ivory);
+    color: var(--charcoal);
+    font-family: var(--font);
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: #fffdf8;
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 36px 32px;
+    box-shadow: 0 30px 60px -30px rgba(20, 17, 15, 0.25);
+  }
+  .brand {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin: 0 0 22px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .sub { font-size: 0.88rem; color: var(--stone); margin: 0 0 26px; line-height: 1.5; }
+  label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 6px;
+  }
+  input[type="password"] {
+    width: 100%;
+    font-family: var(--font);
+    font-size: 0.95rem;
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--ivory);
+    color: var(--charcoal);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="password"]:focus { border-color: var(--dusty-peach); }
+  .field { margin-bottom: 16px; }
+  .hint { font-size: 0.72rem; color: var(--stone-light); margin-top: 6px; }
+  button {
+    width: 100%;
+    margin-top: 8px;
+    padding: 13px;
+    border: none;
+    border-radius: 999px;
+    background: var(--charcoal);
+    color: var(--ivory);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .error {
+    display: none;
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: rgba(156, 43, 28, 0.08);
+    border: 1px solid rgba(156, 43, 28, 0.25);
+    color: #9c2b1c;
+    border-radius: 8px;
+    font-size: 0.82rem;
+  }
+  .status { text-align: center; color: var(--stone); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <p class="brand">Full Sheet View</p>
+    <div id="loading" class="status">Checking access…</div>
+
+    <div id="setupForm" style="display:none;">
+      <h1>Set an admin password</h1>
+      <p class="sub">No password has been set yet. Choose one now — it protects the product catalogue and every upload from here on.</p>
+      <div class="field">
+        <label for="setupPassword">New password</label>
+        <input type="password" id="setupPassword" autocomplete="new-password" placeholder="At least 10 characters">
+        <p class="hint">Shared by everyone who manages products. Keep it somewhere safe — there is no reset link.</p>
+      </div>
+      <div class="field">
+        <label for="setupConfirm">Confirm password</label>
+        <input type="password" id="setupConfirm" autocomplete="new-password">
+      </div>
+      <button id="setupBtn" type="button">Set password &amp; sign in</button>
+      <div id="setupError" class="error"></div>
+    </div>
+
+    <div id="loginForm" style="display:none;">
+      <h1>Sign in</h1>
+      <p class="sub">Enter the admin password to manage products, categories and uploads.</p>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password">
+      </div>
+      <button id="loginBtn" type="button">Sign in</button>
+      <div id="loginError" class="error"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(window.location.search);
+  var next = params.get('next') || 'products.html';
+  // Only ever redirect back into this site - an open redirect would let a phishing
+  // link send someone here, through a real login, and back out to somewhere else.
+  if (!/^[a-zA-Z0-9_\-\.\/]+$/.test(next) || next.indexOf('//') !== -1) next = 'products.html';
+
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+  function setError(id, msg) {
+    var el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      hide('loading');
+      if (data.loggedIn) {
+        window.location.replace(next);
+        return;
+      }
+      if (!data.hasPassword) {
+        show('setupForm');
+        document.getElementById('setupPassword').focus();
+      } else {
+        show('loginForm');
+        document.getElementById('loginPassword').focus();
+      }
+    })
+    .catch(function () {
+      document.getElementById('loading').textContent =
+        'Could not reach the server. Check your connection and reload.';
+    });
+
+  function post(action, body) {
+    return fetch('/api/auth', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ action: action }, body))
+    }).then(function (r) {
+      return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+    });
+  }
+
+  var setupBtn = document.getElementById('setupBtn');
+  setupBtn.addEventListener('click', function () {
+    var pw = document.getElementById('setupPassword').value;
+    var confirm = document.getElementById('setupConfirm').value;
+    setError('setupError', '');
+
+    if (pw.length < 10) { setError('setupError', 'Password must be at least 10 characters.'); return; }
+    if (pw !== confirm) { setError('setupError', 'Passwords do not match.'); return; }
+
+    setupBtn.disabled = true;
+    setupBtn.textContent = 'Setting up…';
+    post('setup', { password: pw }).then(function (res) {
+      if (res.ok && res.data.success) {
+        window.location.replace(next);
+      } else {
+        setError('setupError', res.data.error || 'Could not set the password.');
+        setupBtn.disabled = false;
+        setupBtn.textContent = 'Set password & sign in';
+      }
+    }).catch(function () {
+      setError('setupError', 'Could not reach the server.');
+      setupBtn.disabled = false;
+      setupBtn.textContent = 'Set password & sign in';
+    });
+  });
+
+  var loginBtn = document.getElementById('loginBtn');
+  function attemptLogin() {
+    var pw = document.getElementById('loginPassword').value;
+    setError('loginError', '');
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+    post('login', { password: pw }).then(function (res) {
+      if (res.ok && res.data.success) {
+        window.location.replace(next);
+      } else {
+        setError('loginError', res.data.error || 'Could not sign in.');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign in';
+        document.getElementById('loginPassword').select();
+      }
+    }).catch(function () {
+      setError('loginError', 'Could not reach the server.');
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+    });
+  }
+  loginBtn.addEventListener('click', attemptLogin);
+  document.getElementById('loginPassword').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') attemptLogin();
+  });
+  document.getElementById('setupConfirm').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') setupBtn.click();
+  });
+})();
+</script>
+</body>
+</html>
