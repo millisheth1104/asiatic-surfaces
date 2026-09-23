@@ -820,6 +820,16 @@
                 }
 
                 saveRealTimeProducts(allProducts.concat(copies));
+
+                // Jump the table's own category filter to the destination, so the copies
+                // are visible immediately instead of looking like nothing happened while
+                // the filter is still sitting on the source category (or a different one).
+                currentFilter.category = destCat;
+                currentFilter.query = '';
+                searchInput.value = '';
+                btnClearSearch.style.display = 'none';
+                if (categorySelect) categorySelect.value = destCat;
+
                 renderCatalog();
                 closeCopyCategoryModal();
 
