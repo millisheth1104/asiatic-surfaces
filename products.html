@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
     <!-- Page Styles -->
-    <link rel="stylesheet" href="products.css?v=4.1">
+    <link rel="stylesheet" href="products.css?v=4.4">
 </head>
 
 <body class="products-page">
@@ -391,14 +391,14 @@
 
             <div class="form-group" style="margin-bottom: 12px;">
                 <label>To</label>
-                <div style="display:flex;gap:18px;margin-top:6px;">
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:var(--fs-body);">
+                <div class="copy-dest-row">
+                    <label class="copy-dest-option">
                         <input type="radio" name="copy-dest-mode" id="copy-dest-mode-existing" value="existing" checked>
-                        Existing category
+                        <span>Existing category</span>
                     </label>
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:normal;font-size:var(--fs-body);">
+                    <label class="copy-dest-option">
                         <input type="radio" name="copy-dest-mode" id="copy-dest-mode-new" value="new">
-                        New category
+                        <span>New category</span>
                     </label>
                 </div>
             </div>
@@ -775,7 +775,7 @@
     <!-- Shared Product Data Engine -->
     <script src="products-data.js?v=4.1"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=4.1"></script>
+    <script src="products.js?v=4.2"></script>
     <script>
     (function () {
         var logoutBtn = document.getElementById('btn-logout');

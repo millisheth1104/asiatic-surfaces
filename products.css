@@ -1375,11 +1375,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-width: calc(100vw - 32px);
 }
 
 .toast {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 12px 20px;
     background: var(--charcoal);
@@ -1402,7 +1404,66 @@ body {
     }
 }
 
+.toast-action-btn {
+    flex: none;
+    margin-left: 4px;
+    padding: 5px 14px;
+    border: 1px solid rgba(245, 240, 232, 0.4);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--ivory);
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.toast-action-btn:hover {
+    background: rgba(245, 240, 232, 0.14);
+    border-color: rgba(245, 240, 232, 0.7);
+}
+
 /* -- Responsive ------------------------ */
+.copy-dest-row {
+    display: flex;
+    gap: 18px;
+    margin-top: 6px;
+}
+
+/* Beats .form-group label (display:block, uppercase) on specificity alone, rather than
+   reaching for !important - that rule is meant for the field labels above it, not these. */
+.copy-dest-row .copy-dest-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: var(--fs-body);
+    white-space: nowrap;
+    margin-bottom: 0;
+}
+
+.copy-dest-row .copy-dest-option input[type="radio"] {
+    /* .form-group input sets width:100% for the text/select fields above this block;
+       with flex-basis:auto that width carries over to a flex item's used size, so the
+       radio was stretching to the row's full width and leaving the label's text 0px
+       to sit in. */
+    width: auto;
+    margin-top: 3px;
+    flex: none;
+}
+
+/* Flex items default to min-width:auto, which floors them at their max-content width
+   and defeats white-space:normal - this label's text is the only thing that needs to
+   wrap, so it gets its own box to shrink. */
+.copy-dest-row .copy-dest-option span {
+    min-width: 0;
+    flex: 1;
+}
+
 @media (max-width: 1024px) {
     .stats-band {
         grid-template-columns: repeat(4, 1fr);
@@ -1478,6 +1539,18 @@ body {
 
     .header-titles p {
         display: none;
+    }
+
+    /* "Existing category" / "New category" side by side has no room to stay on one
+       line at this width; nowrap then made them run past the modal's edge instead.
+       Stacked, each radio keeps its label on a single line. */
+    .copy-dest-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .copy-dest-row .copy-dest-option {
+        white-space: normal;
     }
 }
 

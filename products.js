@@ -158,6 +158,47 @@
         }, 3000);
     }
 
+    /**
+     * A toast with a button on it - for an action that is easy to do by accident (a bulk
+     * copy across a category) and easy to want reversed a second later. Stays up longer
+     * than a plain toast so there is actually time to hit the button.
+     */
+    function showActionToast(message, actionLabel, onAction, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+
+        const iconSvg = type === 'success'
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b9c8b3" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e5c8b9" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+
+        toast.innerHTML = `${iconSvg} <span>${esc(message)}</span>`;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-action-btn';
+        btn.textContent = actionLabel;
+        toast.appendChild(btn);
+        container.appendChild(toast);
+
+        let done = false;
+        const dismiss = () => {
+            if (done) return;
+            done = true;
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            toast.style.transition = '0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        };
+        btn.addEventListener('click', () => {
+            dismiss();
+            onAction();
+        });
+        setTimeout(dismiss, 7000);
+    }
+
     // ---- Update Stats ----
     function updateStats() {
         products = getRealTimeProducts();
@@ -765,6 +806,7 @@
 
             try {
                 let destCat;
+                let createdCategory = null;
 
                 if (copyDestModeNew.checked) {
                     const newName = copyDestNewName.value.trim();
@@ -777,7 +819,7 @@
                         showToast('That is the same category the products are coming from', 'error');
                         return;
                     }
-                    await window.ProductCatalog.saveCategory({ name: newName });
+                    createdCategory = await window.ProductCatalog.saveCategory({ name: newName });
                     destCat = newName;
                     refreshCategoryOptions();
                     renderExistingCategories();
@@ -835,7 +877,35 @@
 
                 const msg = copies.length + (copies.length === 1 ? ' product copied to ' : ' products copied to ') + destCat +
                     (skipped > 0 ? ' (' + skipped + ' skipped - code already there)' : '');
-                showToast(msg, 'success');
+                const copiedIds = copies.map(p => p.id);
+
+                showActionToast(msg, 'Undo', async function () {
+                    copiedIds.forEach(function (id) {
+                        if (window.ProductCatalog && typeof window.ProductCatalog.deleteProduct === 'function') {
+                            window.ProductCatalog.deleteProduct(id);
+                        }
+                    });
+
+                    // A category created just for this copy, with nothing else added to it
+                    // since, was only ever a side effect of the copy - undo removes it too.
+                    if (createdCategory && createdCategory.id) {
+                        const stillUsed = getRealTimeProducts().some(p => normalizeCategory(p.category) === destCat);
+                        if (!stillUsed) {
+                            try {
+                                await window.ProductCatalog.deleteCategory(createdCategory.id);
+                                refreshCategoryOptions();
+                                renderExistingCategories();
+                            } catch (err) {
+                                console.warn('Could not remove the category created for the copy:', err.message);
+                            }
+                        }
+                    }
+
+                    currentFilter.category = sourceCat;
+                    if (categorySelect) categorySelect.value = sourceCat;
+                    renderCatalog();
+                    showToast('Copy undone', 'info');
+                });
             } catch (err) {
                 showToast(err.message || 'Could not copy the category', 'error');
             } finally {
