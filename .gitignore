@@ -44,3 +44,4 @@ src/*_8k*
 router.php
 scripts/test_*.php
 scripts/test_cookies.txt
+.data/

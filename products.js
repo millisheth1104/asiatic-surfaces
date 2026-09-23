@@ -674,6 +674,167 @@
 
     refreshCategoryOptions();
 
+    // ---- Copy Category -----------------------------------------------------
+    /**
+     * Clones every product in one category into another (or into a brand new one),
+     * full sheet and 3D image included. The two categories already store the same kind
+     * of product record, so this is a bulk copy of that record with a new id and a new
+     * category - not a re-upload, the image URLs are simply reused.
+     */
+    const copyModal = document.getElementById('copy-category-modal');
+    const copySourceSelect = document.getElementById('copy-source-category');
+    const copySourceCount = document.getElementById('copy-source-count');
+    const copyDestModeExisting = document.getElementById('copy-dest-mode-existing');
+    const copyDestModeNew = document.getElementById('copy-dest-mode-new');
+    const copyDestExistingWrap = document.getElementById('copy-dest-existing-wrap');
+    const copyDestNewWrap = document.getElementById('copy-dest-new-wrap');
+    const copyDestSelect = document.getElementById('copy-dest-category');
+    const copyDestNewName = document.getElementById('copy-dest-new-name');
+    const copyRunBtn = document.getElementById('copy-category-run');
+
+    function categoryOptionList() {
+        const PC = window.ProductCatalog;
+        return PC && typeof PC.getAllCategories === 'function' ? PC.getAllCategories() : [];
+    }
+
+    function updateCopySourceCount() {
+        if (!copySourceCount || !copySourceSelect) return;
+        const cat = copySourceSelect.value;
+        const n = getRealTimeProducts().filter(p => normalizeCategory(p.category) === cat).length;
+        copySourceCount.textContent = n === 1 ? '1 product will be copied' : n + ' products will be copied';
+    }
+
+    function openCopyCategoryModal() {
+        if (!copyModal) return;
+        const cats = categoryOptionList();
+        if (cats.length === 0) {
+            showToast('There are no categories yet', 'error');
+            return;
+        }
+        const optionHtml = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>').join('');
+        copySourceSelect.innerHTML = optionHtml;
+        copyDestSelect.innerHTML = optionHtml;
+        // Default the destination to a different category than the source, when one exists.
+        if (cats.length > 1) copyDestSelect.selectedIndex = 1;
+
+        copyDestModeExisting.checked = true;
+        copyDestModeNew.checked = false;
+        copyDestExistingWrap.style.display = '';
+        copyDestNewWrap.style.display = 'none';
+        copyDestNewName.value = '';
+
+        updateCopySourceCount();
+        copyModal.style.display = 'flex';
+    }
+
+    function closeCopyCategoryModal() {
+        if (copyModal) copyModal.style.display = 'none';
+    }
+
+    const btnCopyCategory = document.getElementById('btn-copy-category');
+    if (btnCopyCategory) btnCopyCategory.addEventListener('click', openCopyCategoryModal);
+    const copyCategoryCloseBtn = document.getElementById('copy-category-close');
+    if (copyCategoryCloseBtn) copyCategoryCloseBtn.addEventListener('click', closeCopyCategoryModal);
+    const copyCategoryCancelBtn = document.getElementById('copy-category-cancel');
+    if (copyCategoryCancelBtn) copyCategoryCancelBtn.addEventListener('click', closeCopyCategoryModal);
+
+    if (copySourceSelect) copySourceSelect.addEventListener('change', updateCopySourceCount);
+
+    [copyDestModeExisting, copyDestModeNew].forEach(function (radio) {
+        if (!radio) return;
+        radio.addEventListener('change', function () {
+            const useNew = copyDestModeNew.checked;
+            copyDestExistingWrap.style.display = useNew ? 'none' : '';
+            copyDestNewWrap.style.display = useNew ? '' : 'none';
+            if (useNew) copyDestNewName.focus();
+        });
+    });
+
+    if (copyRunBtn) {
+        copyRunBtn.addEventListener('click', async function () {
+            const sourceCat = normalizeCategory(copySourceSelect.value);
+            const sourceProducts = getRealTimeProducts().filter(p => normalizeCategory(p.category) === sourceCat);
+
+            if (sourceProducts.length === 0) {
+                showToast('That category has no products to copy', 'error');
+                return;
+            }
+
+            copyRunBtn.disabled = true;
+            copyRunBtn.textContent = 'Copying...';
+
+            try {
+                let destCat;
+
+                if (copyDestModeNew.checked) {
+                    const newName = copyDestNewName.value.trim();
+                    if (!newName) {
+                        showToast('Name the new category', 'error');
+                        copyDestNewName.focus();
+                        return;
+                    }
+                    if (window.ProductCatalog.categorySlug(newName) === window.ProductCatalog.categorySlug(sourceCat)) {
+                        showToast('That is the same category the products are coming from', 'error');
+                        return;
+                    }
+                    await window.ProductCatalog.saveCategory({ name: newName });
+                    destCat = newName;
+                    refreshCategoryOptions();
+                    renderExistingCategories();
+                } else {
+                    destCat = normalizeCategory(copyDestSelect.value);
+                    if (destCat === sourceCat) {
+                        showToast('Pick a different destination category', 'error');
+                        return;
+                    }
+                }
+
+                const allProducts = getRealTimeProducts();
+                const destCodesInUse = new Set(
+                    allProducts
+                        .filter(p => normalizeCategory(p.category) === destCat)
+                        .map(p => (p.code || '').toLowerCase().replace(/#/g, '').trim())
+                );
+
+                const copies = [];
+                let skipped = 0;
+                sourceProducts.forEach(function (p, i) {
+                    const cleanCode = (p.code || '').toLowerCase().replace(/#/g, '').trim();
+                    if (destCodesInUse.has(cleanCode)) {
+                        skipped++;
+                        return;
+                    }
+                    destCodesInUse.add(cleanCode);
+                    const newId = 'prod-' + Date.now() + '-' + i;
+                    copies.push({
+                        ...p,
+                        id: newId,
+                        category: destCat,
+                        threeDUrl: `/${destCat.toLowerCase().trim().replace(/\s+/g, '-')}/${(p.code || p.slug || 'product').toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-')}`
+                    });
+                });
+
+                if (copies.length === 0) {
+                    showToast('Every product already exists in that category - nothing to copy', 'error');
+                    return;
+                }
+
+                saveRealTimeProducts(allProducts.concat(copies));
+                renderCatalog();
+                closeCopyCategoryModal();
+
+                const msg = copies.length + (copies.length === 1 ? ' product copied to ' : ' products copied to ') + destCat +
+                    (skipped > 0 ? ' (' + skipped + ' skipped - code already there)' : '');
+                showToast(msg, 'success');
+            } catch (err) {
+                showToast(err.message || 'Could not copy the category', 'error');
+            } finally {
+                copyRunBtn.disabled = false;
+                copyRunBtn.textContent = 'Copy';
+            }
+        });
+    }
+
     // ---- Event Listeners for Table & Card Actions ----
     function attachActionEventListeners() {
         document.querySelectorAll('.edit-product-btn').forEach(btn => {
