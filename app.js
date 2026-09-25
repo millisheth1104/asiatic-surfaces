@@ -5,49 +5,6 @@
 (function () {
     'use strict';
 
-    /**
-     * Pannellum uploads the equirectangular panorama as a single WebGL texture and
-     * leaves TEXTURE_MIN_FILTER at plain LINEAR with no mip chain. That is fine at 1:1,
-     * but the tour usually shows the texture heavily minified - an 8192px-wide image
-     * squeezed into a canvas a few hundred pixels across - and LINEAR alone averages
-     * only the 4 nearest texels per sample instead of the hundreds a proper minified
-     * sample should cover. The wide default view reads as soft/aliased even though the
-     * uploaded file itself is untouched; zooming in (less minification) usually looks
-     * sharper, which is the signature of this specific cause rather than a smaller or
-     * re-compressed source image.
-     *
-     * Patched at the WebGL level rather than forking pannellum's bundle: whenever it
-     * requests LINEAR on TEXTURE_MIN_FILTER, trilinear filtering is substituted instead,
-     * and every 2D texture upload gets a mip chain generated right after. Power-of-two
-     * dimensions are required for generateMipmap under WebGL1 - a panorama that isn't
-     * (rare; most exports are 2048/4096/8192-based) simply keeps today's LINEAR
-     * behavior, so this can only improve things, never break a working tour.
-     */
-    (function patchWebGLMipmapping() {
-        if (typeof WebGLRenderingContext === 'undefined' || WebGLRenderingContext.prototype.__mipPatched) {
-            return;
-        }
-        const origTexParameteri = WebGLRenderingContext.prototype.texParameteri;
-        const origTexImage2D = WebGLRenderingContext.prototype.texImage2D;
-
-        WebGLRenderingContext.prototype.texParameteri = function (target, pname, param) {
-            if (pname === this.TEXTURE_MIN_FILTER && param === this.LINEAR) {
-                param = this.LINEAR_MIPMAP_LINEAR;
-            }
-            return origTexParameteri.call(this, target, pname, param);
-        };
-
-        WebGLRenderingContext.prototype.texImage2D = function () {
-            const result = origTexImage2D.apply(this, arguments);
-            if (arguments[0] === this.TEXTURE_2D) {
-                try { this.generateMipmap(this.TEXTURE_2D); } catch (e) { /* non-power-of-2: leave as LINEAR */ }
-            }
-            return result;
-        };
-
-        WebGLRenderingContext.prototype.__mipPatched = true;
-    })();
-
     // ---- State ----
     let viewer = null;
     // The product this tour is showing. The Fullsheet button needs it, and it was only
