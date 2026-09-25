@@ -396,7 +396,39 @@
         }
     }
 
+    /**
+     * Read-only diagnostic for the blur report - logs WebGL state and never touches it.
+     * A prior attempt patched texParameteri/texImage2D directly and broke rendering on
+     * a device that hit a code path (pannellum splits an image wider than the GPU's
+     * MAX_TEXTURE_SIZE into two half-width textures) this environment never exercises.
+     * This only reads state, so it cannot break anything - the goal is real numbers
+     * from an actual device before touching rendering again.
+     */
+    function logPanoramaDiagnostics() {
+        try {
+            const canvas = document.querySelector('#panorama-viewer canvas');
+            if (!canvas) { console.log('[pano-diag] no canvas found'); return; }
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) { console.log('[pano-diag] no WebGL context'); return; }
+            const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+            const minFilter = gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER);
+            const filterNames = { 9728: 'NEAREST', 9729: 'LINEAR', 9984: 'NEAREST_MIPMAP_NEAREST', 9985: 'LINEAR_MIPMAP_NEAREST', 9986: 'NEAREST_MIPMAP_LINEAR', 9987: 'LINEAR_MIPMAP_LINEAR' };
+            console.log('[pano-diag]', JSON.stringify({
+                canvasSize: canvas.width + 'x' + canvas.height,
+                canvasClientSize: canvas.clientWidth + 'x' + canvas.clientHeight,
+                devicePixelRatio: window.devicePixelRatio,
+                maxTextureSize: maxTextureSize,
+                currentMinFilter: filterNames[minFilter] || minFilter,
+                glError: gl.getError(),
+                userAgent: navigator.userAgent
+            }));
+        } catch (e) {
+            console.log('[pano-diag] failed:', e.message);
+        }
+    }
+
     function onViewerLoaded() {
+        logPanoramaDiagnostics();
         // Hide loading, show app
         if (loadingScreen) {
             loadingScreen.classList.add('hidden');
