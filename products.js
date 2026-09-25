@@ -7,6 +7,52 @@
     'use strict';
 
     /**
+     * Same patch as the live tour (app.js) - the admin's own preview and hotspot-
+     * placement viewers use pannellum too. See app.js for the full explanation: this
+     * substitutes trilinear filtering for pannellum's plain LINEAR, tracked per texture
+     * object so a texture whose mipmap generation fails (non-power-of-two) keeps
+     * today's LINEAR instead of ending up "incomplete" (renders solid black). The
+     * gl.getError() drain after generateMipmap matters because WebGL errors are never
+     * thrown as JS exceptions - a prior version of this used try/catch, which never
+     * caught anything, and left a queued error for pannellum's own setup code to pick
+     * up and treat as fatal.
+     */
+    (function patchWebGLMipmapping() {
+        if (typeof WebGLRenderingContext === 'undefined' || WebGLRenderingContext.prototype.__mipPatched) {
+            return;
+        }
+        const origTexParameteri = WebGLRenderingContext.prototype.texParameteri;
+        const origTexImage2D = WebGLRenderingContext.prototype.texImage2D;
+        const mipmappedTextures = new WeakSet();
+
+        WebGLRenderingContext.prototype.texImage2D = function () {
+            const result = origTexImage2D.apply(this, arguments);
+            if (arguments[0] === this.TEXTURE_2D) {
+                const bound = this.getParameter(this.TEXTURE_BINDING_2D);
+                if (bound) {
+                    this.generateMipmap(this.TEXTURE_2D);
+                    if (this.getError() === this.NO_ERROR) {
+                        mipmappedTextures.add(bound);
+                    }
+                }
+            }
+            return result;
+        };
+
+        WebGLRenderingContext.prototype.texParameteri = function (target, pname, param) {
+            if (target === this.TEXTURE_2D && pname === this.TEXTURE_MIN_FILTER && param === this.LINEAR) {
+                const bound = this.getParameter(this.TEXTURE_BINDING_2D);
+                if (bound && mipmappedTextures.has(bound)) {
+                    param = this.LINEAR_MIPMAP_LINEAR;
+                }
+            }
+            return origTexParameteri.call(this, target, pname, param);
+        };
+
+        WebGLRenderingContext.prototype.__mipPatched = true;
+    })();
+
+    /**
      * Escapes a value before it is interpolated into innerHTML.
      *
      * Product codes and names arrive from the catalogue API, which accepts writes from
