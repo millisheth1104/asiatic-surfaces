@@ -579,6 +579,6 @@ its own folder, and would still leave the APIs open to `curl`.
 ## 360 viewer quality (2026-09-25)
 - Panorama sharpness ceiling = image width / 360 px per degree. Zooming past the 1:1 point
   always blurs; `nativeMinHfov()` in app.js enforces that limit. Bigger screens get less zoom.
-- WebGL errors are never thrown — drain `gl.getError()` after any call that can fail, or
+- Do NOT mipmap pannellum textures: softer at default zoom + visible seam line (tested 2026-09-25).
   pannellum's own getError check kills the viewer ("No 3D Image Available").
 - Headless test Chrome reports MAX_TEXTURE_SIZE 16384; the user's desktop does too.

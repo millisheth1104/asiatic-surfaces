@@ -5,61 +5,6 @@
 (function () {
     'use strict';
 
-    /**
-     * Pannellum leaves TEXTURE_MIN_FILTER at plain LINEAR with no mip chain, which reads
-     * as soft/aliased once the panorama is minified onto the screen - which it always is,
-     * since a 360 sphere is bigger than any viewport. Confirmed the prior real bug here:
-     * generateMipmap() fails silently on a non-power-of-two texture - it never throws a
-     * JS exception, it just queues a WebGL error that only surfaces later through
-     * gl.getError() - and pannellum's own setup code calls gl.getError() right after this
-     * runs and throws its generic "webgl error" on whatever it finds, including an error
-     * this queued and never claimed. That is exactly what broke the tour the first time
-     * this was attempted (confirmed live: WebGL error 1282 / INVALID_OPERATION). Draining
-     * the error immediately here stops that leak, and mipmapped-texture success is
-     * tracked per texture object (not globally) so a texture whose mipmap generation
-     * failed keeps today's plain LINEAR instead of being switched to a filter mode that
-     * needs mips it doesn't have - that combination is a valid "incomplete texture" per
-     * spec, which renders as solid black rather than erroring.
-     *
-     * Verified locally before shipping: a non-power-of-two image renders normally with
-     * LINEAR untouched and glError 0; the same real 8192x4096 panorama that triggered the
-     * original break now renders normally with LINEAR_MIPMAP_LINEAR and glError 0.
-     */
-    (function patchWebGLMipmapping() {
-        if (typeof WebGLRenderingContext === 'undefined' || WebGLRenderingContext.prototype.__mipPatched) {
-            return;
-        }
-        const origTexParameteri = WebGLRenderingContext.prototype.texParameteri;
-        const origTexImage2D = WebGLRenderingContext.prototype.texImage2D;
-        const mipmappedTextures = new WeakSet();
-
-        WebGLRenderingContext.prototype.texImage2D = function () {
-            const result = origTexImage2D.apply(this, arguments);
-            if (arguments[0] === this.TEXTURE_2D) {
-                const bound = this.getParameter(this.TEXTURE_BINDING_2D);
-                if (bound) {
-                    this.generateMipmap(this.TEXTURE_2D);
-                    if (this.getError() === this.NO_ERROR) {
-                        mipmappedTextures.add(bound);
-                    }
-                }
-            }
-            return result;
-        };
-
-        WebGLRenderingContext.prototype.texParameteri = function (target, pname, param) {
-            if (target === this.TEXTURE_2D && pname === this.TEXTURE_MIN_FILTER && param === this.LINEAR) {
-                const bound = this.getParameter(this.TEXTURE_BINDING_2D);
-                if (bound && mipmappedTextures.has(bound)) {
-                    param = this.LINEAR_MIPMAP_LINEAR;
-                }
-            }
-            return origTexParameteri.call(this, target, pname, param);
-        };
-
-        WebGLRenderingContext.prototype.__mipPatched = true;
-    })();
-
     // ---- State ----
     let viewer = null;
     // The product this tour is showing. The Fullsheet button needs it, and it was only

@@ -1260,3 +1260,12 @@ Copy Category with undo.
 
 **Lesson.** `app.js?v=` had not been bumped across three app.js changes — check the
 version on every edit to a versioned asset.
+
+## 2026-09-25 (later) — mipmap filtering removed
+
+Reported "quality has worsened". A/B render at the user's screen size showed the mipmap
+patch softened the default view (trilinear samples a smaller mip at ~3x minification) and
+drew a visible vertical seam where the panorama's edges meet (UV wrap → LOD spike). Removed
+from app.js and products.js; plain LINEAR is back. The zoom limit stays - it is the fix
+for zoomed-in blur. Lesson: A/B screenshot against the previous build before shipping any
+rendering change, not just "renders without error".
