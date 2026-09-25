@@ -7,6 +7,38 @@
     'use strict';
 
     /**
+     * Pannellum uploads the equirectangular panorama as a single WebGL texture and
+     * leaves TEXTURE_MIN_FILTER at plain LINEAR with no mip chain, which looks soft on
+     * the heavily-minified wide view. Same patch as the live tour (app.js) - the admin's
+     * own preview and hotspot-placement viewers use pannellum too, and without this they
+     * would look softer here than the fix makes them look on the actual tour page.
+     */
+    (function patchWebGLMipmapping() {
+        if (typeof WebGLRenderingContext === 'undefined' || WebGLRenderingContext.prototype.__mipPatched) {
+            return;
+        }
+        const origTexParameteri = WebGLRenderingContext.prototype.texParameteri;
+        const origTexImage2D = WebGLRenderingContext.prototype.texImage2D;
+
+        WebGLRenderingContext.prototype.texParameteri = function (target, pname, param) {
+            if (pname === this.TEXTURE_MIN_FILTER && param === this.LINEAR) {
+                param = this.LINEAR_MIPMAP_LINEAR;
+            }
+            return origTexParameteri.call(this, target, pname, param);
+        };
+
+        WebGLRenderingContext.prototype.texImage2D = function () {
+            const result = origTexImage2D.apply(this, arguments);
+            if (arguments[0] === this.TEXTURE_2D) {
+                try { this.generateMipmap(this.TEXTURE_2D); } catch (e) { /* non-power-of-2: leave as LINEAR */ }
+            }
+            return result;
+        };
+
+        WebGLRenderingContext.prototype.__mipPatched = true;
+    })();
+
+    /**
      * Escapes a value before it is interpolated into innerHTML.
      *
      * Product codes and names arrive from the catalogue API, which accepts writes from
