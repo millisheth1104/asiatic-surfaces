@@ -66,6 +66,8 @@
     // ever available inside the initialiser, which is why that button showed a
     // placeholder instead of the sheet uploaded with the panorama.
     let currentProduct = null;
+    let currentPanoramaSrc = null;
+    let panoramaImageWidth = 0;
     let isAutoRotating = false;
     let hasInteracted = false;
     let isGyroActive = false;
@@ -387,6 +389,7 @@
                 if (e.persisted) window.location.reload();
             });
 
+            currentPanoramaSrc = panoramaSrc;
             viewer = pannellum.viewer('panorama-viewer', {
                 type: 'equirectangular',
                 panorama: panoramaSrc,
@@ -484,6 +487,7 @@
 
     function onViewerLoaded() {
         logPanoramaDiagnostics();
+        measurePanorama();
         // Hide loading, show app
         if (loadingScreen) {
             loadingScreen.classList.add('hidden');
@@ -581,11 +585,53 @@
         directionValue.textContent = `${Math.round(normalizedYaw)}° / ${Math.round(pitch)}°`;
     }
 
+    /**
+     * How far in the viewer may zoom before it starts stretching the image.
+     *
+     * An equirectangular panorama spreads its width across the full 360 degrees, so an
+     * 8192px file holds only ~22.8 pixels per degree. Zoomed in past the point where the
+     * screen needs more than that, the viewer can only enlarge existing pixels, which
+     * looks soft however the file was uploaded. The old fixed limit of 30 degrees meant
+     * a 1.5x stretch on a typical laptop - the blur that was reported. The limit is now
+     * the view where one screen pixel meets one image pixel at the centre.
+     *
+     * Device pixel ratio is capped at 2: past that the stretch is too fine to see, and
+     * counting every pixel of a 3x phone screen would leave almost no zoom at all.
+     */
+    function nativeMinHfov() {
+        const canvas = document.querySelector('#panorama-viewer canvas');
+        if (!canvas || !canvas.clientWidth || !panoramaImageWidth) return 30;
+        const screenPx = canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2);
+        const imagePxPerRadian = panoramaImageWidth / (2 * Math.PI);
+        const hfov = 2 * Math.atan((screenPx / 2) / imagePxPerRadian) * 180 / Math.PI;
+        return Math.min(90, Math.max(30, hfov));
+    }
+
+    function applyNativeZoomLimit() {
+        if (!viewer || typeof viewer.setHfovBounds !== 'function') return;
+        const min = nativeMinHfov();
+        viewer.setHfovBounds([min, 120]);
+        if (viewer.getHfov() < min) viewer.setHfov(min, false);
+    }
+
+    function measurePanorama() {
+        if (!currentPanoramaSrc) return;
+        const img = new Image();
+        img.onload = function () {
+            panoramaImageWidth = img.naturalWidth || 0;
+            applyNativeZoomLimit();
+        };
+        img.src = currentPanoramaSrc;
+    }
+
+    window.addEventListener('resize', applyNativeZoomLimit);
+
     // ---- Controls ----
     function handleZoomIn() {
         if (!viewer) return;
         const current = viewer.getHfov();
-        viewer.setHfov(Math.max(current - 10, 30), 300);
+        const min = typeof viewer.getHfovBounds === 'function' ? viewer.getHfovBounds()[0] : 30;
+        viewer.setHfov(Math.max(current - 10, min), 300);
         onFirstInteraction();
     }
 
