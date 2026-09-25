@@ -1202,6 +1202,11 @@
                 const url = await PC.uploadAssetToBlob(filename, dataUrl);
                 if (url) return url;
             } catch (err) {
+                // The server actively refused this file (too large, rate limited, or out
+                // of storage) - that will still be true on the next try, so this is not
+                // an "offline, queue it" situation. Surfaced as a real error instead of
+                // the misleading "saved offline, will upload later" toast below.
+                if (err && err.refused) throw err;
                 console.warn('Immediate upload failed, falling back to offline queue:', err);
             }
         }
@@ -1234,11 +1239,11 @@
     async function prepareImageFile(file, opts = {}) {
         if (!file) return null;
 
-        // Base64 inflates the payload by about a third, so a 25 MB file arrives as about
-        // 33 MB. A 40 MB body was measured passing through this host intact, so 25 MB has
-        // room to spare. The server enforces the same figure, since this check runs in the
-        // browser and an attacker simply would not run it.
-        const hardLimitBytes = opts.hardLimitBytes || 25 * 1024 * 1024;
+        // Base64 inflates the payload by about a third, so a 50 MB file arrives as about
+        // 66 MB. .user.ini raises the host's post_max_size/memory_limit to give that room.
+        // The server enforces the same figure, since this check runs in the browser and an
+        // attacker simply would not run it.
+        const hardLimitBytes = opts.hardLimitBytes || 50 * 1024 * 1024;
         const onTooLarge = typeof opts.onTooLarge === 'function' ? opts.onTooLarge : () => {};
         const onResample = typeof opts.onResample === 'function' ? opts.onResample : () => {};
 
@@ -1254,8 +1259,13 @@
         }
 
         // Over the limit. Say so plainly first - the image is about to lose detail and
-        // that should not happen quietly - then shrink by as little as will fit.
+        // that should not happen quietly.
         onTooLarge(file.size, hardLimitBytes);
+
+        // A rough byte estimate for a data: URL, without decoding it: base64 runs about
+        // 4/3 the size of the bytes it encodes, and the "data:image/jpeg;base64," prefix
+        // is a fixed ~23 chars, small enough to ignore here.
+        const approxBytes = (dataUrl) => dataUrl.length * 0.75;
 
         return new Promise((resolve) => {
             const img = new Image();
@@ -1266,29 +1276,53 @@
                 const w0 = img.naturalWidth || img.width;
                 const h0 = img.naturalHeight || img.height;
 
-                const scale = Math.sqrt(hardLimitBytes / file.size);
-                let w = Math.max(1, Math.round(w0 * scale));
-                let h = Math.max(1, Math.round(h0 * scale));
-
-                // Older iOS refuses a canvas much beyond 16 megapixels and returns blank.
-                const maxPixels = 16 * 1024 * 1024;
-                if (w * h > maxPixels) {
-                    const k = Math.sqrt(maxPixels / (w * h));
-                    w = Math.round(w * k);
-                    h = Math.round(h * k);
-                }
-
                 try {
                     const canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
+                    canvas.width = w0;
+                    canvas.height = h0;
                     const ctx = canvas.getContext('2d', { alpha: false });
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-                    ctx.drawImage(img, 0, 0, w, h);
-                    onResample(w0, h0, w, h);
-                    // 0.95: the aspect ratio is preserved, so the sphere still maps correctly.
-                    resolve(canvas.toDataURL('image/jpeg', 0.95));
+                    ctx.drawImage(img, 0, 0, w0, h0);
+
+                    // Full resolution, quality turned down step by step: compression
+                    // artifacts on a full-size panorama read far better than the same
+                    // panorama resampled smaller, especially once a viewer zooms in.
+                    const qualitySteps = [0.92, 0.85, 0.78, 0.7, 0.6];
+                    let out = null;
+                    for (const q of qualitySteps) {
+                        const candidate = canvas.toDataURL('image/jpeg', q);
+                        if (approxBytes(candidate) <= hardLimitBytes || q === qualitySteps[qualitySteps.length - 1]) {
+                            out = candidate;
+                            break;
+                        }
+                    }
+
+                    // Quality alone could not get there - only now does resolution drop,
+                    // and only by as much as it takes.
+                    if (approxBytes(out) > hardLimitBytes) {
+                        const scale = Math.sqrt(hardLimitBytes / approxBytes(out));
+                        let w = Math.max(1, Math.round(w0 * scale));
+                        let h = Math.max(1, Math.round(h0 * scale));
+
+                        // Older iOS refuses a canvas much beyond 16 megapixels and returns blank.
+                        const maxPixels = 16 * 1024 * 1024;
+                        if (w * h > maxPixels) {
+                            const k = Math.sqrt(maxPixels / (w * h));
+                            w = Math.round(w * k);
+                            h = Math.round(h * k);
+                        }
+
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, w, h);
+                        out = canvas.toDataURL('image/jpeg', 0.85);
+                        onResample(w0, h0, w, h);
+                    }
+
+                    resolve(out);
                 } catch (err) {
                     resolve(await readOriginal());
                 }

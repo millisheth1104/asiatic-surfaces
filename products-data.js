@@ -518,12 +518,17 @@ window.ProductCatalog = (function () {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filename, base64Data })
             });
-            // The server refuses an oversized image or too many in a minute. Those are
-            // answers, not network failures, and saying which one it was beats a silent
-            // fall back to the offline queue.
-            if (res.status === 413 || res.status === 429) {
+            // The server refuses an oversized image, too many in a minute, or a full
+            // disk (413/429/507) - those are answers, not network failures. Queuing
+            // "for when the connection returns" on a refusal is wrong: the connection
+            // is fine, and retrying the same file later hits the same refusal again.
+            // Marked .refused so the caller can tell this apart from an actual offline
+            // fetch failure below, where queuing is the right call.
+            if (res.status === 413 || res.status === 429 || res.status === 507) {
                 const info = await res.json().catch(() => ({}));
-                throw new Error(info.error || 'Upload refused by the server');
+                const err = new Error(info.error || 'Upload refused by the server');
+                err.refused = true;
+                throw err;
             }
             if (res.ok) {
                 const data = await res.json();
@@ -532,6 +537,10 @@ window.ProductCatalog = (function () {
                 }
             }
         } catch (err) {
+            // A refusal is a real answer from a reachable server - rethrown so the caller
+            // shows it instead of the generic "saved offline" message, which was reaching
+            // the user even when the server was up and had explicitly said no.
+            if (err && err.refused) throw err;
             console.warn('Vercel Blob upload call note (server might be down or offline):', err.message);
         }
         return null;

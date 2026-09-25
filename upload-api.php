@@ -28,14 +28,14 @@ try {
 
     $base64Data = $input['base64Data'];
 
-    // The 25 MB limit also exists in the browser, where it gives a helpful message. This
+    // The 50 MB limit also exists in the browser, where it gives a helpful message. This
     // is the one that is actually enforced: an attacker posts straight to the endpoint
     // and never runs our JavaScript. Base64 carries about a third overhead, so the
     // encoded string is measured against the inflated figure.
-    $maxBytes = 25 * 1024 * 1024;
+    $maxBytes = 50 * 1024 * 1024;
     if (strlen($base64Data) > (int) ($maxBytes * 1.4)) {
         http_response_code(413);
-        echo json_encode(['error' => 'Image is larger than the 25 MB limit']);
+        echo json_encode(['error' => 'Image is larger than the 50 MB limit']);
         exit;
     }
     $filename = !empty($input['filename']) ? preg_replace('/[^a-zA-Z0-9.-]/', '_', $input['filename']) : 'asset-' . time() . '.jpg';
@@ -97,7 +97,18 @@ try {
     }
 
     $targetFile = $uploadDir . '/' . time() . '-' . $filename;
-    file_put_contents($targetFile, $decoded);
+
+    // A full disk, a permissions problem, or the host's real quota (separate from the
+    // 2 GB check above, which only tracks what this app itself has written) all make
+    // file_put_contents return false rather than throw - unchecked, the response below
+    // would still say success on an image that was never actually saved.
+    $written = @file_put_contents($targetFile, $decoded);
+    if ($written === false || $written !== strlen($decoded)) {
+        @unlink($targetFile);
+        http_response_code(507);
+        echo json_encode(['error' => 'Could not save the image - the server may be out of storage space']);
+        exit;
+    }
     @chmod($targetFile, 0666);
 
     $relativeUrl = '/uploads/' . basename($targetFile);
