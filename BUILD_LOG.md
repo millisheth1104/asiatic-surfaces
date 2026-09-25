@@ -1238,3 +1238,25 @@ decision, not oversight.
 
 **Still open.** No Synchro product has an image, so every tile renders the same `wooden.webp`
 fallback. The upload-on-save rewrite has still never run against a real image.
+
+## 2026-09-25 — 360 tour blur: root cause was zoom, not upload
+
+**Symptom.** Panoramas uploaded at 8K looked soft in the tour on every device, including
+fresh uploads and images that had never been resized.
+
+**Cause.** An equirectangular panorama spreads its width over 360°, so 8192px = ~22.8 px
+per degree. The tour allowed zooming to 30°, where a 1058px-wide canvas needs 34.5 px/deg
+— a 1.5× stretch. The reported screenshot was at exactly 30°.
+
+**Fix.** Zoom-in limit is computed per image and per screen (1 screen px = 1 image px at
+the centre; DPR capped at 2). Verified at the reporting device's size: tour at the limit
+matches a 100% crop of the original file.
+
+**Also shipped today.** Upload ceiling 50MB, byte-for-byte passthrough, quality-first
+fallback, real 507 on failed writes; mipmapped texture filtering (second attempt — first
+broke the tour because WebGL errors are queued, not thrown, so try/catch never caught a
+failed generateMipmap); read-only `[pano-diag]` console log; admin Quality Check button;
+Copy Category with undo.
+
+**Lesson.** `app.js?v=` had not been bumped across three app.js changes — check the
+version on every edit to a versioned asset.
