@@ -199,6 +199,14 @@
                     </svg>
                     <span>Export Excel</span>
                 </button>
+                <button class="export-btn" id="btn-quality-check" title="Check every panorama's resolution against your catalogue's typical export size">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.5 12.5l1.8 1.8 3.2-4.2" />
+                    </svg>
+                    <span>Quality Check</span>
+                </button>
                 <div class="view-switch">
                     <button class="view-switch-btn active" id="view-mode-table" title="Table View (Grid Lines)">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -420,6 +428,32 @@
                     style="flex:none;width:120px;">Cancel</button>
                 <button type="button" class="modal-btn modal-btn--solid" id="copy-category-run"
                     style="flex:none;width:150px;">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panorama Quality Check Modal -->
+    <div id="quality-check-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 720px;">
+            <button class="modal-close-btn" id="quality-check-close" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+
+            <div class="form-modal-header">
+                <h2>Panorama Quality Check</h2>
+                <p>Loads every product's panorama and compares its resolution against your catalogue's typical export size. Nothing here changes any file — it can only tell you which products to re-upload.</p>
+            </div>
+
+            <div id="quality-check-body" style="min-height: 120px;">
+                <p style="color: var(--stone); font-size: var(--fs-meta);">Checking...</p>
+            </div>
+
+            <div class="form-actions" style="justify-content: flex-end; margin-top: 18px;">
+                <button type="button" class="modal-btn modal-btn--ghost" id="quality-check-done"
+                    style="flex:none;width:120px;">Close</button>
             </div>
         </div>
     </div>
@@ -775,7 +809,7 @@
     <!-- Shared Product Data Engine -->
     <script src="products-data.js?v=4.3"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=4.3"></script>
+    <script src="products.js?v=4.4"></script>
     <script>
     (function () {
         var logoutBtn = document.getElementById('btn-logout');

@@ -961,6 +961,144 @@
         });
     }
 
+    // ---- Panorama Quality Check ---------------------------------------------
+    /**
+     * Nothing here can restore a panorama that was already shrunk by an old upload
+     * path - once that happened, the higher-resolution original was never kept on the
+     * server. This can only find which products look shrunk, by comparing every
+     * panorama's resolution against whatever width shows up most often in the
+     * catalogue (the assumption being that's this business's normal export size, and
+     * anything meaningfully narrower than that got resized on the way in rather than
+     * exported small on purpose).
+     */
+    async function resolvePanoramaSrc(product) {
+        if (!product.threeDDataUrl) return null;
+        if (product.threeDDataUrl.startsWith('db:')) {
+            const dbKey = product.threeDDataUrl.replace('db:', '');
+            if (window.ProductCatalog && typeof window.ProductCatalog.getAsset === 'function') {
+                const stored = await window.ProductCatalog.getAsset(dbKey);
+                return stored || null;
+            }
+            return null;
+        }
+        return product.threeDDataUrl;
+    }
+
+    function loadImageDimensions(src) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            img.onerror = () => resolve(null);
+            img.src = src;
+        });
+    }
+
+    async function runQualityCheck() {
+        const body = document.getElementById('quality-check-body');
+        if (!body) return;
+
+        const products = getRealTimeProducts().filter(p => p.threeD && p.threeDDataUrl);
+        if (products.length === 0) {
+            body.innerHTML = '<p style="color:var(--stone);font-size:var(--fs-body);">No products have a 3D panorama yet.</p>';
+            return;
+        }
+
+        body.innerHTML = '<p style="color:var(--stone);font-size:var(--fs-meta);">Checking ' + products.length + ' panorama(s)...</p>';
+
+        const results = [];
+        for (const p of products) {
+            const src = await resolvePanoramaSrc(p);
+            if (!src) {
+                results.push({ product: p, status: 'no-src' });
+                continue;
+            }
+            const dims = await loadImageDimensions(src);
+            if (!dims || !dims.width) {
+                results.push({ product: p, status: 'load-failed' });
+                continue;
+            }
+            results.push({ product: p, status: 'ok', width: dims.width, height: dims.height, ratio: dims.width / dims.height });
+        }
+
+        // The most common width among panoramas that loaded fine stands in for "this
+        // catalogue's normal export size" - there is no other source of truth for it
+        // available here.
+        const widths = results.filter(r => r.status === 'ok').map(r => r.width);
+        const freq = {};
+        widths.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+        let modeWidth = 0, modeCount = 0;
+        Object.keys(freq).forEach(w => {
+            if (freq[w] > modeCount) { modeCount = freq[w]; modeWidth = Number(w); }
+        });
+
+        results.forEach(r => {
+            if (r.status !== 'ok') return;
+            const aspectOff = Math.abs(r.ratio - 2) > 0.05;
+            const looksShrunk = modeWidth > 0 && r.width < modeWidth * 0.8;
+            r.flagged = aspectOff || looksShrunk;
+            r.flagReason = aspectOff
+                ? (r.width + 'x' + r.height + ' is not 2:1 - the sphere will look stretched')
+                : (looksShrunk ? 'narrower than your usual ' + modeWidth + 'px' : '');
+        });
+
+        results.sort((a, b) => (b.flagged ? 1 : 0) - (a.flagged ? 1 : 0));
+        const flaggedCount = results.filter(r => r.flagged).length;
+
+        let html = '';
+        if (widths.length > 0) {
+            html += '<p style="color:var(--stone);font-size:var(--fs-meta);margin-bottom:14px;">' +
+                'Most common export width in this catalogue: <strong>' + modeWidth + 'px</strong> ' +
+                '(' + modeCount + ' of ' + widths.length + ' measured panoramas). ' +
+                (flaggedCount > 0
+                    ? flaggedCount + ' product(s) below flag as possibly shrunk on upload - re-upload the original file for those.'
+                    : 'Nothing looks out of place.') +
+                '</p>';
+        }
+
+        html += '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--rule);border-radius:8px;">' +
+            '<table style="width:100%;border-collapse:collapse;font-size:var(--fs-body);">' +
+            '<thead><tr style="background:var(--charcoal);color:var(--ivory);">' +
+            '<th style="text-align:left;padding:8px 12px;">Code</th>' +
+            '<th style="text-align:left;padding:8px 12px;">Category</th>' +
+            '<th style="text-align:left;padding:8px 12px;">Resolution</th>' +
+            '<th style="text-align:left;padding:8px 12px;">Status</th>' +
+            '</tr></thead><tbody>';
+
+        results.forEach(r => {
+            const p = r.product;
+            let statusCell;
+            if (r.status === 'no-src') statusCell = '<span style="color:var(--stone);">no image reachable</span>';
+            else if (r.status === 'load-failed') statusCell = '<span style="color:#9c2b1c;">could not load</span>';
+            else if (r.flagged) statusCell = '<span style="color:#9c2b1c;font-weight:600;">re-upload recommended - ' + esc(r.flagReason) + '</span>';
+            else statusCell = '<span style="color:#4a7c4a;">looks fine</span>';
+
+            const resCell = r.status === 'ok' ? (r.width + 'x' + r.height) : '—';
+
+            html += '<tr style="border-top:1px solid var(--rule);">' +
+                '<td style="padding:8px 12px;"><span class="grid-code-badge">' + esc(p.code) + '</span></td>' +
+                '<td style="padding:8px 12px;">' + esc(normalizeCategory(p.category)) + '</td>' +
+                '<td style="padding:8px 12px;font-family:monospace;">' + esc(resCell) + '</td>' +
+                '<td style="padding:8px 12px;">' + statusCell + '</td>' +
+                '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        body.innerHTML = html;
+    }
+
+    const btnQualityCheck = document.getElementById('btn-quality-check');
+    const qualityCheckModal = document.getElementById('quality-check-modal');
+    if (btnQualityCheck && qualityCheckModal) {
+        btnQualityCheck.addEventListener('click', () => {
+            qualityCheckModal.style.display = 'flex';
+            runQualityCheck();
+        });
+    }
+    const qualityCheckCloseBtn = document.getElementById('quality-check-close');
+    if (qualityCheckCloseBtn) qualityCheckCloseBtn.addEventListener('click', () => { qualityCheckModal.style.display = 'none'; });
+    const qualityCheckDoneBtn = document.getElementById('quality-check-done');
+    if (qualityCheckDoneBtn) qualityCheckDoneBtn.addEventListener('click', () => { qualityCheckModal.style.display = 'none'; });
+
     // ---- Event Listeners for Table & Card Actions ----
     function attachActionEventListeners() {
         document.querySelectorAll('.edit-product-btn').forEach(btn => {
