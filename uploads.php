@@ -53,7 +53,9 @@ header('Content-Type: ' . $types[$ext]);
 // file no privileges of its own if one is ever opened directly.
 header('X-Content-Type-Options: nosniff');
 header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox");
-header('Cache-Control: public, max-age=2592000, immutable');
+// no-transform: asks the CDN not to recompress or resize these (it was shrinking 8K
+// panoramas to 1600px). Clients also bypass the /uploads/ path for panoramas.
+header('Cache-Control: public, max-age=2592000, immutable, no-transform');
 header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
 header('ETag: ' . $etag);
 

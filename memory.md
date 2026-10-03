@@ -582,3 +582,16 @@ its own folder, and would still leave the APIs open to `curl`.
 - Do NOT mipmap pannellum textures: softer at default zoom + visible seam line (tested 2026-09-25).
   pannellum's own getError check kills the viewer ("No 3D Image Available").
 - Headless test Chrome reports MAX_TEXTURE_SIZE 16384; the user's desktop does too.
+
+## 360 blur - REAL root cause: Hostinger CDN (2026-10-03)
+- Files on disk are full res (8192x4096, 49 MB PNG). But hcdn rewrites any `/uploads/<file>`
+  image request to **1600x800** (PNG for curl, ~150 KB WebP for browsers). Every tour got
+  1600px = ~4.4 px/deg. Zoom limits / mipmaps / DPR hacks never could have fixed it.
+- Fix: `fullResUploadUrl()` in app.js + products.js maps `/uploads/x` -> `/uploads.php?f=x`
+  (hcdn status DYNAMIC, untransformed). uploads.php also sends `no-transform`.
+- Check any future quality report with: `curl -s -H "Accept: image/webp,*/*" -o t <url>` and
+  read the real pixel size. Never trust what the CDN path returns.
+- Cost: panoramas now load from origin (40-49 MB PNG each). An 8K JPEG q90 (~6-10 MB)
+  would look the same and load 5x faster.
+- `boostCanvasQuality()` (ecc3588) is redundant: pannellum 2.5.6 already sizes the canvas
+  by devicePixelRatio (libpannellum.js resize()).

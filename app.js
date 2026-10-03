@@ -124,7 +124,7 @@
                                 if (storedData) fsSrc = storedData;
                             }
                         } else {
-                            fsSrc = productData.fullsheetUrl;
+                            fsSrc = fullResUploadUrl(productData.fullsheetUrl);
                         }
                     }
                     fullsheetImage.src = fsSrc;
@@ -139,6 +139,18 @@
                 window.location.href = 'products.html?code=' + encodeURIComponent(productData.code);
             }
         });
+    }
+
+    /**
+     * Hostinger's CDN rewrites every /uploads/<file>.png|jpg request into a 1600px-wide
+     * compressed copy (a ~150 KB WebP for browsers), whatever was uploaded. An 8192px
+     * panorama reached the viewer at 1600px - ~4.4 px per degree - which is the blur on
+     * every tour. The file on disk is untouched; uploads.php serves it as-is, and the
+     * CDN passes that URL through without transforming it (verified 2026-10-03).
+     */
+    function fullResUploadUrl(src) {
+        const m = /^\/uploads\/([A-Za-z0-9._-]+)$/.exec(String(src || ''));
+        return m ? '/uploads.php?f=' + m[1] : src;
     }
 
     // ---- Initialize Pannellum ----
@@ -216,7 +228,7 @@
                         }
                     } else {
                         // Accept /uploads/..., absolute http/https URLs, data: URIs, or relative asset paths
-                        matchedPanoSrc = panoVal;
+                        matchedPanoSrc = fullResUploadUrl(panoVal);
                     }
                 }
 
@@ -894,7 +906,7 @@
             }
             return null;
         }
-        return raw;
+        return fullResUploadUrl(raw);
     }
 
     async function openFullsheet() {

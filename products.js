@@ -925,6 +925,18 @@
      * anything meaningfully narrower than that got resized on the way in rather than
      * exported small on purpose).
      */
+    /**
+     * Hostinger's CDN rewrites every /uploads/<file>.png|jpg request into a 1600px-wide
+     * compressed copy (a ~150 KB WebP for browsers), whatever was uploaded. An 8192px
+     * panorama reached the viewer at 1600px - ~4.4 px per degree - which is the blur on
+     * every tour. The file on disk is untouched; uploads.php serves it as-is, and the
+     * CDN passes that URL through without transforming it (verified 2026-10-03).
+     */
+    function fullResUploadUrl(src) {
+        const m = /^\/uploads\/([A-Za-z0-9._-]+)$/.exec(String(src || ''));
+        return m ? '/uploads.php?f=' + m[1] : src;
+    }
+
     async function resolvePanoramaSrc(product) {
         if (!product.threeDDataUrl) return null;
         if (product.threeDDataUrl.startsWith('db:')) {
@@ -935,7 +947,7 @@
             }
             return null;
         }
-        return product.threeDDataUrl;
+        return fullResUploadUrl(product.threeDDataUrl);
     }
 
     function loadImageDimensions(src) {
@@ -1226,7 +1238,7 @@
                     if (storedData) panoramaSrc = storedData;
                 }
             } else {
-                panoramaSrc = product.threeDDataUrl;
+                panoramaSrc = fullResUploadUrl(product.threeDDataUrl);
             }
         }
 
@@ -1724,7 +1736,7 @@
             return;
         }
 
-        const panoramaSrc = tempThreeDDataUrl;
+        const panoramaSrc = fullResUploadUrl(tempThreeDDataUrl);
 
         // Map internal temp list to hotspots config
         const panoHotspots = tempHotspotsList.map((hs, index) => ({

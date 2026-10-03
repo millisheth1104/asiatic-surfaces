@@ -1269,3 +1269,22 @@ drew a visible vertical seam where the panorama's edges meet (UV wrap → LOD sp
 from app.js and products.js; plain LINEAR is back. The zoom limit stays - it is the fix
 for zoomed-in blur. Lesson: A/B screenshot against the previous build before shipping any
 rendering change, not just "renders without error".
+
+## 2026-10-03 - 360 tour blur: the CDN was shrinking every panorama to 1600px
+
+**Symptom.** 8K panoramas looked blurred everywhere in the tour, at every zoom level.
+
+**Cause.** Hostinger's CDN (`Server: hcdn`) image optimisation. The stored file is the
+untouched 8192x4096 upload (byte-identical to the user's `1513 1514 1515 8k render.png`),
+but any request to `/uploads/<file>` came back 1600x800 - a 159 KB WebP for browsers.
+The tour therefore rendered 1600px across 360 degrees (~4.4 px/deg vs ~22.8 for 8K).
+All previous fixes (zoom limit, mipmaps, FOV, DPR boost) worked on the renderer, which was
+never the problem.
+
+**Fix.** `fullResUploadUrl()` (app.js, products.js) sends panoramas and full sheets through
+`/uploads.php?f=<file>`, which hcdn passes through untransformed (verified: 8192x4096 PNG
+with a browser Accept header). `uploads.php` adds `Cache-Control: no-transform`.
+app.js v4.8, products.js v4.6. Thumbnails stay on the CDN path (small is fine there).
+
+**Not done.** Not yet verified on the live tour (needs deploy). Origin now serves 40-49 MB
+PNGs uncached by the CDN; 8K JPEG q90 would cut load time ~5x at equal sharpness.
