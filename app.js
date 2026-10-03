@@ -348,9 +348,9 @@
                 draggable: true,
                 disableKeyboardCtrl: false,
                 friction: 0.15,
-                hfov: 100,
+                hfov: 75,
                 minHfov: 30,
-                maxHfov: 120,
+                maxHfov: 100,
                 pitch: initialPitch,
                 yaw: initialYaw,
                 autoRotate: 0,
@@ -430,8 +430,52 @@
         }
     }
 
+    /**
+     * Boost canvas rendering to native device resolution and fix color rendering.
+     *
+     * Pannellum 2.5.6 renders at CSS pixel size (1x), so on high-DPI screens the
+     * panorama looks soft/blurry. This scales the internal canvas buffer to match
+     * the device's actual pixel ratio for crisp output.
+     *
+     * Also removes any unintended blue cast by ensuring the WebGL clear color uses
+     * a neutral black instead of whatever the container background might bleed in.
+     */
+    function boostCanvasQuality() {
+        try {
+            const canvas = document.querySelector('#panorama-viewer canvas');
+            if (!canvas) return;
+
+            const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+            const displayWidth = canvas.clientWidth;
+            const displayHeight = canvas.clientHeight;
+            const targetWidth = Math.round(displayWidth * dpr);
+            const targetHeight = Math.round(displayHeight * dpr);
+
+            // Only resize if meaningfully different (avoid infinite resize loops)
+            if (Math.abs(canvas.width - targetWidth) > 2 || Math.abs(canvas.height - targetHeight) > 2) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+            }
+
+            // Fix blue tint: ensure WebGL clear color is neutral black, not tinted
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                gl.viewport(0, 0, targetWidth, targetHeight);
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            }
+
+            // Force Pannellum to re-render at the new resolution
+            if (viewer && typeof viewer.resize === 'function') {
+                viewer.resize();
+            }
+        } catch (e) {
+            console.log('[canvas-quality] boost failed:', e.message);
+        }
+    }
+
     function onViewerLoaded() {
         logPanoramaDiagnostics();
+        boostCanvasQuality();
         measurePanorama();
         // Hide loading, show app
         if (loadingScreen) {
@@ -555,7 +599,7 @@
     function applyNativeZoomLimit() {
         if (!viewer || typeof viewer.setHfovBounds !== 'function') return;
         const min = nativeMinHfov();
-        viewer.setHfovBounds([min, 120]);
+        viewer.setHfovBounds([min, 100]);
         if (viewer.getHfov() < min) viewer.setHfov(min, false);
     }
 
@@ -569,7 +613,10 @@
         img.src = currentPanoramaSrc;
     }
 
-    window.addEventListener('resize', applyNativeZoomLimit);
+    window.addEventListener('resize', function () {
+        applyNativeZoomLimit();
+        boostCanvasQuality();
+    });
 
     // ---- Controls ----
     function handleZoomIn() {
@@ -605,7 +652,7 @@
         if (!viewer) return;
         viewer.setYaw(0, 800);
         viewer.setPitch(0, 800);
-        viewer.setHfov(100, 800);
+        viewer.setHfov(75, 800);
         onFirstInteraction();
     }
 
