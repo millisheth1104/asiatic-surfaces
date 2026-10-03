@@ -595,3 +595,5 @@ its own folder, and would still leave the APIs open to `curl`.
   would look the same and load 5x faster.
 - `boostCanvasQuality()` (ecc3588) is redundant: pannellum 2.5.6 already sizes the canvas
   by devicePixelRatio (libpannellum.js resize()).
+- app.js v4.9: full-res load error -> `[pano-error]` console log + fallback to the 1600px
+  CDN copy. 49 MB PNGs are the weak point; ask for 8K JPEG q90 uploads.

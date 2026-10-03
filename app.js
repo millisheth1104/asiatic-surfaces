@@ -13,6 +13,7 @@
     let currentProduct = null;
     let currentPanoramaSrc = null;
     let panoramaImageWidth = 0;
+    let updateLoopStarted = false;
     let isAutoRotating = false;
     let hasInteracted = false;
     let isGyroActive = false;
@@ -180,6 +181,9 @@
         }
         
         let panoramaSrc = null;
+        // The CDN's 1600px copy: blurry, but it has always loaded. Used only if the
+        // full-resolution file fails on this device.
+        let fallbackPanoSrc = null;
         let initialPitch = 23;
         let initialYaw = 0;
         let matched = null;
@@ -229,6 +233,7 @@
                     } else {
                         // Accept /uploads/..., absolute http/https URLs, data: URIs, or relative asset paths
                         matchedPanoSrc = fullResUploadUrl(panoVal);
+                        if (matchedPanoSrc !== panoVal) fallbackPanoSrc = panoVal;
                     }
                 }
 
@@ -346,10 +351,20 @@
                 if (e.persisted) window.location.reload();
             });
 
-            currentPanoramaSrc = panoramaSrc;
+            startViewer(panoramaSrc, fallbackPanoSrc);
+
+            // Safety timeout: Ensure preloader is always dismissed within 3.5s
+            setTimeout(hidePreloader, 3500);
+        } catch (err) {
+            console.error('Failed to initialize Pannellum:', err);
+            hidePreloader();
+        }
+
+        function startViewer(src, fallbackSrc) {
+            currentPanoramaSrc = src;
             viewer = pannellum.viewer('panorama-viewer', {
                 type: 'equirectangular',
-                panorama: panoramaSrc,
+                panorama: src,
                 autoLoad: true,
                 showControls: false,
                 showFullscreenCtrl: false,
@@ -379,7 +394,17 @@
             viewer.on('load', onViewerLoaded);
 
             // Error fallback: If panorama fails to load, display No 3D Image state cleanly
-            viewer.on('error', () => {
+            viewer.on('error', (msg) => {
+                console.warn('[pano-error]', src, msg);
+                // An 8K file can still fail on a device with too little graphics memory.
+                // Show the smaller copy rather than nothing.
+                if (fallbackSrc) {
+                    try { viewer.destroy(); } catch (e) { }
+                    const el = document.getElementById('panorama-viewer');
+                    if (el) el.innerHTML = '';
+                    try { startViewer(fallbackSrc, null); } catch (e) { hidePreloader(); }
+                    return;
+                }
                 hidePreloader();
                 const viewerEl = document.getElementById('panorama-viewer');
                 if (viewerEl) {
@@ -396,18 +421,16 @@
                 }
             });
 
-            // Safety timeout: Ensure preloader is always dismissed within 3.5s
-            setTimeout(hidePreloader, 3500);
-
             // Update compass & info in real-time
             viewer.on('mousedown', onFirstInteraction);
             viewer.on('touchstart', onFirstInteraction);
 
-            // Continuous update loop for compass and info
-            requestAnimationFrame(updateLoop);
-        } catch (viewerErr) {
-            console.error('Failed to initialize Pannellum viewer:', viewerErr);
-            hidePreloader();
+            // Continuous update loop for compass and info - once, even if the viewer
+            // is rebuilt with the fallback image.
+            if (!updateLoopStarted) {
+                updateLoopStarted = true;
+                requestAnimationFrame(updateLoop);
+            }
         }
     }
 

@@ -1288,3 +1288,14 @@ app.js v4.8, products.js v4.6. Thumbnails stay on the CDN path (small is fine th
 
 **Not done.** Not yet verified on the live tour (needs deploy). Origin now serves 40-49 MB
 PNGs uncached by the CDN; 8K JPEG q90 would cut load time ~5x at equal sharpness.
+
+## 2026-10-03 (later) - "No 3D Image Available" after the full-res switch
+
+Reported on stone/4190 after 9b96de6 went live. Not reproducible here: headless Chrome
+(Intel UHD, MAX_TEXTURE_SIZE 16384) loads the 49 MB 8K PNG in ~25 s and renders. Server
+does not cut slow downloads (49 MB at 300 KB/s completed in 160 s). So the failure is on
+the user's device - likely GPU/memory with an 8192x4096 texture, or an interrupted 49 MB
+download. Fix: app.js v4.9 - if the full-res file errors, the tour logs `[pano-error]
+<src> <message>` and rebuilds the viewer on the CDN's 1600px copy instead of showing
+"No 3D Image". Tested both paths (normal + forced 500 on uploads.php) via CDP.
+Open: real cause on the user's device needs the `[pano-error]` console line.
