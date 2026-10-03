@@ -151,7 +151,9 @@
      */
     function fullResUploadUrl(src) {
         const m = /^\/uploads\/([A-Za-z0-9._-]+)$/.exec(String(src || ''));
-        return m ? '/uploads.php?f=' + m[1] : src;
+        if (!m) return src;
+        // PNG renders are ~49 MB; uploads.php serves a same-size JPEG copy (~6 MB) for v=jpg.
+        return '/uploads.php?f=' + m[1] + (/\.png$/i.test(m[1]) ? '&v=jpg' : '');
     }
 
     // ---- Initialize Pannellum ----

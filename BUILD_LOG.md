@@ -1299,3 +1299,24 @@ download. Fix: app.js v4.9 - if the full-res file errors, the tour logs `[pano-e
 <src> <message>` and rebuilds the viewer on the CDN's 1600px copy instead of showing
 "No 3D Image". Tested both paths (normal + forced 500 on uploads.php) via CDP.
 Open: real cause on the user's device needs the `[pano-error]` console line.
+
+## 2026-10-03 (later) - PNG panoramas: slow uploads lost the panorama; 8x smaller files
+
+**Symptom.** "No 360 panorama image has been uploaded" on a re-uploaded product (Synchro
+#FSY 031), and very slow loading.
+
+**Cause.** A 49 MB PNG is a ~67 MB base64 upload. When it is slow or fails, persistAsset
+keeps the image only in the browser's IndexedDB (`db:` key) and syncToCloud saves the
+product with `threeDDataUrl: null` - the live record says "no panorama". #FSY 031's record
+had the URL and then lost it within a minute. Tour load of a 49 MB file: ~25 s.
+
+**Fix.** (User requirement: keep uploading PNG.)
+- uploads.php `?v=jpg`: for a PNG, makes a full-res JPEG q92 copy once with GD
+  (`<file>.q92.jpg`), serves that; falls back to the original. Tested locally on the 8K
+  file: 49 MB -> 6.2 MB, 8192x4096, 3.3 s, 260 MB peak.
+- fullResUploadUrl adds `&v=jpg` for .png (app.js v5.0, products.js v4.7).
+- Admin converts PNG/>15 MB panoramas to full-res JPEG q92 before upload
+  (reencodeFullResJpeg; tested in Chrome: 47 MB -> 6.1 MB, 4.8 s). iOS canvas limit -> original.
+- Save toast now says when the panorama upload did not finish instead of "saved successfully".
+**Open.** #FSY 031 must be re-uploaded (record has no panorama). Full-list saves are still
+last-writer-wins across tabs.

@@ -934,7 +934,9 @@
      */
     function fullResUploadUrl(src) {
         const m = /^\/uploads\/([A-Za-z0-9._-]+)$/.exec(String(src || ''));
-        return m ? '/uploads.php?f=' + m[1] : src;
+        if (!m) return src;
+        // PNG renders are ~49 MB; uploads.php serves a same-size JPEG copy (~6 MB) for v=jpg.
+        return '/uploads.php?f=' + m[1] + (/\.png$/i.test(m[1]) ? '&v=jpg' : '');
     }
 
     async function resolvePanoramaSrc(product) {
@@ -1386,6 +1388,38 @@
      * request itself. That is a hard transport limit, not a quality preference, and the
      * caller is told when it happens.
      */
+    function blobToDataUrl(blob) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    /** Full resolution, JPEG. Resolves null where the browser cannot (e.g. iOS canvas limit). */
+    function reencodeFullResJpeg(file, quality) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d', { alpha: false });
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob((b) => resolve(b), 'image/jpeg', quality);
+                } catch (e) {
+                    resolve(null);
+                }
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+            img.src = url;
+        });
+    }
+
     async function prepareImageFile(file, opts = {}) {
         if (!file) return null;
 
@@ -1403,6 +1437,18 @@
             reader.onerror = () => resolve(null);
             reader.readAsDataURL(file);
         });
+
+        // Panoramas: same pixels, smaller file. An 8K render saved as PNG is ~49 MB; the
+        // same 8192x4096 as JPEG q0.92 is ~6 MB and looks identical in the tour. The 49 MB
+        // version took minutes to upload, timed out into the offline queue (which saves the
+        // product with no panorama), and took 25 s+ to open in the tour.
+        if (opts.panoramaJpeg && (file.type !== 'image/jpeg' || file.size > 15 * 1024 * 1024)) {
+            const jpeg = await reencodeFullResJpeg(file, 0.92);
+            if (jpeg && jpeg.size < file.size) {
+                onResample('jpeg', file.size, jpeg.size);
+                return blobToDataUrl(jpeg);
+            }
+        }
 
         if (file.size <= hardLimitBytes) {
             return readOriginal();
@@ -1628,12 +1674,15 @@
                 // the tour gets. Only the shape is checked, and only to warn.
                 checkPanoramaShape(file);
                 tempThreeDDataUrl = await prepareImageFile(file, {
+                    panoramaJpeg: true,
                     onTooLarge: (size, limit) => showToast(
                         'This panorama is ' + (size/1048576).toFixed(1) + ' MB, over the ' +
                         (limit/1048576) + ' MB limit. It will be reduced to fit, which loses some detail.',
                         'error'),
-                    onResample: (w0, h0, w, h) =>
-                        showToast(`Panorama was ${w0}x${h0}, too large to upload; sent at ${w}x${h}.`, 'info')
+                    onResample: (w0, h0, w, h) => w0 === 'jpeg'
+                        ? showToast('Panorama converted to full-resolution JPEG: ' + (h0/1048576).toFixed(1) +
+                            ' MB -> ' + (w/1048576).toFixed(1) + ' MB, same pixels.', 'info')
+                        : showToast(`Panorama was ${w0}x${h0}, too large to upload; sent at ${w}x${h}.`, 'info')
                 });
                 if (imgThreeD && wrapThreeD) {
                     imgThreeD.src = tempThreeDDataUrl;
@@ -2243,7 +2292,14 @@
 
             renderCatalog();
             closeAddModal();
-            showToast(`Product ${rawCode} saved successfully!`, 'success');
+            if (finalThreeDDataUrl && String(finalThreeDDataUrl).startsWith('db:')) {
+                // persistAsset fell back to the offline queue: the live tour has no
+                // panorama until that upload succeeds.
+                showToast(`Product ${rawCode} saved, but the panorama upload did not finish. ` +
+                    'Keep this page open while it retries, or upload it again.', 'error');
+            } else {
+                showToast(`Product ${rawCode} saved successfully!`, 'success');
+            }
 
             // 2. Trigger background upload sync immediately if online
             if (window.ProductCatalog && typeof window.ProductCatalog.processSyncQueue === 'function') {

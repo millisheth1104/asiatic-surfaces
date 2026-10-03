@@ -596,4 +596,8 @@ its own folder, and would still leave the APIs open to `curl`.
 - `boostCanvasQuality()` (ecc3588) is redundant: pannellum 2.5.6 already sizes the canvas
   by devicePixelRatio (libpannellum.js resize()).
 - app.js v4.9: full-res load error -> `[pano-error]` console log + fallback to the 1600px
-  CDN copy. 49 MB PNGs are the weak point; ask for 8K JPEG q90 uploads.
+  CDN copy.
+- User uploads PNG only (stated 2026-10-03). PNG panoramas: admin converts to full-res JPEG
+  q92 before upload; uploads.php `?v=jpg` serves a cached GD JPEG copy for old PNGs.
+- A failed/slow panorama upload saves the product with threeDDataUrl null (db: stripped)
+  - that is what "No panorama uploaded" means after a re-upload.

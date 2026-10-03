@@ -43,6 +43,32 @@ if (!isset($types[$ext])) {
     exit;
 }
 
+// Panoramas are stored exactly as uploaded - often ~49 MB PNG renders, which take 25 s+
+// to open in the tour. ?v=jpg asks for a full-resolution JPEG copy instead (same pixel
+// size, ~6 MB, visually identical at q92). It is made once with GD, kept beside the
+// original as <file>.q92.jpg, and the original is served if conversion is not possible.
+if (isset($_GET['v']) && $_GET['v'] === 'jpg' && $ext === 'png') {
+    $jpgPath = $path . '.q92.jpg';
+    if (!is_file($jpgPath) && function_exists('imagecreatefrompng') && function_exists('imagejpeg')) {
+        @ini_set('memory_limit', '512M');   // 8192x4096 truecolor is ~150 MB in GD
+        @set_time_limit(120);
+        $im = @imagecreatefrompng($path);
+        if ($im) {
+            $tmp = $jpgPath . '.' . uniqid('', true) . '.tmp';
+            if (@imagejpeg($im, $tmp, 92)) {
+                @rename($tmp, $jpgPath);
+            } else {
+                @unlink($tmp);
+            }
+            imagedestroy($im);
+        }
+    }
+    if (is_file($jpgPath)) {
+        $path = $jpgPath;
+        $ext = 'jpg';
+    }
+}
+
 $size  = filesize($path);
 $mtime = filemtime($path);
 $etag  = '"' . md5($name . $size . $mtime) . '"';
