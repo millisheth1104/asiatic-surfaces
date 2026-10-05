@@ -1320,3 +1320,14 @@ had the URL and then lost it within a minute. Tour load of a 49 MB file: ~25 s.
 - Save toast now says when the panorama upload did not finish instead of "saved successfully".
 **Open.** #FSY 031 must be re-uploaded (record has no panorama). Full-list saves are still
 last-writer-wins across tabs.
+
+## 2026-10-05 — category pages: full sheet opens when there is no 360
+
+Cards with a full sheet but no 360 tour now open the full sheet in the lightbox on click;
+prev/next and "n / N" step only through those cards (`lbList()` in gallery.js). Cards with
+a 360 tour keep their "View in 360°" link and stay unclickable; cards with neither are
+unchanged. Tall sheets now scroll in the lightbox instead of running off-screen (the old
+`max-height:100%` never resolved against the indefinite grid row); arrows are
+`position:fixed` so they stay put while scrolling, and each sheet opens at its top.
+Verified in Chrome at 1280x800 and 390x844@3x with sheet-only, sheet+360, 360-only and
+no-image products.

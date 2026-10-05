@@ -115,8 +115,14 @@
   var hits = [];           // their buttons, in the same order
   var allCards = [];       // every card built for this category
   var allHits = [];
-  var index = -1;
+  var index = -1;          // position in lbList(), not in hits
   var lastFocus = null;
+
+  // Only full-sheet-only cards (no 360 tour) open the lightbox, so prev/next and the
+  // "n / N" count step through those alone. Read live: search changes `hits`.
+  function lbList() {
+    return hits.filter(function (h) { return h.getAttribute('data-lb') === '1'; });
+  }
   // renderGallery() is async and yields on the IndexedDB read, while three
   // unsynchronised callers can start it (initial, 'catalogUpdated', and the
   // syncFromCloud tail). Without this, a superseded run resumes and pushes its
@@ -182,11 +188,12 @@
   var btnX = lb ? lb.querySelector('.lb__x') : null;
 
   function showLightbox(i) {
-    if (!lb || hits.length === 0) return;
-    if (i < 0) i = hits.length - 1;
-    if (i >= hits.length) i = 0;
+    var list = lbList();
+    if (!lb || list.length === 0) return;
+    if (i < 0) i = list.length - 1;
+    if (i >= list.length) i = 0;
     index = i;
-    var hit = hits[i];
+    var hit = list[i];
     var code = hit.getAttribute('data-code') || '';
     var name = hit.getAttribute('data-name') || '';
     var tourUrl = hit.getAttribute('data-tour') || '';
@@ -194,6 +201,7 @@
     var fullUrl = hit.getAttribute('data-full') || '';
 
     var lbStage = lb.querySelector('.lb__stage');
+    if (lbStage) lbStage.scrollTop = 0;   // a tall sheet scrolls; each new one starts at its top
     var existingNa = lbStage ? lbStage.querySelector('.lb__na') : null;
     if (existingNa) existingNa.remove();
 
@@ -261,11 +269,11 @@
       lbCode.appendChild(tourBtn);
     }
 
-    if (lbCount) lbCount.textContent = (i + 1) + ' / ' + hits.length;
+    if (lbCount) lbCount.textContent = (i + 1) + ' / ' + list.length;
 
     // Preload neighbours
     [i - 1, i + 1].forEach(function (n) {
-      var h = hits[(n + hits.length) % hits.length];
+      var h = list[(n + list.length) % list.length];
       if (h && h.getAttribute('data-has-full') === '1') {
         var u = h.getAttribute('data-full');
         if (u) new Image().src = u;
@@ -302,7 +310,7 @@
         if (existingNa) existingNa.remove();
       }
     }, 400);
-    var back = hits[index] || lastFocus;
+    var back = lbList()[index] || lastFocus;
     if (back && back.focus) back.focus();
   }
 
@@ -347,8 +355,9 @@
     // A catalogue sync can land while the lightbox is open. Remember which
     // sheet that is, so it can be re-pointed at the rebuilt card rather than
     // left showing a stale image with a stale "n / N".
-    var openCode = (lb && lb.classList.contains('is-open') && hits[index])
-      ? hits[index].getAttribute('data-code') : null;
+    var openHit = lbList()[index];
+    var openCode = (lb && lb.classList.contains('is-open') && openHit)
+      ? openHit.getAttribute('data-code') : null;
 
     grid.innerHTML = '';
     cards = [];
@@ -439,15 +448,23 @@
       );
 
       var hitBtn = figure.querySelector('.sheet__hit');
-      // Deliberately not clickable. Clicking a sheet used to open it full size in a
-      // lightbox; a category page is for browsing the range, and the 360 tour - reached
-      // by its own link on the card - is where a sheet is examined. The element stays a
-      // button so the existing markup and styles are unchanged, but it does nothing and
-      // is taken out of the tab order rather than offering focus that leads nowhere.
-      hitBtn.disabled = true;
-      hitBtn.tabIndex = -1;
-      hitBtn.style.cursor = 'default';
-      hitBtn.removeAttribute('aria-label');
+      if (hasFullsheet && !tourUrl) {
+        // No 360 tour to examine the sheet in, so the card itself opens the full sheet.
+        hitBtn.setAttribute('data-lb', '1');
+        hitBtn.setAttribute('aria-label', 'View ' + (prod.code || '') + ' full sheet');
+        hitBtn.addEventListener('click', function () {
+          var i = lbList().indexOf(this);
+          if (i !== -1) openLightbox(i);
+        });
+      } else {
+        // With a 360 tour, the card's own 360 link is the way in; without a sheet there
+        // is nothing to enlarge. Stays a button so markup and styles are unchanged, but
+        // does nothing and leaves the tab order.
+        hitBtn.disabled = true;
+        hitBtn.tabIndex = -1;
+        hitBtn.style.cursor = 'default';
+        hitBtn.removeAttribute('aria-label');
+      }
 
       cards.push(figure);
       hits.push(hitBtn);
@@ -461,8 +478,9 @@
 
   function reconcileLightbox(code) {
     if (code === null || !lb || !lb.classList.contains('is-open')) return;
-    for (var k = 0; k < hits.length; k++) {
-      if (hits[k].getAttribute('data-code') === code) { showLightbox(k); return; }
+    var list = lbList();
+    for (var k = 0; k < list.length; k++) {
+      if (list[k].getAttribute('data-code') === code) { showLightbox(k); return; }
     }
     closeLightbox();   // that sheet is no longer in the catalogue
   }
