@@ -587,7 +587,8 @@
         const all = PC.getAllCategories();
         box.innerHTML =
             '<p style="margin:0 0 10px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">All categories</p>' +
-            '<div style="max-height:260px;overflow-y:auto;">' +
+            // Right padding keeps the last button clear of the scrollbar.
+            '<div style="max-height:260px;overflow-y:auto;padding-right:14px;scrollbar-width:thin;">' +
             all.map(function (c) {
                 const shown = c.label || c.name;
                 const renamed = c.label && c.label !== c.name
@@ -596,8 +597,10 @@
                     '<span style="flex:1;min-width:0;font-size:var(--fs-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(shown) + renamed + '</span>' +
                     '<a href="' + esc(c.page) + '" target="_blank" rel="noopener" style="font-size:var(--fs-meta);color:var(--stone);">view</a>' +
                     '<button type="button" class="cat-edit-btn" data-slug="' + esc(c.slug) + '" style="border:none;background:none;color:var(--charcoal);cursor:pointer;font-size:var(--fs-meta);text-decoration:underline;">edit</button>' +
-                    (c.builtIn ? '' :
-                        '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>') +
+                    // A fixed slot on every row, empty for built-ins (they can't be removed),
+                    // so "view" and "edit" line up down the whole list.
+                    (c.builtIn ? '<span style="width:52px;flex:none;"></span>' :
+                        '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="width:52px;flex:none;padding:0;text-align:right;border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>') +
                     '</div>';
             }).join('') +
             '</div>';
