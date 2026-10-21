@@ -1734,3 +1734,62 @@ body {
     outline: 2px solid var(--dusty-peach);
     outline-offset: 2px;
 }
+
+/* -- Themed confirm / alert dialog -----------------------------------------
+   Replaces the browser's confirm()/alert() boxes, which ignore the site's look
+   and label themselves "fullsheetview.in says". Built by uiConfirm()/uiAlert()
+   in products.js. Sits above every other modal. */
+.ui-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(20, 17, 15, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: modalFadeIn 0.25s var(--ease-out-expo);
+}
+.ui-dialog {
+    width: 100%;
+    max-width: 400px;
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-xl);
+    padding: clamp(22px, 3vw, 30px);
+    box-shadow: 0 24px 70px rgba(20, 17, 15, 0.35);
+    animation: uiDialogIn 0.35s var(--ease-out-expo);
+}
+@keyframes uiDialogIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+.ui-dialog__title {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--charcoal);
+}
+.ui-dialog__msg {
+    margin: 0 0 22px;
+    font-size: var(--fs-body);
+    line-height: 1.5;
+    color: var(--stone);
+}
+.ui-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.ui-dialog__actions .modal-btn { flex: none; min-width: 110px; }
+.modal-btn--danger {
+    background: #9c2b1c;
+    border-color: #9c2b1c;
+    color: var(--ivory);
+}
+.modal-btn--danger::before { background: #7d2216; }
+@media (max-width: 480px) {
+    .ui-dialog__actions .modal-btn { flex: 1; min-width: 0; }
+}

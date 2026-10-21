@@ -436,9 +436,15 @@ window.ProductCatalog = (function () {
     function handleAuthError(res) {
         if (res && res.status === 401) {
             console.warn('Authentication required / session expired');
-            if (typeof window !== 'undefined' && window.location.pathname.indexOf('products.html') !== -1) {
-                alert('Your session has expired. Please sign in again.');
-                window.location.replace('login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search));
+            if (typeof window !== 'undefined' && window.location.pathname.indexOf('products.html') !== -1
+                && !window.__sessionExpiredShown) {
+                // Several requests can fail together; show one notice, not a stack of them.
+                window.__sessionExpiredShown = true;
+                const next = 'login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+                const notice = typeof window.uiAlert === 'function'
+                    ? window.uiAlert({ title: 'Session expired', message: 'Please sign in again to keep editing.', confirmText: 'Sign in' })
+                    : Promise.resolve(alert('Your session has expired. Please sign in again.'));
+                notice.then(function () { window.location.replace(next); });
             }
             return true;
         }

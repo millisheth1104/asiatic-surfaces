@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
 
     <!-- Page Styles -->
-    <link rel="stylesheet" href="products.css?v=4.4">
+    <link rel="stylesheet" href="products.css?v=4.5">
 </head>
 
 <body class="products-page">
@@ -856,15 +856,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
-    <script src="products-data.js?v=4.4"></script>
+    <script src="products-data.js?v=4.5"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=4.9"></script>
+    <script src="products.js?v=5.0"></script>
     <script>
     (function () {
         var logoutBtn = document.getElementById('btn-logout');
         if (logoutBtn) {
-            logoutBtn.addEventListener('click', function () {
-                if (!confirm('Are you sure you want to sign out?')) return;
+            logoutBtn.addEventListener('click', async function () {
+                var ok = await window.uiConfirm({
+                    title: 'Sign out?',
+                    message: 'You will need the admin password to manage products again.',
+                    confirmText: 'Sign out'
+                });
+                if (!ok) return;
                 logoutBtn.disabled = true;
                 fetch('/api/auth', {
                     method: 'POST',

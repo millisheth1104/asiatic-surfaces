@@ -1346,3 +1346,12 @@ no-image products.
   (gallery.js), collection.html, tour label, admin table/cards/export/dropdown text.
 - API: thumbnail must be /uploads/...; new categories cannot reuse a built-in slug.
 - Tested API rules and the full admin → visitor flow in Chrome; reset restores originals.
+
+## 2026-10-21 — themed dialogs; category list spacing
+
+All native confirm()/alert() boxes ("fullsheetview.in says…") replaced with a themed
+dialog (`window.uiConfirm` / `window.uiAlert` in products.js, `.ui-dialog` in
+products.css): remove category, delete product, sign out, session expired. Destructive
+actions are red with focus on Cancel; Escape / outside click cancel; only one
+session-expired notice even if several requests fail. "remove" in the category list is
+left-aligned in its slot with more room before the scrollbar.

@@ -61,6 +61,63 @@
         return `/${cat}/${code}`;
     }
 
+    /**
+     * Themed replacement for confirm()/alert(). Resolves true/false (confirm) or
+     * undefined (alert). Escape or a click outside cancels; Enter confirms. For a
+     * destructive action, focus starts on Cancel so a stray Enter can't delete.
+     * Exposed on window so the inline sign-out script and products-data.js use it too.
+     */
+    function uiDialog(opts) {
+        return new Promise(function (resolve) {
+            const isConfirm = opts.type !== 'alert';
+            const overlay = document.createElement('div');
+            overlay.className = 'ui-dialog-overlay';
+            overlay.innerHTML =
+                '<div class="ui-dialog" role="alertdialog" aria-modal="true" aria-labelledby="ui-dialog-title" aria-describedby="ui-dialog-msg">' +
+                    '<h3 class="ui-dialog__title" id="ui-dialog-title"></h3>' +
+                    '<p class="ui-dialog__msg" id="ui-dialog-msg"></p>' +
+                    '<div class="ui-dialog__actions">' +
+                        (isConfirm ? '<button type="button" class="modal-btn modal-btn--ghost" data-act="cancel"></button>' : '') +
+                        '<button type="button" class="modal-btn ' + (opts.danger ? 'modal-btn--danger' : 'modal-btn--solid') + '" data-act="ok"></button>' +
+                    '</div>' +
+                '</div>';
+            // textContent throughout: messages include product codes and names.
+            overlay.querySelector('.ui-dialog__title').textContent = opts.title || (isConfirm ? 'Are you sure?' : 'Notice');
+            overlay.querySelector('.ui-dialog__msg').textContent = opts.message || '';
+            const okBtn = overlay.querySelector('[data-act="ok"]');
+            const cancelBtn = overlay.querySelector('[data-act="cancel"]');
+            okBtn.textContent = opts.confirmText || 'OK';
+            if (cancelBtn) cancelBtn.textContent = opts.cancelText || 'Cancel';
+
+            const lastFocus = document.activeElement;
+            function done(result) {
+                document.removeEventListener('keydown', onKey, true);
+                overlay.remove();
+                if (lastFocus && lastFocus.focus) lastFocus.focus();
+                resolve(isConfirm ? result : undefined);
+            }
+            function onKey(e) {
+                if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+                else if (e.key === 'Enter' && document.activeElement !== cancelBtn) { e.preventDefault(); e.stopPropagation(); done(true); }
+                else if (e.key === 'Tab') {
+                    // Keep focus inside the dialog.
+                    const btns = [cancelBtn, okBtn].filter(Boolean);
+                    const i = btns.indexOf(document.activeElement);
+                    e.preventDefault();
+                    btns[(i + (e.shiftKey ? -1 : 1) + btns.length) % btns.length].focus();
+                }
+            }
+            okBtn.addEventListener('click', function () { done(true); });
+            if (cancelBtn) cancelBtn.addEventListener('click', function () { done(false); });
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) done(false); });
+            document.addEventListener('keydown', onKey, true);
+            document.body.appendChild(overlay);
+            (opts.danger && cancelBtn ? cancelBtn : okBtn).focus();
+        });
+    }
+    window.uiConfirm = function (opts) { return uiDialog(Object.assign({ type: 'confirm' }, opts)); };
+    window.uiAlert = function (opts) { return uiDialog(Object.assign({ type: 'alert' }, opts)); };
+
     // A category's shown name (its editable label). The stored value - used for
     // filtering, saving and URLs - stays normalizeCategory()'s output.
     function catLabel(cat) {
@@ -588,7 +645,7 @@
         box.innerHTML =
             '<p style="margin:0 0 10px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">All categories</p>' +
             // Right padding keeps the last button clear of the scrollbar.
-            '<div style="max-height:260px;overflow-y:auto;padding-right:14px;scrollbar-width:thin;">' +
+            '<div style="max-height:260px;overflow-y:auto;padding-right:18px;scrollbar-width:thin;">' +
             all.map(function (c) {
                 const shown = c.label || c.name;
                 const renamed = c.label && c.label !== c.name
@@ -599,8 +656,8 @@
                     '<button type="button" class="cat-edit-btn" data-slug="' + esc(c.slug) + '" style="border:none;background:none;color:var(--charcoal);cursor:pointer;font-size:var(--fs-meta);text-decoration:underline;">edit</button>' +
                     // A fixed slot on every row, empty for built-ins (they can't be removed),
                     // so "view" and "edit" line up down the whole list.
-                    (c.builtIn ? '<span style="width:52px;flex:none;"></span>' :
-                        '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="width:52px;flex:none;padding:0;text-align:right;border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>') +
+                    (c.builtIn ? '<span style="width:56px;flex:none;"></span>' :
+                        '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="width:56px;flex:none;padding:0;text-align:left;border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>') +
                     '</div>';
             }).join('') +
             '</div>';
@@ -616,10 +673,16 @@
                 const id = btn.getAttribute('data-id');
                 const name = btn.getAttribute('data-name');
                 const used = getRealTimeProducts().filter(p => normalizeCategory(p.category) === name).length;
-                const warning = used > 0
-                    ? used + ' product(s) are in this category. They keep the name but its page stops working. Remove it anyway?'
-                    : 'Remove the category ' + name + '?';
-                if (!confirm(warning)) return;
+                const shown = catLabel(name);
+                const ok = await window.uiConfirm({
+                    title: 'Remove ' + shown + '?',
+                    message: used > 0
+                        ? used + (used === 1 ? ' product is' : ' products are') + ' in this category. They stay in the catalogue, but the category page and its home tile go away.'
+                        : 'Its home tile and page will be removed. This cannot be undone.',
+                    confirmText: 'Remove',
+                    danger: true
+                });
+                if (!ok) return;
                 try {
                     await window.ProductCatalog.deleteCategory(id);
                     renderExistingCategories();
@@ -1235,11 +1298,19 @@
         });
 
         document.querySelectorAll('.delete-product-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
+                const p = getRealTimeProducts().find(prod => prod.id === id);
+                if (!p) return;
+                const ok = await window.uiConfirm({
+                    title: 'Delete ' + p.code + '?',
+                    message: (p.name ? p.name + ' will' : 'This product will') + ' be removed from the catalogue, along with its 360 tour. This cannot be undone.',
+                    confirmText: 'Delete',
+                    danger: true
+                });
+                // Re-read after the wait: a sync may have changed the list meanwhile.
                 const list = getRealTimeProducts();
-                const p = list.find(prod => prod.id === id);
-                if (p && confirm(`Delete ${p.code} - ${p.name}?`)) {
+                if (ok) {
                     if (window.ProductCatalog && typeof window.ProductCatalog.deleteProduct === 'function') {
                         window.ProductCatalog.deleteProduct(id);
                     } else {
