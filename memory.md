@@ -601,3 +601,8 @@ its own folder, and would still leave the APIs open to `curl`.
   q92 before upload; uploads.php `?v=jpg` serves a cached GD JPEG copy for old PNGs.
 - A failed/slow panorama upload saves the product with threeDDataUrl null (db: stripped)
   - that is what "No panorama uploaded" means after a re-upload.
+
+## Categories (2026-10-21)
+- Identity = `name` + `slug` (never edited). Shown name = `label || name` via
+  `ProductCatalog.displayCategoryName()`. Built-in edits live in categories.json as
+  `{builtIn:true, id:'builtin-<slug>'}`; `getCustomCategories()` excludes them.

@@ -40,6 +40,24 @@ function write_categories($file, array $list)
     @chmod($file, 0666);
 }
 
+/** The eight categories baked into the site, slug => name. Mirrors products-data.js. */
+const BUILT_IN_CATEGORIES = [
+    '45-degree'  => '45 Degree',
+    'synchro'    => 'Synchro',
+    'digital'    => 'Digital',
+    'stone'      => 'Stone',
+    'laminates'  => 'Laminates',
+    'louvers'    => 'Louvers',
+    'edge-bands' => 'Edge Bands',
+    'texture'    => 'Texture',
+];
+
+/** Length cap that stays safe for multi-byte text when mbstring is available. */
+function cat_cut($s, $n)
+{
+    return function_exists("mb_substr") ? mb_substr($s, 0, $n) : substr($s, 0, $n);
+}
+
 /** Lowercase, hyphenated, and stable - it becomes part of the gallery URL. */
 function category_slug($name)
 {
@@ -88,48 +106,107 @@ if ($method === 'POST' || $method === 'PUT') {
     }
 
     $c = $input['category'];
-    $name = trim((string) ($c['name'] ?? ''));
-    if ($name === '') {
+
+    // A category's name and slug are its identity: products store the name, and tour
+    // links, QR codes and page URLs are built from the slug. Editing therefore never
+    // touches either - it changes `label` (the name shown), the blurb and the thumbnail.
+    $label = cat_cut(trim((string) ($c['label'] ?? '')), 60);
+    $blurb = cat_cut(trim((string) ($c['blurb'] ?? '')), 300);
+
+    $id = isset($c['id']) ? (string) $c['id'] : '';
+    $existing = null;
+    $existingIndex = null;
+    foreach ($list as $i => $e) {
+        if ($id !== '' && ($e['id'] ?? '') === $id) { $existing = $e; $existingIndex = $i; break; }
+    }
+
+    // Only the site's own uploads may be used as a thumbnail; an unchanged legacy value
+    // is let through so an old record can still be edited.
+    $thumb = $c['thumbnailUrl'] ?? null;
+    if ($thumb === '' || $thumb === null) {
+        $thumb = null;
+    } elseif (!is_string($thumb) || (!preg_match('#^/uploads/[A-Za-z0-9._-]+$#', $thumb)
+        && !($existing && ($existing['thumbnailUrl'] ?? null) === $thumb))) {
         http_response_code(400);
-        echo json_encode(['error' => 'Category name is required']);
+        echo json_encode(['error' => 'Thumbnail must be an uploaded image']);
         exit;
     }
 
-    $slug = category_slug($name);
-    if ($slug === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'Category name must contain a letter or number']);
-        exit;
-    }
-
-    // The slug is the identity: two categories cannot share a gallery URL.
-    $id = isset($c['id']) && $c['id'] !== '' ? $c['id'] : 'cat-' . $slug;
-    foreach ($list as $existing) {
-        if (($existing['slug'] ?? '') === $slug && ($existing['id'] ?? '') !== $id) {
+    if (isset($c['builtInSlug'])) {
+        // One of the eight original categories: stored as an override record.
+        $slug = (string) $c['builtInSlug'];
+        if (!isset(BUILT_IN_CATEGORIES[$slug])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Unknown built-in category']);
+            exit;
+        }
+        $id = 'builtin-' . $slug;
+        $existing = null;
+        $existingIndex = null;
+        foreach ($list as $i => $e) {
+            if (($e['id'] ?? '') === $id) { $existing = $e; $existingIndex = $i; break; }
+        }
+        $record = [
+            'id'           => $id,
+            'builtIn'      => true,
+            'name'         => BUILT_IN_CATEGORIES[$slug],
+            'slug'         => $slug,
+            'label'        => $label === BUILT_IN_CATEGORIES[$slug] ? '' : $label,
+            'thumbnailUrl' => $thumb,
+            'blurb'        => $blurb,
+            'updatedAt'    => time(),
+        ];
+    } elseif ($existing) {
+        if (!empty($existing['builtIn'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Edit a built-in category by its slug']);
+            exit;
+        }
+        $record = array_merge($existing, [
+            'label'        => $label === ($existing['name'] ?? '') ? '' : $label,
+            'thumbnailUrl' => $thumb,
+            'blurb'        => $blurb,
+            'updatedAt'    => time(),
+        ]);
+    } else {
+        // A new category: its name fixes its slug for good.
+        $name = cat_cut(trim((string) ($c['name'] ?? '')), 60);
+        if ($name === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Category name is required']);
+            exit;
+        }
+        $slug = category_slug($name);
+        if ($slug === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Category name must contain a letter or number']);
+            exit;
+        }
+        // Two categories cannot share a gallery URL - including the eight built-ins,
+        // whose names already route to their own pages.
+        $taken = isset(BUILT_IN_CATEGORIES[$slug]);
+        foreach ($list as $e) {
+            if (empty($e['builtIn']) && ($e['slug'] ?? '') === $slug) { $taken = true; break; }
+        }
+        if ($taken) {
             http_response_code(409);
             echo json_encode(['error' => 'A category with that name already exists']);
             exit;
         }
+        $record = [
+            'id'           => 'cat-' . $slug,
+            'name'         => $name,
+            'slug'         => $slug,
+            'label'        => '',
+            'thumbnailUrl' => $thumb,
+            'blurb'        => $blurb,
+            'createdAt'    => time(),
+        ];
     }
 
-    $record = [
-        'id'           => $id,
-        'name'         => $name,
-        'slug'         => $slug,
-        'thumbnailUrl' => isset($c['thumbnailUrl']) ? $c['thumbnailUrl'] : null,
-        'blurb'        => isset($c['blurb']) ? trim((string) $c['blurb']) : '',
-        'createdAt'    => isset($c['createdAt']) ? $c['createdAt'] : time(),
-    ];
-
-    $found = false;
-    foreach ($list as $i => $existing) {
-        if (($existing['id'] ?? '') === $id) {
-            $list[$i] = array_merge($existing, $record);
-            $found = true;
-            break;
-        }
-    }
-    if (!$found) {
+    if ($existingIndex !== null) {
+        $list[$existingIndex] = $record;
+    } else {
         $list[] = $record;
     }
 

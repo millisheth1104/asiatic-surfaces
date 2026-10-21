@@ -77,13 +77,13 @@
                     </svg>
                     <span>View Site</span>
                 </a>
-                <button class="nav-btn" id="btn-add-category" title="Create a new category">
+                <button class="nav-btn" id="btn-add-category" title="Add or edit categories">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round">
                         <path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
                         <path d="M12 12v5M9.5 14.5h5" />
                     </svg>
-                    <span>Add Category</span>
+                    <span>Categories</span>
                 </button>
                 <button class="nav-btn" id="btn-copy-category" title="Copy every product from one category into another">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -327,7 +327,7 @@
 
     <!-- Add Category Modal -->
     <div id="category-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-card" style="max-width: 460px;">
+        <div class="modal-card" style="max-width: 460px; max-height: calc(100dvh - 40px); overflow-y: auto;">
             <button class="modal-close-btn" id="category-modal-close" title="Close">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -336,9 +336,14 @@
             </button>
 
             <div class="form-modal-header">
-                <h2>New Category</h2>
-                <p>It appears on the home page and can hold products like any other.</p>
+                <h2>Categories</h2>
+                <p>Edit the name, description or thumbnail of any category, or add a new one.</p>
             </div>
+
+            <div id="category-existing" style="margin-bottom:22px;border-bottom:1px solid var(--rule);padding-bottom:16px;">
+            </div>
+
+            <p style="margin:0 0 12px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">Add a new category</p>
 
             <div class="form-group" style="margin-bottom: 16px;">
                 <label for="category-name">Category Name <span style="color: var(--dusty-peach)">*</span></label>
@@ -370,8 +375,52 @@
                 <button type="button" class="modal-btn modal-btn--solid" id="category-save"
                     style="flex:none;width:150px;">Create</button>
             </div>
+        </div>
+    </div>
 
-            <div id="category-existing" style="margin-top:22px;border-top:1px solid var(--rule);padding-top:16px;">
+    <!-- Edit Category Modal -->
+    <div id="category-edit-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 460px; max-height: calc(100dvh - 40px); overflow-y: auto;">
+            <button class="modal-close-btn" id="category-edit-close" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+
+            <div class="form-modal-header">
+                <h2>Edit Category</h2>
+                <p>Changes what visitors see. Products, links and QR codes keep working.</p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="category-edit-name">Name</label>
+                <input type="text" id="category-edit-name" maxlength="60" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label for="category-edit-blurb">Short Description</label>
+                <input type="text" id="category-edit-blurb" maxlength="300" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label for="category-edit-thumb">Thumbnail</label>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                    <img id="category-edit-preview" src="" alt=""
+                        style="width:120px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--rule);background:#14110f;">
+                    <button type="button" id="category-edit-clear-thumb"
+                        style="border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">Remove thumbnail</button>
+                </div>
+                <input type="file" id="category-edit-thumb" accept="image/*"
+                    style="font-size: var(--fs-meta); padding: 8px;">
+                <small id="category-edit-hint" style="display:block;margin-top:8px;color:var(--stone);font-size:var(--fs-meta);"></small>
+            </div>
+
+            <div class="form-actions" style="justify-content: flex-end;">
+                <button type="button" class="modal-btn modal-btn--ghost" id="category-edit-cancel"
+                    style="flex:none;width:120px;">Cancel</button>
+                <button type="button" class="modal-btn modal-btn--solid" id="category-edit-save"
+                    style="flex:none;width:150px;">Save</button>
             </div>
         </div>
     </div>
@@ -807,9 +856,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- Shared Product Data Engine -->
-    <script src="products-data.js?v=4.3"></script>
+    <script src="products-data.js?v=4.4"></script>
     <!-- Product Logic JS -->
-    <script src="products.js?v=4.7"></script>
+    <script src="products.js?v=4.8"></script>
     <script>
     (function () {
         var logoutBtn = document.getElementById('btn-logout');

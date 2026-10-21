@@ -61,6 +61,14 @@
         return `/${cat}/${code}`;
     }
 
+    // A category's shown name (its editable label). The stored value - used for
+    // filtering, saving and URLs - stays normalizeCategory()'s output.
+    function catLabel(cat) {
+        const PC = window.ProductCatalog;
+        const n = normalizeCategory(cat);
+        return PC && typeof PC.displayCategoryName === 'function' ? PC.displayCategoryName(n) : n;
+    }
+
     function normalizeCategory(cat) {
         if (!cat) return '';
         const c = cat.trim().toLowerCase();
@@ -322,7 +330,7 @@
                         <span class="grid-product-name">${esc(product.name || '')}</span>
                     </td>
                     <td>
-                        <span class="grid-cat-pill">${esc(normalizeCategory(product.category))}</span>
+                        <span class="grid-cat-pill">${esc(catLabel(product.category))}</span>
                     </td>
                     <td>
                         <span class="grid-factory-code">${esc(product.factoryCode || '')}</span>
@@ -374,7 +382,7 @@
                 <div class="product-card" data-id="${esc(product.id)}">
                     <div class="card-header">
                         <span class="card-code">${esc(product.code)}</span>
-                        <span class="card-category">${esc(normalizeCategory(product.category))}</span>
+                        <span class="card-category">${esc(catLabel(product.category))}</span>
                         ${product.factoryCode ? `<span class="card-factory-code">${esc(product.factoryCode)}</span>` : ''}
                     </div>
 
@@ -422,7 +430,7 @@
         return getFilteredProducts().map(p => ({
             'Code Number': p.code || '',
             'Product Name': p.name || '',
-            'Product Category': normalizeCategory(p.category) || '',
+            'Product Category': catLabel(p.category) || '',
             'Factory Code': p.factoryCode || '',
             'Full Sheet': p.fullsheet ? 'Uploaded' : 'No',
             '3D Image': p.threeD ? 'Uploaded' : 'No',
@@ -553,7 +561,7 @@
         const PC = window.ProductCatalog;
         if (!PC || typeof PC.getAllCategories !== 'function') return;
         const cats = PC.getAllCategories();
-        const opts = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>').join('');
+        const opts = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.label || c.name) + '</option>').join('');
 
         const filter = document.getElementById('category-select');
         if (filter) {
@@ -575,22 +583,30 @@
         const PC = window.ProductCatalog;
         if (!box || !PC) return;
 
-        const custom = PC.getCustomCategories();
-        if (custom.length === 0) {
-            box.innerHTML = '<p style="margin:0;color:var(--stone);font-size:var(--fs-meta);">' +
-                'No categories added yet. The eight built-in ones are always available.</p>';
-            return;
-        }
-
+        // Every category, built-in ones included: all can be edited, only added ones removed.
+        const all = PC.getAllCategories();
         box.innerHTML =
-            '<p style="margin:0 0 10px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">Added categories</p>' +
-            custom.map(function (c) {
-                return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule);">' +
-                    '<span style="flex:1;font-size:var(--fs-body);">' + esc(c.name) + '</span>' +
-                    '<a href="collection.html?cat=' + encodeURIComponent(c.slug) + '" target="_blank" rel="noopener" style="font-size:var(--fs-meta);color:var(--stone);">view</a>' +
-                    '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>' +
+            '<p style="margin:0 0 10px;color:var(--stone);font-size:var(--fs-meta);text-transform:uppercase;letter-spacing:.06em;">All categories</p>' +
+            '<div style="max-height:260px;overflow-y:auto;">' +
+            all.map(function (c) {
+                const shown = c.label || c.name;
+                const renamed = c.label && c.label !== c.name
+                    ? ' <span style="color:var(--stone);font-size:var(--fs-meta);">(' + esc(c.name) + ')</span>' : '';
+                return '<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--rule);">' +
+                    '<span style="flex:1;min-width:0;font-size:var(--fs-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(shown) + renamed + '</span>' +
+                    '<a href="' + esc(c.page) + '" target="_blank" rel="noopener" style="font-size:var(--fs-meta);color:var(--stone);">view</a>' +
+                    '<button type="button" class="cat-edit-btn" data-slug="' + esc(c.slug) + '" style="border:none;background:none;color:var(--charcoal);cursor:pointer;font-size:var(--fs-meta);text-decoration:underline;">edit</button>' +
+                    (c.builtIn ? '' :
+                        '<button type="button" class="cat-delete-btn" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="border:none;background:none;color:#9c2b1c;cursor:pointer;font-size:var(--fs-meta);">remove</button>') +
                     '</div>';
-            }).join('');
+            }).join('') +
+            '</div>';
+
+        box.querySelectorAll('.cat-edit-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openCategoryEditModal(btn.getAttribute('data-slug'));
+            });
+        });
 
         box.querySelectorAll('.cat-delete-btn').forEach(function (btn) {
             btn.addEventListener('click', async function () {
@@ -657,6 +673,122 @@
             if (categoryThumbPreview && categoryThumbWrap) {
                 categoryThumbPreview.src = categoryThumbDataUrl;
                 categoryThumbWrap.style.display = 'block';
+            }
+        });
+    }
+
+    // ---- Edit a category ---------------------------------------------------
+    // Changes the label shown to visitors, the description and the thumbnail. The
+    // category's own name and slug never change: products are filed under the name,
+    // and tour links, QR codes and page URLs are built from the slug.
+    const catEditModal = document.getElementById('category-edit-modal');
+    const catEditName = document.getElementById('category-edit-name');
+    const catEditBlurb = document.getElementById('category-edit-blurb');
+    const catEditThumb = document.getElementById('category-edit-thumb');
+    const catEditPreview = document.getElementById('category-edit-preview');
+    const catEditClear = document.getElementById('category-edit-clear-thumb');
+    const catEditHint = document.getElementById('category-edit-hint');
+    const catEditSave = document.getElementById('category-edit-save');
+    let editingCategory = null;
+    let editThumbDataUrl = null;   // a newly chosen file, not yet uploaded
+    let editThumbCleared = false;
+
+    function editPreviewSrc() {
+        if (editThumbDataUrl) return editThumbDataUrl;
+        if (!editThumbCleared && editingCategory.thumbnailUrl) return editingCategory.thumbnailUrl;
+        return editingCategory.builtIn ? editingCategory.defaultThumb : '';
+    }
+
+    function refreshEditThumb() {
+        const src = editPreviewSrc();
+        if (src) catEditPreview.src = src; else catEditPreview.removeAttribute('src');
+        const custom = !editThumbCleared && (editThumbDataUrl || editingCategory.thumbnailUrl);
+        catEditClear.style.display = custom ? '' : 'none';
+        catEditClear.textContent = editingCategory.builtIn ? 'Use original image' : 'Remove thumbnail';
+        catEditHint.textContent = editingCategory.builtIn
+            ? 'Choose a file to replace the home-page image.'
+            : 'Without a thumbnail the tile shows the name on a black panel.';
+    }
+
+    function openCategoryEditModal(slug) {
+        const cat = window.ProductCatalog.getAllCategories().find(c => c.slug === slug);
+        if (!cat || !catEditModal) return;
+        editingCategory = cat;
+        editThumbDataUrl = null;
+        editThumbCleared = false;
+        catEditName.value = cat.label || cat.name;
+        catEditName.placeholder = cat.name;
+        catEditBlurb.value = cat.blurb || '';
+        catEditBlurb.placeholder = cat.builtIn ? 'Leave empty to keep the original text' : 'One line, shown on the tile (optional)';
+        catEditThumb.value = '';
+        refreshEditThumb();
+        catEditModal.style.display = 'flex';
+        catEditName.focus();
+    }
+
+    function closeCategoryEditModal() {
+        if (catEditModal) catEditModal.style.display = 'none';
+        editingCategory = null;
+    }
+
+    if (catEditThumb) {
+        catEditThumb.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            editThumbDataUrl = await prepareImageFile(file, {
+                onTooLarge: (size, limit) => showToast(
+                    'This thumbnail is ' + (size/1048576).toFixed(1) + ' MB, over the ' +
+                    (limit/1048576) + ' MB limit. It will be reduced to fit.', 'error')
+            });
+            editThumbCleared = false;
+            refreshEditThumb();
+        });
+    }
+    if (catEditClear) {
+        catEditClear.addEventListener('click', function () {
+            editThumbDataUrl = null;
+            editThumbCleared = true;
+            catEditThumb.value = '';
+            refreshEditThumb();
+        });
+    }
+    ['category-edit-close', 'category-edit-cancel'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', closeCategoryEditModal);
+    });
+
+    if (catEditSave) {
+        catEditSave.addEventListener('click', async function () {
+            const cat = editingCategory;
+            if (!cat) return;
+            catEditSave.disabled = true;
+            catEditSave.textContent = 'Saving...';
+            try {
+                const PC = window.ProductCatalog;
+                let thumbnailUrl = editThumbCleared ? null : (cat.thumbnailUrl || null);
+                if (editThumbDataUrl) {
+                    thumbnailUrl = await PC.uploadAssetToBlob('category-' + cat.slug + '.jpg', editThumbDataUrl);
+                    // uploadAssetToBlob returns null rather than throwing when the server
+                    // can't be reached; saving then would silently drop the new picture.
+                    if (!thumbnailUrl) throw new Error('The thumbnail did not upload - check the connection and try again');
+                }
+                const payload = {
+                    label: catEditName.value.trim(),
+                    blurb: catEditBlurb.value.trim(),
+                    thumbnailUrl: thumbnailUrl
+                };
+                if (cat.builtIn) payload.builtInSlug = cat.slug; else payload.id = cat.id;
+                await PC.saveCategory(payload);
+                refreshCategoryOptions();
+                renderExistingCategories();
+                renderCatalog();
+                showToast('Category updated', 'success');
+                closeCategoryEditModal();
+            } catch (err) {
+                showToast(err.message || 'Could not save the category', 'error');
+            } finally {
+                catEditSave.disabled = false;
+                catEditSave.textContent = 'Save';
             }
         });
     }
@@ -752,7 +884,7 @@
             showToast('There are no categories yet', 'error');
             return;
         }
-        const optionHtml = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>').join('');
+        const optionHtml = cats.map(c => '<option value="' + esc(c.name) + '">' + esc(c.label || c.name) + '</option>').join('');
         copySourceSelect.innerHTML = optionHtml;
         copyDestSelect.innerHTML = optionHtml;
         // Default the destination to a different category than the source, when one exists.
@@ -1044,7 +1176,7 @@
 
             html += '<tr style="border-top:1px solid var(--rule);">' +
                 '<td style="padding:8px 12px;"><span class="grid-code-badge">' + esc(p.code) + '</span></td>' +
-                '<td style="padding:8px 12px;">' + esc(normalizeCategory(p.category)) + '</td>' +
+                '<td style="padding:8px 12px;">' + esc(catLabel(p.category)) + '</td>' +
                 '<td style="padding:8px 12px;font-family:monospace;">' + esc(resCell) + '</td>' +
                 '<td style="padding:8px 12px;">' + statusCell + '</td>' +
                 '</tr>';

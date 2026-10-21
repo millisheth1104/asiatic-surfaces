@@ -576,6 +576,33 @@
     });
   }
 
+  /* ---------- Edited name / description for a built-in category ---------- */
+  // The eight built-in pages have their heading written into the HTML. An edit made
+  // in the admin is laid over it; the originals are kept so clearing the edit restores
+  // them. activeCategory itself never changes - it is what products are filtered by.
+  // collection.html sets its own heading for admin-created categories.
+  var headTitle = document.querySelector('.ghead__title');
+  var headSub = document.querySelector('.ghead__sub');
+  var titleText = headTitle ? headTitle.firstChild : null;   // "Stone " before <span>sheets</span>
+  var orig = {
+    name: titleText && titleText.nodeType === 3 ? titleText.nodeValue : null,
+    sub: headSub ? headSub.textContent : null,
+    doc: document.title
+  };
+  function applyCategoryEdits() {
+    var PC = window.ProductCatalog;
+    var cat = PC && typeof PC.findCategory === 'function' ? PC.findCategory(activeCategory) : null;
+    if (!cat || !cat.builtIn) return;
+    if (orig.name !== null) titleText.nodeValue = cat.label ? cat.label + ' ' : orig.name;
+    if (headSub && orig.sub !== null) headSub.textContent = cat.blurb || orig.sub;
+    document.title = cat.label ? cat.label + ' — Full Sheet View' : orig.doc;
+  }
+  applyCategoryEdits();
+  window.addEventListener('categoriesUpdated', applyCategoryEdits);
+  if (window.ProductCatalog && typeof window.ProductCatalog.syncCategoriesFromCloud === 'function') {
+    window.ProductCatalog.syncCategoriesFromCloud();   // fires categoriesUpdated
+  }
+
   /* ---------- Scroll Progress ---------- */
   var bar = document.getElementById('scrollBar');
   if (bar) {

@@ -159,9 +159,14 @@
     // ---- Initialize Pannellum ----
     async function initViewer() {
         // Pull latest cloud products so newly uploaded 3D panoramas are available
+        // Categories too, so the label below shows a category's edited display name.
         if (window.ProductCatalog && typeof window.ProductCatalog.syncFromCloud === 'function') {
             try {
-                await window.ProductCatalog.syncFromCloud();
+                await Promise.all([
+                    window.ProductCatalog.syncFromCloud(),
+                    typeof window.ProductCatalog.syncCategoriesFromCloud === 'function'
+                        ? window.ProductCatalog.syncCategoriesFromCloud() : null
+                ]);
             } catch (e) { }
         }
 
@@ -222,7 +227,10 @@
                 if (subEl && matched.name) subEl.textContent = (matched.name || 'Room Interior').toUpperCase();
 
                 const roomNameEl = document.getElementById('room-name');
-                if (roomNameEl) roomNameEl.textContent = `${matched.category || ''} ${matched.code || ''}`.trim() || 'Living Space';
+                const PCat = window.ProductCatalog;
+                const catShown = PCat && typeof PCat.displayCategoryName === 'function'
+                    ? PCat.displayCategoryName(matched.category) : matched.category;
+                if (roomNameEl) roomNameEl.textContent = `${catShown || ''} ${matched.code || ''}`.trim() || 'Living Space';
 
                 let matchedPanoSrc = null;
                 const panoVal = (matched.threeDDataUrl || matched.panorama || matched.threeDImage || '').toString().trim();

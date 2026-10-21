@@ -28,15 +28,16 @@ window.ProductCatalog = (function () {
     // ask for the full list without each one hitting the network repeatedly.
     const CATEGORY_KEY = 'realtime_360_categories_v1';
 
+    // defaultThumb is the home-page tile image written into index.html.
     const BUILT_IN_CATEGORIES = [
-        { name: '45 Degree', slug: '45-degree', builtIn: true, page: '45-degree.html' },
-        { name: 'Synchro',   slug: 'synchro',   builtIn: true, page: 'synchro.html' },
-        { name: 'Digital',   slug: 'digital',   builtIn: true, page: 'digital.html' },
-        { name: 'Stone',     slug: 'stone',     builtIn: true, page: 'stone.html' },
-        { name: 'Laminates', slug: 'laminates', builtIn: true, page: 'laminates.html' },
-        { name: 'Louvers',   slug: 'louvers',   builtIn: true, page: 'louvers.html' },
-        { name: 'Edge Bands', slug: 'edge-bands', builtIn: true, page: 'edge-bands.html' },
-        { name: 'Texture',   slug: 'texture',   builtIn: true, page: 'texture.html' }
+        { name: '45 Degree', slug: '45-degree', builtIn: true, page: '45-degree.html', defaultThumb: 'assets/textures/fabric.webp' },
+        { name: 'Synchro',   slug: 'synchro',   builtIn: true, page: 'synchro.html',   defaultThumb: 'assets/textures/wooden.webp' },
+        { name: 'Digital',   slug: 'digital',   builtIn: true, page: 'digital.html',   defaultThumb: 'assets/textures/charcoal.webp' },
+        { name: 'Stone',     slug: 'stone',     builtIn: true, page: 'stone.html',     defaultThumb: 'assets/textures/thermolam.webp' },
+        { name: 'Laminates', slug: 'laminates', builtIn: true, page: 'laminates.html', defaultThumb: 'assets/textures/laminates.webp' },
+        { name: 'Louvers',   slug: 'louvers',   builtIn: true, page: 'louvers.html',   defaultThumb: 'assets/textures/louvers.webp' },
+        { name: 'Edge Bands', slug: 'edge-bands', builtIn: true, page: 'edge-bands.html', defaultThumb: 'assets/textures/edgebands.webp' },
+        { name: 'Texture',   slug: 'texture',   builtIn: true, page: 'texture.html',   defaultThumb: 'assets/textures/texture.webp' }
     ];
 
     function categorySlug(name) {
@@ -44,7 +45,9 @@ window.ProductCatalog = (function () {
             .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     }
 
-    function getCustomCategories() {
+    // Everything the categories API stores: admin-created categories, plus override
+    // records (builtIn: true) holding edits to the eight built-in ones.
+    function getCategoryRecords() {
         try {
             const raw = localStorage.getItem(CATEGORY_KEY);
             const list = raw ? JSON.parse(raw) : [];
@@ -54,6 +57,10 @@ window.ProductCatalog = (function () {
         }
     }
 
+    function getCustomCategories() {
+        return getCategoryRecords().filter(c => !c.builtIn);
+    }
+
     function setCustomCategories(list) {
         try {
             localStorage.setItem(CATEGORY_KEY, JSON.stringify(list));
@@ -61,19 +68,38 @@ window.ProductCatalog = (function () {
         window.dispatchEvent(new CustomEvent('categoriesUpdated', { detail: list }));
     }
 
-    /** Built-ins first, in their established order, then custom ones by creation. */
+    /**
+     * Built-ins first, in their established order, then custom ones by creation.
+     *
+     * `name` and `slug` are a category's identity - products store the name and every
+     * URL is built from the slug - so they never change. `label` is the editable name
+     * shown to people; use displayCategoryName() rather than reading it directly.
+     */
     function getAllCategories() {
-        const custom = getCustomCategories().map(c => ({
+        const records = getCategoryRecords();
+        const builtIns = BUILT_IN_CATEGORIES.map(b => {
+            const o = records.find(r => r.builtIn && r.slug === b.slug);
+            return o
+                ? { ...b, label: o.label || '', blurb: o.blurb || '', thumbnailUrl: o.thumbnailUrl || null, overrideId: o.id }
+                : { ...b };
+        });
+        const custom = records.filter(c => !c.builtIn).map(c => ({
             ...c,
             builtIn: false,
             page: 'collection.html?cat=' + encodeURIComponent(c.slug)
         }));
-        return BUILT_IN_CATEGORIES.concat(custom);
+        return builtIns.concat(custom);
     }
 
     function findCategory(nameOrSlug) {
         const key = categorySlug(nameOrSlug);
         return getAllCategories().find(c => c.slug === key || categorySlug(c.name) === key) || null;
+    }
+
+    /** The name to show for a category, given its stored name or slug. */
+    function displayCategoryName(nameOrSlug) {
+        const c = findCategory(nameOrSlug);
+        return c ? (c.label || c.name) : (nameOrSlug || '');
     }
 
     async function syncCategoriesFromCloud() {
@@ -83,7 +109,7 @@ window.ProductCatalog = (function () {
             const data = await res.json();
             if (data && data.success && Array.isArray(data.categories)) {
                 setCustomCategories(data.categories);
-                return data.categories;
+                return getCustomCategories();   // not the raw list: that includes built-in overrides
             }
         } catch (err) {
             // Offline: the cached list still renders.
@@ -677,6 +703,7 @@ window.ProductCatalog = (function () {
         getAllCategories,
         getCustomCategories,
         findCategory,
+        displayCategoryName,
         syncCategoriesFromCloud,
         saveCategory,
         deleteCategory,

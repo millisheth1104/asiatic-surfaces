@@ -51,7 +51,7 @@
     <img alt="">
     <button class="lb__nav lb__nav--next" type="button" aria-label="Next sheet"><svg viewBox="0 0 20 20" fill="none"><path d="M8 4.5 13.5 10 8 15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
-  <p class="lb__foot">Synchro · Full Sheet View</p>
+  <p class="lb__foot">Full Sheet View</p>
 </div>
 
 <footer class="gfoot">
@@ -60,7 +60,7 @@
 </footer>
 
 <!-- Shared Product Data Engine & Dynamic Masonry Gallery -->
-<script src="products-data.js?v=4.3"></script>
+<script src="products-data.js?v=4.4"></script>
 
 
 <script>
@@ -75,20 +75,23 @@
     return s.replace(/-/g, ' ').replace(/\w/g, function (m) { return m.toUpperCase(); });
   }
 
-  function apply(name, blurb) {
+  // `name` is the category's identity - products are filtered by it - and never
+  // changes; `shown` is its editable display name.
+  function apply(name, blurb, shown) {
+    shown = shown || name;
     document.body.setAttribute('data-category', name);
     var page = document.querySelector('.gpage');
     if (page) page.setAttribute('data-category', name);
     var t = document.getElementById('collectionTitle');
-    if (t) t.textContent = name;
+    if (t) t.textContent = shown;
     var sub = document.getElementById('collectionSub');
     if (sub && blurb) sub.textContent = blurb;
-    document.title = name + ' — Full Sheet View';
+    document.title = shown + ' — Full Sheet View';
   }
 
   function startGallery() {
     var tag = document.createElement('script');
-    tag.src = 'assets/js/gallery.js?v=4.2';
+    tag.src = 'assets/js/gallery.js?v=4.3';
     document.body.appendChild(tag);
   }
 
@@ -100,8 +103,8 @@
   fetch('/api/categories?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (data) {
-      var hit = data && (data.categories || []).filter(function (c) { return c.slug === slug; })[0];
-      if (hit) apply(hit.name, hit.blurb);
+      var hit = data && (data.categories || []).filter(function (c) { return !c.builtIn && c.slug === slug; })[0];
+      if (hit) apply(hit.name, hit.blurb, hit.label);
     })
     .catch(function () { })
     .then(startGallery);

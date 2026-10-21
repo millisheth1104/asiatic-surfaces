@@ -1331,3 +1331,18 @@ unchanged. Tall sheets now scroll in the lightbox instead of running off-screen 
 `position:fixed` so they stay put while scrolling, and each sheet opens at its top.
 Verified in Chrome at 1280x800 and 390x844@3x with sheet-only, sheet+360, 360-only and
 no-image products.
+
+## 2026-10-21 — editable categories; lightbox footer label
+
+- Lightbox footer on every category page now reads just "Full Sheet View" (custom
+  collection pages were wrongly labelled "Synchro").
+- Admin "Categories" (was "Add Category") lists all categories, the 8 built-ins included,
+  each with Edit: display name, description, thumbnail (remove / back to original).
+- A category's `name` and `slug` never change - products are filed under the name and
+  tour links / QR codes / page URLs use the slug. Edits set `label`, `blurb`,
+  `thumbnailUrl`. Built-in edits are stored as `builtIn: true` records in categories.json.
+- Shown via `displayCategoryName()` on: home tiles (built-ins overlaid by
+  category-tiles.js, originals restored on reset), category page heading/title
+  (gallery.js), collection.html, tour label, admin table/cards/export/dropdown text.
+- API: thumbnail must be /uploads/...; new categories cannot reuse a built-in slug.
+- Tested API rules and the full admin → visitor flow in Chrome; reset restores originals.

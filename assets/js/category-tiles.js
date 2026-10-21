@@ -39,8 +39,9 @@
       a.style.setProperty('--i', String(existing + i));
       a.style.textDecoration = 'none';
 
+      var shown = cat.label || cat.name;
       var media = cat.thumbnailUrl
-        ? '<div class="tile__media"><img src="' + esc(cat.thumbnailUrl) + '" alt="' + esc(cat.name) + '" loading="lazy"></div>'
+        ? '<div class="tile__media"><img src="' + esc(cat.thumbnailUrl) + '" alt="' + esc(shown) + '" loading="lazy"></div>'
         // No thumbnail: a plain black panel, so the tile still reads as a tile in the
         // grid instead of collapsing to text on the page background.
         : '<div class="tile__media tile__media--empty" aria-hidden="true"></div>';
@@ -49,7 +50,7 @@
         media +
         '<div class="tile__body">' +
           '<span class="tile__num">' + pad(existing + i + 1) + '</span>' +
-          '<h3 class="tile__name">' + esc(cat.name) + '</h3>' +
+          '<h3 class="tile__name">' + esc(shown) + '</h3>' +
           (cat.blurb ? '<p class="tile__desc">' + esc(cat.blurb) + '</p>' : '') +
           '<span class="tile__go" aria-hidden="true">' +
             '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10h11M11 5.5 15.5 10 11 14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
@@ -65,16 +66,49 @@
     });
   }
 
-  function load() {
+  // The eight built-in tiles are written into index.html. An edit made in the admin
+  // (name, description, thumbnail) is laid over them; the original text and image are
+  // kept on the element so clearing an edit puts them back.
+  function applyBuiltInEdits() {
+    var PC = window.ProductCatalog;
+    if (!PC || typeof PC.getAllCategories !== 'function') return;
+    PC.getAllCategories().forEach(function (cat) {
+      if (!cat.builtIn) return;
+      var tile = grid.querySelector('a.tile[href="' + cat.page + '"]');
+      if (!tile) return;
+      var nameEl = tile.querySelector('.tile__name');
+      var descEl = tile.querySelector('.tile__desc');
+      var img = tile.querySelector('.tile__media img');
+      if (nameEl && tile.dataset.origName === undefined) tile.dataset.origName = nameEl.textContent;
+      if (descEl && tile.dataset.origDesc === undefined) tile.dataset.origDesc = descEl.textContent;
+      if (img && tile.dataset.origImg === undefined) tile.dataset.origImg = img.getAttribute('src');
+      if (nameEl) nameEl.textContent = cat.label || tile.dataset.origName;
+      if (descEl) descEl.textContent = cat.blurb || tile.dataset.origDesc;
+      if (img) {
+        var src = cat.thumbnailUrl || tile.dataset.origImg;
+        if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+        if (cat.label) img.alt = cat.label;
+      }
+    });
+  }
+
+  function refresh() {
     var PC = window.ProductCatalog;
     if (!PC) return;
     render(PC.getCustomCategories());
+    applyBuiltInEdits();
+  }
+
+  function load() {
+    var PC = window.ProductCatalog;
+    if (!PC) return;
+    refresh();
     if (typeof PC.syncCategoriesFromCloud === 'function') {
-      PC.syncCategoriesFromCloud().then(render);
+      PC.syncCategoriesFromCloud().then(refresh);
     }
   }
 
-  window.addEventListener('categoriesUpdated', function (e) { render(e.detail); });
+  window.addEventListener('categoriesUpdated', refresh);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', load);
