@@ -606,3 +606,5 @@ its own folder, and would still leave the APIs open to `curl`.
 - Identity = `name` + `slug` (never edited). Shown name = `label || name` via
   `ProductCatalog.displayCategoryName()`. Built-in edits live in categories.json as
   `{builtIn:true, id:'builtin-<slug>'}`; `getCustomCategories()` excludes them.
+- Custom-category tour URLs are /c/<slug>/<code> (.htaccess -> tour.html); app.js must
+  special-case the leading "c" segment. Test via local router.php (gitignored).
