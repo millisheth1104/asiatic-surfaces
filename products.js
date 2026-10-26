@@ -44,21 +44,11 @@
      * it and every product, old or new, gets a working address.
      */
     function tourUrlFor(product) {
-        const slug = v => String(v || '')
-            .toLowerCase().trim()
-            .replace(/#/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-        const cat = slug(normalizeCategory(product.category) || 'laminates');
-        const code = slug(product.code || product.slug || product.id || 'product');
-
-        // Only the eight built-in names have a route of their own. A category created
-        // through the admin is served under /c/<slug>/, so its products need that form
-        // or the rewrite would not match and the tour would 404.
-        const PC = window.ProductCatalog;
-        const known = PC && typeof PC.findCategory === 'function' ? PC.findCategory(cat) : null;
-        if (known && known.builtIn === false) return `/c/${known.slug}/${code}`;
-        return `/${cat}/${code}`;
+        // Built in products-data.js, shared with the public category pages. Admin-created
+        // categories get /c/<slug>/<code>.
+        return window.ProductCatalog.tourUrl(Object.assign({}, product, {
+            category: normalizeCategory(product.category)
+        }));
     }
 
     /**

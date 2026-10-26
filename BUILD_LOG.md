@@ -1363,3 +1363,15 @@ path parts, so it looked for code "<slug>" in category "c" -> "Product removed".
 app.js now reads /c/<slug>/<code> correctly; local router.php (untracked) got matching /c/ rules so
 local testing mirrors .htaccess. Reported case: #MX 204 (Lustrous). Built-in tours
 unaffected. Verified both link styles locally.
+
+## 2026-10-26 — added categories behave like the built-in ones
+
+- One tour-link builder, `ProductCatalog.tourUrl()` (products-data.js), used by the
+  category pages and the admin. Built-ins -> /<cat>/<code>, any other -> /c/<slug>/<code>,
+  decided from a fixed list, so first-time visitors (no synced categories yet) no longer
+  get broken 360 links on an added category's page.
+- collection.html also works at its clean address /c/<slug>/ (base href + path parsing).
+- category.html?cat=<added category> now opens that category, not 45 Degree.
+- Side-by-side test, fresh browser: Laminates vs a new category with sheet+360, sheet-only
+  and 360-only products - home tile, page, cards, lightbox, 360 links, tours, admin links
+  all match.

@@ -96,6 +96,20 @@ window.ProductCatalog = (function () {
         return getAllCategories().find(c => c.slug === key || categorySlug(c.name) === key) || null;
     }
 
+    // Category slugs .htaccess routes as /<slug>/<code>: the eight built-ins and old
+    // aliases. Every other category is an admin-created one, served as /c/<slug>/<code>.
+    // Decided from this fixed list, not the synced categories, so a link is right even
+    // before the category list has loaded (a visitor's first page view).
+    const BUILTIN_TOUR_ROUTES = ['45-degree', 'wooden', 'synchro', 'syncro', 'digital',
+        'laminates', 'stone', 'louvers', 'edge-bands', 'edgebands', 'texture'];
+
+    /** The 360 tour link for a product - the one place these links are built. */
+    function tourUrl(product) {
+        const cat = categorySlug(product && product.category) || 'laminates';
+        const code = categorySlug((product && (product.code || product.slug || product.id)) || 'product');
+        return BUILTIN_TOUR_ROUTES.includes(cat) ? `/${cat}/${code}` : `/c/${cat}/${code}`;
+    }
+
     /** The name to show for a category, given its stored name or slug. */
     function displayCategoryName(nameOrSlug) {
         const c = findCategory(nameOrSlug);
@@ -710,6 +724,7 @@ window.ProductCatalog = (function () {
         getCustomCategories,
         findCategory,
         displayCategoryName,
+        tourUrl,
         syncCategoriesFromCloud,
         saveCategory,
         deleteCategory,

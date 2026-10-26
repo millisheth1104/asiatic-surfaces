@@ -24,7 +24,10 @@
         'edgebands': 'edge-bands.html',
         'texture': 'texture.html'
     };
-    var target = map[cat] || '45-degree.html';
+    // Anything else is an admin-created category, shown by collection.html.
+    var slug = (params.get('type') || params.get('cat') || params.get('category') || '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    var target = map[cat] || (slug ? 'collection.html?cat=' + slug : '45-degree.html');
     window.location.replace(target);
 })();
 </script>

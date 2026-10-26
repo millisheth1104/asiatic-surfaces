@@ -395,16 +395,11 @@
         }
       }
 
-      var cleanCat = (prod.category || activeCategory || 'laminates')
-        .toLowerCase().trim().replace(/\s+/g, '-');
-      var cleanCode = (prod.code || prod.slug || prod.id || 'product')
-        .toLowerCase().trim().replace(/#/g, '').replace(/\s+/g, '-');
-      // A category created through the admin is served under /c/<slug>/; only the
-      // built-in names have a route of their own.
-      var known = (window.ProductCatalog && window.ProductCatalog.findCategory)
-        ? window.ProductCatalog.findCategory(cleanCat) : null;
-      var tourBase = (known && known.builtIn === false) ? '/c/' + known.slug : '/' + cleanCat;
-      var tourUrl = (prod.threeD && prod.threeDDataUrl) ? tourBase + '/' + cleanCode : null;
+      // Shared builder: built-ins get /<cat>/<code>, admin-created categories /c/<slug>/<code>,
+      // decided without waiting for the category list to load.
+      var tourUrl = (prod.threeD && prod.threeDDataUrl)
+        ? window.ProductCatalog.tourUrl({ category: prod.category || activeCategory, code: prod.code, slug: prod.slug, id: prod.id })
+        : null;
 
       var figure = document.createElement('figure');
       figure.className = 'sheet is-in';

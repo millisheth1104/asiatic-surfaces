@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Also served at /c/<slug>/; keeps its relative links pointing at the site root. -->
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Collection — Full Sheet View</title>
 <meta name="description" content="A Full Sheet View collection, shown as full sheets.">
@@ -60,7 +62,7 @@
 </footer>
 
 <!-- Shared Product Data Engine & Dynamic Masonry Gallery -->
-<script src="products-data.js?v=4.5"></script>
+<script src="products-data.js?v=4.6"></script>
 
 
 <script>
@@ -69,7 +71,9 @@
    injected here rather than declared above: the name comes from the API. */
 (function () {
   var params = new URLSearchParams(window.location.search);
-  var slug = (params.get('cat') || params.get('category') || '').toLowerCase();
+  // ?cat=<slug>, or the clean form /c/<slug>/ that .htaccess rewrites here.
+  var pathHit = window.location.pathname.match(/^\/c\/([a-z0-9-]+)\/?$/i);
+  var slug = (params.get('cat') || params.get('category') || (pathHit ? pathHit[1] : '')).toLowerCase();
 
   function titleCase(s) {
     return s.replace(/-/g, ' ').replace(/\w/g, function (m) { return m.toUpperCase(); });
@@ -91,7 +95,7 @@
 
   function startGallery() {
     var tag = document.createElement('script');
-    tag.src = 'assets/js/gallery.js?v=4.3';
+    tag.src = 'assets/js/gallery.js?v=4.4';
     document.body.appendChild(tag);
   }
 
