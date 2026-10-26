@@ -177,7 +177,11 @@
         let targetCode = null;
         const pathSegments = window.location.pathname.split('/').filter(Boolean);
 
-        if (pathSegments.length >= 2) {
+        if (pathSegments[0] === 'c' && pathSegments.length >= 3) {
+            // Admin-created category: /c/<category>/<code>
+            targetCategory = decodeURIComponent(pathSegments[1]).toLowerCase().replace(/-/g, ' ');
+            targetCode = decodeURIComponent(pathSegments[2]).replace('.html', '');
+        } else if (pathSegments.length >= 2) {
             // e.g. /fabric/4011 or /laminates/4006
             targetCategory = decodeURIComponent(pathSegments[0]).toLowerCase().replace(/-/g, ' ');
             targetCode = decodeURIComponent(pathSegments[1]).replace('.html', '');

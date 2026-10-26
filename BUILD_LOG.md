@@ -1355,3 +1355,11 @@ products.css): remove category, delete product, sign out, session expired. Destr
 actions are red with focus on Cancel; Escape / outside click cancel; only one
 session-expired notice even if several requests fail. "remove" in the category list is
 left-aligned in its slot with more room before the scrollbar.
+
+## 2026-10-26 — tours in admin-made categories showed "Not found"
+
+Tour links for custom categories are /c/<slug>/<code>, but app.js read the first two
+path parts, so it looked for code "<slug>" in category "c" -> "Product removed".
+app.js now reads /c/<slug>/<code> correctly; local router.php (untracked) got matching /c/ rules so
+local testing mirrors .htaccess. Reported case: #MX 204 (Lustrous). Built-in tours
+unaffected. Verified both link styles locally.
