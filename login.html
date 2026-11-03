@@ -155,17 +155,17 @@
   fetch('/api/auth', { credentials: 'same-origin', cache: 'no-store' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      hide('loading');
-      if (data.loggedIn) {
-        window.location.replace(next);
-        return;
-      }
       // Only the Vercel deployment reports this: without a Blob store it has nowhere to
       // keep a password, products or images.
       if (data.storageReady === false) {
         document.getElementById('loading').textContent =
           'Storage is not connected on this Vercel project. Connect a Blob store in the ' +
           'Vercel dashboard (Storage tab), redeploy, then reload this page.';
+        return;
+      }
+      hide('loading');
+      if (data.loggedIn) {
+        window.location.replace(next);
         return;
       }
       if (!data.hasPassword) {
