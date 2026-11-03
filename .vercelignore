@@ -1,0 +1,11 @@
+# Vercel serves this folder as-is. Hostinger blocks these in .htaccess; here they are
+# simply left out of the deployment: project notes, PHP (Hostinger's backend, which
+# Vercel would serve as plain text), scripts and local tooling.
+*.md
+*.php
+.user.ini
+.htaccess
+scripts/
+.kilo/
+.claude/
+server.js

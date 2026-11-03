@@ -556,8 +556,36 @@ window.ProductCatalog = (function () {
     }
 
     // ---- Upload image asset to Vercel Blob (Permanent CDN URL) ----
+    // The Vercel deployment cannot take a request body over 4.5 MB, so there the file goes
+    // from the browser straight to Vercel Blob, with /api/upload only issuing a token.
+    // Hostinger (fullsheetview.in) keeps posting base64 to upload-api.php, unchanged.
+    const IS_VERCEL = /\.vercel\.app$/i.test(window.location.hostname);
+
+    async function uploadViaBlobClient(filename, dataUrl) {
+        const blob = await (await fetch(dataUrl)).blob();
+        const { upload } = await import('https://cdn.jsdelivr.net/npm/@vercel/blob@2.8.0/client/+esm');
+        const cleanName = (filename || 'asset.jpg').replace(/[^a-zA-Z0-9.-]/g, '_');
+        try {
+            const result = await upload('products/' + cleanName, blob, {
+                access: 'public',
+                handleUploadUrl: '/api/upload',
+                contentType: blob.type || 'image/jpeg',
+                multipart: blob.size > 10 * 1024 * 1024
+            });
+            return result && result.url ? result.url : null;
+        } catch (err) {
+            // Not signed in, or the server refused the file: a real answer, not "offline".
+            const e = new Error(err && err.message ? err.message : 'Upload refused by the server');
+            e.refused = true;
+            throw e;
+        }
+    }
+
     async function uploadAssetToBlob(filename, base64Data) {
         if (!base64Data) return null;
+        if (IS_VERCEL && String(base64Data).startsWith('data:')) {
+            return uploadViaBlobClient(filename, base64Data);
+        }
         try {
             const res = await fetch('/api/upload', {
                 method: 'POST',

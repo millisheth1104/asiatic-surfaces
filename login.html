@@ -160,6 +160,14 @@
         window.location.replace(next);
         return;
       }
+      // Only the Vercel deployment reports this: without a Blob store it has nowhere to
+      // keep a password, products or images.
+      if (data.storageReady === false) {
+        document.getElementById('loading').textContent =
+          'Storage is not connected on this Vercel project. Connect a Blob store in the ' +
+          'Vercel dashboard (Storage tab), redeploy, then reload this page.';
+        return;
+      }
       if (!data.hasPassword) {
         show('setupForm');
         document.getElementById('setupPassword').focus();

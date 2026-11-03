@@ -1375,3 +1375,23 @@ unaffected. Verified both link styles locally.
 - Side-by-side test, fresh browser: Laminates vs a new category with sheet+360, sheet-only
   and 360-only products - home tile, page, cards, lightbox, 360 links, tours, admin links
   all match.
+
+## 2026-11-03 - Vercel deployment: admin login, categories, large uploads
+
+**Symptom.** asiatic-surfaces.vercel.app admin showed "Could not reach the server".
+**Cause.** Login (`/api/auth`) and `/api/categories` exist only as PHP (Hostinger). Vercel
+also refuses function bodies over 4.5 MB, so panorama uploads could never work there.
+**Fix (Vercel only - Hostinger untouched, the two stay unlinked):**
+- `api/_lib/auth.js` + `api/auth.js`: same contract as auth-api.php. scrypt hash in Blob
+  (`auth/admin-<random>.json`), HMAC-signed 30-day cookie keyed from BLOB_READ_WRITE_TOKEN +
+  hash (password change ends old sessions). Lockout after 10 failures is per-instance only.
+- `api/categories.js`: categories-api.php contract, stored in Blob; allows Blob thumbnails.
+- `api/products.js`, `api/upload.js`: writes need the session. upload.js handles
+  `@vercel/blob/client` token handshake; products-data.js (v4.7) uploads browser -> Blob
+  directly when the host is *.vercel.app.
+- login.html: says so when `storageReady:false` (no Blob store connected).
+- vercel.json: /c/:cat, /c/:cat/:code, /syncro rewrites. `.vercelignore`: *.md, *.php,
+  scripts - memory.md/BUILD_LOG.md were publicly served on Vercel.
+**Tested:** handlers against a fake Blob API (24 auth/category/product checks + upload
+token handshake). **Not tested:** live Vercel - its Blob store status is unknown (project
+is on the millisheth1104 account).

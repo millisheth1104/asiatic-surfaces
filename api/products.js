@@ -1,4 +1,5 @@
 import { put, list } from '@vercel/blob';
+import { requireAuth } from './_lib/auth.js';
 
 const DEFAULT_PRODUCTS = [
     {
@@ -129,6 +130,9 @@ export default async function handler(req, res) {
             const products = await loadProductsFromCloud();
             return res.status(200).json({ success: true, products: products || DEFAULT_PRODUCTS });
         }
+
+        // Reads stay public; every change needs the admin session, as on Hostinger.
+        if (req.method !== 'GET' && !(await requireAuth(req, res))) return;
 
         if (req.method === 'POST' || req.method === 'PUT') {
             const body = req.body || {};

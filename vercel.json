@@ -44,6 +44,18 @@
       "destination": "/tour.html"
     },
     {
+      "source": "/syncro/:code*",
+      "destination": "/tour.html"
+    },
+    {
+      "source": "/c/:cat/:code",
+      "destination": "/tour.html?cat=:cat&code=:code"
+    },
+    {
+      "source": "/c/:cat",
+      "destination": "/collection.html?cat=:cat"
+    },
+    {
       "source": "/home",
       "destination": "/index.html"
     }

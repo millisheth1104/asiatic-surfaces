@@ -1,32 +1,55 @@
 import { put } from '@vercel/blob';
+import { handleUpload } from '@vercel/blob/client';
+import { requireAuth, isLoggedIn } from './_lib/auth.js';
 
+// Vercel refuses any function request body over 4.5 MB, so a panorama (~6-8 MB as JPEG,
+// more as base64) can never arrive here as data. Large files go browser -> Blob directly:
+// this route only hands out a short-lived upload token (the "blob.generate-client-token"
+// request from @vercel/blob/client). Small files may still be posted as base64.
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '25mb'
+            sizeLimit: '4.5mb'
         }
     }
 };
 
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;   // same ceiling as Hostinger's upload-api.php
+
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    const body = req.body || {};
+
+    // Client upload handshake. The completion callback comes from Vercel's servers with
+    // no cookie; handleUpload verifies that one by its signature instead.
+    if (body.type === 'blob.generate-client-token' || body.type === 'blob.upload-completed') {
+        try {
+            const result = await handleUpload({
+                body,
+                request: req,
+                onBeforeGenerateToken: async () => {
+                    if (!(await isLoggedIn(req))) throw new Error('Sign in required');
+                    return {
+                        allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+                        maximumSizeInBytes: MAX_UPLOAD_BYTES,
+                        addRandomSuffix: true
+                    };
+                }
+            });
+            return res.status(200).json(result);
+        } catch (err) {
+            const authFail = /sign in/i.test(err.message);
+            return res.status(authFail ? 401 : 400).json({ error: err.message });
+        }
+    }
+
+    if (!(await requireAuth(req, res))) return;
+
     try {
-        const { filename, base64Data, contentType } = req.body || {};
+        const { filename, base64Data, contentType } = body;
 
         if (!base64Data) {
             return res.status(400).json({ error: 'Missing base64Data in upload request body' });
